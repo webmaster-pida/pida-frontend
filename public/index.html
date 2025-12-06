@@ -1655,6 +1655,20 @@
                 dom.dlAnaDoc.onclick = () => { const t = "Analisis Documentos"; Exporter.downloadDOCX(Utils.getTimestampedFilename(t), t, [state.anaText]); };
                 dom.dlAnaTxt.onclick = () => { const t = "Analisis Documentos"; Exporter.downloadTXT(Utils.getTimestampedFilename(t), t, [state.anaText]); };
 
+				//Enviar email de restablecimiento de contraseña
+				dom.accReset.onclick = () => {
+    				if (confirm("¿Enviar correo para restablecer contraseña a " + user.email + "?")) {
+        				auth.sendPasswordResetEmail(user.email)
+            				.then(() => {
+                				alert("✅ Correo enviado. Revisa tu bandeja de entrada (y spam).");
+           				 	})
+            					.catch((error) => {
+               				 		console.error(error);
+                					alert("❌ Error: " + error.message);
+           				 	});
+    				}
+				};
+				
                 // Billing Portal Logic
                  dom.accBilling.onclick = async () => {
                     dom.accBilling.innerText = "Cargando...";
