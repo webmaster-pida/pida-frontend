@@ -791,9 +791,6 @@
             corp:  'price_1SaPn7GaDEQrzamxdk96YPUh'
         };
         
-        const AUTHORIZED_DOMAINS = ['pida-ai.com', 'iiresodh.org'];
-        const AUTHORIZED_EMAILS = ['admin@test.com']; 
-
         const PIDA_CONFIG = {
             API_CHAT: "https://chat-v20-465781488910.us-central1.run.app",
             API_ANA: "https://analize-v20-465781488910.us-central1.run.app",
@@ -1051,14 +1048,10 @@
 
             // --- ACCESS CHECK FUNCTION ---
             async function checkAccessAuthorization(user) {
-                const email = user.email.toLowerCase();
-                const domain = email.split('@')[1];
+                // Ya no verificamos dominios aquí, dejamos que Cloud Run lo haga.
                 
-                if (AUTHORIZED_EMAILS.includes(email) || AUTHORIZED_DOMAINS.includes(domain)) {
-                    console.log("Access Granted: Whitelisted");
-                    return true;
-                }
-
+                // Mantenemos la verificación de suscripción solo para registro/logs,
+                // pero no bloquearemos si falla.
                 try {
                     const subscriptionsRef = db.collection('customers')
                         .doc(user.uid)
@@ -1075,7 +1068,11 @@
                 } catch (error) {
                     console.error("Error checking subscription:", error);
                 }
-                return false;
+
+                // CAMBIO CLAVE: Devolvemos TRUE (permitir) por defecto.
+                // Si el usuario no tiene permiso, el Backend (Python) devolverá error 403.
+                console.log("Delegating authorization to Backend...");
+                return true; 
             }
 
             // 4. UI Handlers (Login)
