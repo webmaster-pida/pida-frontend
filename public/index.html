@@ -1833,6 +1833,55 @@
                     a.click();
                 };
 				
+				// LÓGICA PARA ACTUALIZAR NOMBRE (VERSIÓN SILENCIOSA)
+				dom.accUpdate.onclick = async () => {
+    				const firstName = dom.accFirst.value.trim();
+    				const lastName = dom.accLast.value.trim();
+    
+    				// Función auxiliar para mostrar notificaciones suaves en el área designada
+    				const showQuietNotification = (msg, type) => {
+        				// type puede ser 'success' (verde) o 'error' (rojo)
+        				dom.accNotify.innerHTML = `<div class="pida-notification ${type}">${msg}</div>`;
+        				// El mensaje desaparece solo a los 3 segundos
+        				setTimeout(() => {
+            				dom.accNotify.innerHTML = '';
+        				}, 3000);
+    				};
+
+    				if (!firstName && !lastName) {
+        				showQuietNotification("Ingresa un nombre para actualizar.", "error");
+        				return;
+    				}
+
+    				const newDisplayName = `${firstName} ${lastName}`.trim();
+    				const originalText = dom.accUpdate.textContent;
+    
+    				// Feedback visual sutil en el botón
+    				dom.accUpdate.textContent = "Guardando...";
+    				dom.accUpdate.disabled = true;
+
+    				try {
+        				// 1. Actualizar en Firebase Auth
+        				await user.updateProfile({
+            				displayName: newDisplayName
+        				});
+
+        				// 2. Actualizar UI inmediata
+        				dom.pName.textContent = newDisplayName;
+        
+        				// 3. Notificación tranquila (barra verde integrada)
+        				showQuietNotification("Nombre actualizado correctamente.", "success");
+        
+    				} catch (error) {
+        				console.error("Error:", error);
+        				// Notificación de error tranquila (barra roja integrada)
+        				showQuietNotification("No se pudo actualizar. Intenta de nuevo.", "error");
+    				} finally {
+        				// Restaurar botón
+        				dom.accUpdate.textContent = originalText;
+        				dom.accUpdate.disabled = false;
+    				}
+				};
 				
                 // Billing Portal Logic
                  dom.accBilling.onclick = async () => {
