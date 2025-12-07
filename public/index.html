@@ -1048,32 +1048,31 @@
 
             // --- ACCESS CHECK FUNCTION ---
             async function checkAccessAuthorization(user) {
-                // Ya no verificamos dominios aquí, dejamos que Cloud Run lo haga.
-                
-                // Mantenemos la verificación de suscripción solo para registro/logs,
-                // pero no bloquearemos si falla.
-                try {
-                    const subscriptionsRef = db.collection('customers')
-                        .doc(user.uid)
-                        .collection('subscriptions');
-                    
-                    const snapshot = await subscriptionsRef
-                        .where('status', 'in', ['active', 'trialing'])
-                        .get();
+    			console.log("Verificando suscripción para:", user.uid);
+    			try {
+        			const subscriptionsRef = db.collection('customers')
+            			.doc(user.uid)
+            			.collection('subscriptions');
+        
+        			// Buscamos suscripciones activas o en periodo de prueba
+        			const snapshot = await subscriptionsRef
+            			.where('status', 'in', ['active', 'trialing'])
+            			.get();
 
-                    if (!snapshot.empty) {
-                        console.log("Access Granted: Active Subscription Found");
-                        return true;
-                    }
-                } catch (error) {
-                    console.error("Error checking subscription:", error);
-                }
+        			if (!snapshot.empty) {
+            			console.log("Acceso Concedido: Suscripción activa encontrada");
+            			return true; // TIENE SUSCRIPCIÓN -> ENTRA
+        			}
+    			} catch (error) {
+        			console.error("Error al verificar suscripción:", error);
+        			// En caso de error técnico, decidimos si bloquear o dejar pasar. 
+        			// Para un paywall estricto, mejor devolver false.
+       	 		return false; 
+    			}
 
-                // CAMBIO CLAVE: Devolvemos TRUE (permitir) por defecto.
-                // Si el usuario no tiene permiso, el Backend (Python) devolverá error 403.
-                console.log("Delegating authorization to Backend...");
-                return true; 
-            }
+    			console.log("Acceso Denegado: No se encontró suscripción activa");
+    			return false; // NO TIENE SUSCRIPCIÓN -> NO ENTRA (Se va al Paywall)
+			}
 
             // 4. UI Handlers (Login)
             document.querySelectorAll('.trigger-login').forEach(btn => {
