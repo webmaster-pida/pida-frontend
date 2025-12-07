@@ -1647,10 +1647,6 @@
                     });
                 }
 
-                dom.dlChatPdf.onclick = () => { const t = state.currentChat.title || "Chat"; Exporter.downloadPDF(Utils.getTimestampedFilename(t), t, state.currentChat.messages); };
-                dom.dlChatDoc.onclick = () => { const t = state.currentChat.title || "Chat"; Exporter.downloadDOCX(Utils.getTimestampedFilename(t), t, state.currentChat.messages); };
-                dom.dlChatTxt.onclick = () => { const t = state.currentChat.title || "Chat"; Exporter.downloadTXT(Utils.getTimestampedFilename(t), t, state.currentChat.messages); };
-
 				//Enviar email de restablecimiento de contraseña
 				dom.accReset.onclick = () => {
     				if (confirm("¿Enviar correo para restablecer contraseña a " + user.email + "?")) {
@@ -1665,9 +1661,100 @@
     				}
 				};
 
-
 				// ============================================================
-                // NUEVA LÓGICA DE DESCARGA DESDE EL BACKEND
+                // LOGICA DESCARGA DE CHAT USANDO EL BACKEND (PDF/DOCX)
+                // ============================================================
+                
+                async function downloadChatFromBackend(format) {
+                    // 1. Verificar si hay mensajes
+                    if (!state.currentChat || !state.currentChat.messages || state.currentChat.messages.length === 0) {
+                        return alert("No hay conversación para descargar.");
+                    }
+
+                    const btn = format === 'pdf' ? dom.dlChatPdf : dom.dlChatDoc;
+                    const originalText = btn.textContent;
+                    btn.textContent = "Generando...";
+                    btn.disabled = true;
+
+                    try {
+                        // 2. Convertir el array de mensajes a texto plano con formato para el backend
+                        let chatContent = "";
+                        state.currentChat.messages.forEach(msg => {
+                            const role = msg.role === 'user' ? 'Usuario' : 'PIDA';
+                            // Limpiamos contenido
+                            let cleanContent = msg.content || "";
+                            chatContent += `**${role}**:\n${cleanContent}\n\n`;
+                        });
+
+                        const title = state.currentChat.title || "Historial de Chat";
+
+                        // 3. Preparar envío al Backend
+                        const fd = new FormData();
+                        fd.append('chat_text', chatContent);
+                        fd.append('title', title);
+                        fd.append('file_format', format); // 'pdf' o 'docx'
+
+                        // Obtener token de seguridad
+                        let token = "";
+                        if (auth.currentUser) {
+                            token = await auth.currentUser.getIdToken();
+                        }
+
+                        // 4. Llamada al Backend
+                        const response = await fetch(`${PIDA_CONFIG.API_CHAT}/download-chat`, {
+                            method: 'POST',
+                            headers: { 
+                                'Authorization': 'Bearer ' + token
+                            },
+                            body: fd
+                        });
+
+                        if (!response.ok) {
+                            const errText = await response.text();
+                            throw new Error(`Error del servidor: ${errText}`);
+                        }
+
+                        // 5. Descargar el archivo generado
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        
+                        // Obtener nombre del archivo del header o generarlo
+                        const contentDisp = response.headers.get('Content-Disposition');
+                        let fileName = `PIDA_Chat_${new Date().getTime()}.${format}`;
+                        if (contentDisp && contentDisp.includes('filename=')) {
+                            fileName = contentDisp.split('filename=')[1].replace(/['"]/g, '');
+                        }
+                        
+                        a.download = fileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+
+                    } catch (e) {
+                        console.error("Error descarga chat:", e);
+                        alert("Error al generar el documento: " + e.message);
+                    } finally {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                    }
+                }
+
+                // Asignar los botones a la nueva función corregida (PDF y DOCX van al Backend)
+                dom.dlChatPdf.onclick = () => downloadChatFromBackend('pdf');
+                dom.dlChatDoc.onclick = () => downloadChatFromBackend('docx');
+                
+                // El TXT lo mantenemos local (re-escrito aquí) porque es simple y funciona
+                dom.dlChatTxt.onclick = () => { 
+                    const t = state.currentChat.title || "Chat"; 
+                    Exporter.downloadTXT(Utils.getTimestampedFilename(t), t, state.currentChat.messages); 
+                };
+
+				
+				// ============================================================
+                // LÓGICA DE DESCARGA ANALISIS DESDE EL BACKEND
                 // ============================================================
                 
                 async function downloadAnalysisFromBackend(format) {
