@@ -1650,9 +1650,6 @@
                 dom.dlChatPdf.onclick = () => { const t = state.currentChat.title || "Chat"; Exporter.downloadPDF(Utils.getTimestampedFilename(t), t, state.currentChat.messages); };
                 dom.dlChatDoc.onclick = () => { const t = state.currentChat.title || "Chat"; Exporter.downloadDOCX(Utils.getTimestampedFilename(t), t, state.currentChat.messages); };
                 dom.dlChatTxt.onclick = () => { const t = state.currentChat.title || "Chat"; Exporter.downloadTXT(Utils.getTimestampedFilename(t), t, state.currentChat.messages); };
-                dom.dlAnaPdf.onclick = () => { const t = "Analisis Documentos"; Exporter.downloadPDF(Utils.getTimestampedFilename(t), t, [state.anaText]); };
-                dom.dlAnaDoc.onclick = () => { const t = "Analisis Documentos"; Exporter.downloadDOCX(Utils.getTimestampedFilename(t), t, [state.anaText]); };
-                dom.dlAnaTxt.onclick = () => { const t = "Analisis Documentos"; Exporter.downloadTXT(Utils.getTimestampedFilename(t), t, [state.anaText]); };
 
 				//Enviar email de restablecimiento de contraseña
 				dom.accReset.onclick = () => {
@@ -1667,6 +1664,89 @@
            				 	});
     				}
 				};
+
+
+				// ============================================================
+                // NUEVA LÓGICA DE DESCARGA DESDE EL BACKEND
+                // ============================================================
+                
+                async function downloadAnalysisFromBackend(format) {
+                    if (!state.anaText) return alert("No hay análisis para descargar.");
+                    
+                    const btn = format === 'pdf' ? dom.dlAnaPdf : dom.dlAnaDoc;
+                    const originalText = btn.textContent;
+                    btn.textContent = "⌛"; // Indicador de carga
+                    btn.disabled = true;
+
+                    try {
+                        // 1. Preparamos los datos
+                        const fd = new FormData();
+                        fd.append('analysis_text', state.anaText);
+                        // Usamos las instrucciones del usuario o un título genérico
+                        fd.append('instructions', dom.anaInst.value || "Resultados del Análisis");
+                        fd.append('file_format', format); // 'pdf' o 'docx'
+
+                        // 2. Obtenemos el token de seguridad
+                        const token = await currentUser.getIdToken();
+                        
+                        // 3. Solicitamos el archivo al Backend (Python)
+                        const response = await fetch(`${PIDA_CONFIG.API_ANA}/download-analysis`, {
+                            method: 'POST',
+                            headers: { 
+                                'Authorization': 'Bearer ' + token
+                            },
+                            body: fd
+                        });
+
+                        if (!response.ok) {
+                            const errText = await response.text();
+                            throw new Error(`Error del servidor: ${errText}`);
+                        }
+
+                        // 4. Convertimos la respuesta en descarga
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        
+                        // Intentar obtener el nombre del archivo correcto
+                        const contentDisp = response.headers.get('Content-Disposition');
+                        let fileName = `PIDA_Analisis_${new Date().getTime()}.${format}`;
+                        if (contentDisp && contentDisp.includes('filename=')) {
+                            fileName = contentDisp.split('filename=')[1].replace(/['"]/g, '');
+                        }
+                        
+                        a.download = fileName;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+
+                    } catch (e) {
+                        console.error(e);
+                        alert("Error al descargar: " + e.message);
+                    } finally {
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                    }
+                }
+
+                // Asignamos los botones a la nueva función
+                dom.dlAnaPdf.onclick = () => downloadAnalysisFromBackend('pdf');
+                dom.dlAnaDoc.onclick = () => downloadAnalysisFromBackend('docx');
+
+                // Lógica mejorada para TXT (Local)
+                dom.dlAnaTxt.onclick = () => {
+                    if (!state.anaText) return;
+                    const content = `INSTRUCCIONES:\n${dom.anaInst.value}\n\n----------------\nANÁLISIS:\n\n${state.anaText}`;
+                    const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = Utils.getTimestampedFilename("Analisis") + ".txt";
+                    a.click();
+                };
+				
 				
                 // Billing Portal Logic
                  dom.accBilling.onclick = async () => {
