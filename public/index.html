@@ -1098,42 +1098,65 @@
                 console.error("Critical Firebase Error:", firebaseError);
             }
 
-            // --- ACCESS CHECK FUNCTION ---
-            async function checkAccessAuthorization(user) {
-    			console.log("Verificando suscripción para:", user.uid);
+
+			// --- ACCESS CHECK FUNCTION (Opción B: Delegar al Backend) ---
+			async function checkAccessAuthorization(user) {
+    			console.log("Consultando autorización con el Backend para:", user.email);
+    
     			try {
-        			const subscriptionsRef = db.collection('customers')
-            			.doc(user.uid)
-            			.collection('subscriptions');
+        			// 1. Obtenemos el token de seguridad del usuario
+        			const token = await user.getIdToken();
         
-        			// Buscamos suscripciones activas o en periodo de prueba
-        			const snapshot = await subscriptionsRef
-            			.where('status', 'in', ['active', 'trialing'])
-            			.get();
+        			// 2. Hacemos una consulta ligera al Backend
+        			// El Backend verificará internamente si es Admin (VIP) o si tiene Suscripción activa.
+        			const response = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations`, {
+            			method: 'GET',
+            			headers: {
+                			'Authorization': 'Bearer ' + token,
+                			'Content-Type': 'application/json'
+            			}
+        			});
 
-        			if (!snapshot.empty) {
-            			console.log("Acceso Concedido: Suscripción activa encontrada");
-            			return true; // TIENE SUSCRIPCIÓN -> ENTRA
+        			// 3. Si el Backend dice OK (200), el usuario tiene permiso (VIP o Pago)
+        			if (response.ok) {
+            			console.log("✅ Acceso autorizado por el Backend.");
+            			return true;
+        			} 
+        
+        			// 4. Si el Backend dice Prohibido (403), es porque no pagó y no es VIP
+        			if (response.status === 403) {
+            			console.warn("⛔ Acceso denegado por el Backend (403).");
+            			return false; // Se va al Paywall
         			}
-    			} catch (error) {
-        			console.error("Error al verificar suscripción:", error);
-        			// En caso de error técnico, decidimos si bloquear o dejar pasar. 
-        			// Para un paywall estricto, mejor devolver false.
-       	 		return false; 
-    			}
 
-    			console.log("Acceso Denegado: No se encontró suscripción activa");
-    			return false; // NO TIENE SUSCRIPCIÓN -> NO ENTRA (Se va al Paywall)
+    			} catch (error) {
+        			console.error("Error de conexión al validar acceso, intentando respaldo local:", error);
+        			// Si el backend no responde, intentamos verificar suscripción localmente
+        			return await checkSubscriptionLocalFallback(user);
+    			}
+    
+    			return false;
 			}
 
-            // 4. UI Handlers (Login)
-            document.querySelectorAll('.trigger-login').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    if (loginScreen) loginScreen.style.display = 'flex';
-                    switchAuthMode('login'); // Reset to login default
-                });
-            });
+			// Función de respaldo por si el Backend está caído o inaccesible
+			async function checkSubscriptionLocalFallback(user) {
+    			try {
+        			const snapshot = await db.collection('customers')
+            			.doc(user.uid)
+            			.collection('subscriptions')
+            			.where('status', 'in', ['active', 'trialing'])
+            			.get();
+        
+        			if (!snapshot.empty) {
+            			console.log("✅ Acceso concedido por respaldo local.");
+            			return true;
+        			}
+    			} catch (e) { 
+        			console.error("Fallo en respaldo local:", e); 
+    			}
+    			return false;
+			}
+
 
             // HANDLE AUTH FORM (Login / Register explicit)
             document.getElementById('login-form').addEventListener('submit', async (e) => {
