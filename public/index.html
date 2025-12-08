@@ -1341,7 +1341,7 @@
 
                 dom.pName.textContent = user.displayName || 'Usuario';
                 dom.pEmail.textContent = user.email;
-                dom.pAvatar.src = user.photoURL || 'https://pida-ai.com/wp-content/uploads/2025/10/PIDA-logo-P3-80.png';
+                dom.pAvatar.src = user.photoURL || 'img/PIDA_logo-P3-80.png';
                 
                 dom.pLogout.onclick = () => {
                     auth.signOut().then(() => {
