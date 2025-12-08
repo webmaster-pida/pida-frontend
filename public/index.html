@@ -1180,12 +1180,37 @@
                 }
             });
 
-            document.getElementById('google-login-btn').addEventListener('click', async () => {
-                const msg = document.getElementById('login-message');
-                msg.style.display = 'none';
-                try { await auth.signInWithPopup(googleProvider); } 
-                catch (error) { msg.style.display = 'block'; msg.textContent = "Error Google: " + error.message; }
-            });
+            // CORRECCIÓN: Lógica híbrida (Popup en PC, Redirect en Móvil)
+			document.getElementById('google-login-btn').addEventListener('click', async () => {
+    			const msg = document.getElementById('login-message');
+    			msg.style.display = 'none';
+    
+    			// Detectar si es dispositivo móvil
+    			const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    			try { 
+        			if (isMobile) {
+            			// En móvil usamos REDIRECT (más seguro y estable)
+            			await auth.signInWithRedirect(googleProvider);
+        			} else {
+            			// En PC usamos POPUP (más cómodo, no recarga la página)
+            			await auth.signInWithPopup(googleProvider);
+        			}
+    			} 
+    			catch (error) { 
+        			console.error(error);
+        			msg.style.display = 'block'; 
+        			msg.textContent = "Error Google: " + error.message; 
+    			}
+			});
+			
+			auth.getRedirectResult().catch((error) => {
+    			const msg = document.getElementById('login-message');
+    			if (msg) {
+        			msg.style.display = 'block';
+        			msg.textContent = "Error al regresar de Google: " + error.message;
+    			}
+			});
 
             // 5. CHECKOUT LOGIC (STRIPE EXTENSION - PRO VERSION)
             async function startCheckout(priceId) {
