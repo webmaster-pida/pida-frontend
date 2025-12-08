@@ -1138,42 +1138,39 @@
                     msg.style.display = 'block';
                     
                     if (authMode === 'login') {
-            			btn.textContent = 'Ingresar';
-            
-            			// Si el usuario no existe al intentar INGRESAR:
-            			if (error.code === 'auth/user-not-found') {
-                			// 1. Cambiamos la pestaña a 'Crear Cuenta'
-                			switchAuthMode('register');
-                			// 2. Mostramos un mensaje claro para que complete el registro
-                			msg.textContent = "¡Bienvenido! No encontramos tu cuenta. Por favor, completa la información y haz click en 'Registrarse'.";
-            			} 
-            			// Manejo de credenciales incorrectas
-            			else if (error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential' || error.code === 'auth/invalid-login-credentials') {
-                			msg.textContent = "Contraseña incorrecta o credenciales inválidas. Intenta de nuevo.";
-            			} 
-            			// Otros errores
-            			else {
-                			msg.textContent = "Error de ingreso: " + error.message;
-            			}
-        			} else { // authMode === 'register'
-            			btn.textContent = 'Registrarse';
-            
-            			// Si el email ya existe al intentar REGISTRARSE:
-            			if (error.code === 'auth/email-already-in-use') {
-                			// 1. Cambiamos la pestaña a 'Ingresar'
-                			switchAuthMode('login');
-                			// 2. Mostramos un mensaje para que inicie sesión
-                			msg.textContent = "Ya tienes una cuenta. Por favor, ingresa tu contraseña para acceder.";
-            			} 
-            			// Manejo de contraseña débil
-            			else if (error.code === 'auth/weak-password') {
-                			msg.textContent = "La contraseña es muy débil (mínimo 6 caracteres).";
-            			} 
-            			// Otros errores de registro
-            			else {
-                			msg.textContent = "Error al crear cuenta: " + error.message;
-            			}
-        			}
+                        btn.textContent = 'Ingresar';
+                        
+                        // Si el error es explícitamente una contraseña incorrecta (o la combinación genérica que Firebase usa para eso)
+                        if (error.code === 'auth/wrong-password') {
+                            msg.textContent = "Contraseña incorrecta. Intenta de nuevo.";
+                        } 
+                        // Para CUALQUIER OTRA FALLA DE LOGIN (user-not-found, invalid-credential, etc.), 
+                        // asumimos que el usuario no existe y lo enviamos a registrarse.
+                        else {
+                            // 1. Cambiamos la pestaña a 'Crear Cuenta'
+                            switchAuthMode('register');
+                            // 2. Mostramos un mensaje claro para que complete el registro
+                            msg.textContent = "¡Bienvenido! No encontramos tu cuenta. Por favor, regístrate para acceder a los planes.";
+                        }
+                    } else { // authMode === 'register'
+                        btn.textContent = 'Registrarse';
+                        
+                        // Si el email ya existe al intentar REGISTRARSE:
+                        if (error.code === 'auth/email-already-in-use') {
+                            // 1. Cambiamos la pestaña a 'Ingresar'
+                            switchAuthMode('login');
+                            // 2. Mostramos un mensaje para que inicie sesión
+                            msg.textContent = "Ya tienes una cuenta registrada. Por favor, ingresa tu contraseña para acceder.";
+                        } 
+                        // Manejo de contraseña débil
+                        else if (error.code === 'auth/weak-password') {
+                            msg.textContent = "La contraseña es muy débil (mínimo 6 caracteres).";
+                        } 
+                        // Otros errores de registro
+                        else {
+                            msg.textContent = "Error al crear cuenta: " + error.message;
+                        }
+                    }
                 }
             });
 
