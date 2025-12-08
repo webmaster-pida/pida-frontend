@@ -1046,32 +1046,62 @@
                 console.error("Critical Firebase Error:", firebaseError);
             }
 
-            // --- ACCESS CHECK FUNCTION ---
-            async function checkAccessAuthorization(user) {
-    			console.log("Verificando suscripción para:", user.uid);
+			// --- ACCESO CHECK FUNCTION (MODIFICADO) ---
+			async function checkAccessAuthorization(user) {
+    			console.log("Verificando acceso para:", user.email);
+    			const headers = await Utils.getHeaders(user);
+    			if (!headers) return false;
+
+    			// 1. Verificar Suscripción de Pago (Lógica actual)
     			try {
         			const subscriptionsRef = db.collection('customers')
             			.doc(user.uid)
             			.collection('subscriptions');
         
-        			// Buscamos suscripciones activas o en periodo de prueba
         			const snapshot = await subscriptionsRef
             			.where('status', 'in', ['active', 'trialing'])
             			.get();
 
         			if (!snapshot.empty) {
-            			console.log("Acceso Concedido: Suscripción activa encontrada");
-            			return true; // TIENE SUSCRIPCIÓN -> ENTRA
+            			console.log("Acceso Concedido: Suscripción activa encontrada.");
+            			return true;
         			}
     			} catch (error) {
-        			console.error("Error al verificar suscripción:", error);
-        			// En caso de error técnico, decidimos si bloquear o dejar pasar. 
-        			// Para un paywall estricto, mejor devolver false.
-       	 		return false; 
+        			console.error("Error al verificar Stripe:", error);
+        			// Continuamos al chequeo VIP/Admin
     			}
 
-    			console.log("Acceso Denegado: No se encontró suscripción activa");
-    			return false; // NO TIENE SUSCRIPCIÓN -> NO ENTRA (Se va al Paywall)
+    			// 2. Verificar Acceso VIP/Admin (Nueva lógica: Consulta al backend)
+    			try {
+        			console.log("Verificando acceso VIP/Admin a través de Cloud Run...");
+        
+        			// Llama al nuevo endpoint
+        			const response = await fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, {
+            			method: 'POST', 
+            			headers: headers
+        			});
+
+        			if (!response.ok) {
+            			console.error("Fallo la petición VIP:", response.status);
+            			// Si el backend responde 401/403, es denegado
+            			return false;
+        			}
+
+        			const result = await response.json();
+        
+        			if (result.is_vip_user) {
+            			console.log("Acceso Concedido: Usuario VIP/Admin detectado por el backend.");
+            			return true;
+        			}
+
+    			} catch (error) {
+        			console.error("Error durante la verificación VIP:", error);
+        			// Si el API falla por conexión, por seguridad, denegamos.
+        			return false;
+    			}
+
+    			console.log("Acceso Denegado: No se encontró suscripción activa ni estatus VIP/Admin.");
+    			return false;
 			}
 
             // 4. UI Handlers (Login)
