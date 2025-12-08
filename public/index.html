@@ -75,11 +75,6 @@
             --pida-border: #E5E7EB; --pida-font: 'Inter', sans-serif;
         }
 
-		img {
-    	max-width: 100%;
-    	height: auto;
-		}
-		
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html { scroll-behavior: smooth; font-size: 16px; }
         body { background-color: var(--white); color: var(--navy); font-family: var(--font-body); line-height: 1.6; overflow-x: hidden; -webkit-font-smoothing: antialiased; transition: margin-top 0.3s ease; }
@@ -174,51 +169,8 @@
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         @keyframes spin { 100% { transform: rotate(360deg); } }
         @keyframes breathe { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.1); opacity: 1; } }
-		@media (max-width: 900px) {
-    		/* Mantiene las columnas en una sola fila (lo que ya tenías) */
-    		.hero-grid, .pricing-compact, .bento-grid, .footer-cols { 
-        		grid-template-columns: 1fr; 
-        		gap: 40px; 
-    		} 
+        @media (max-width: 900px) { .hero-grid, .pricing-compact, .bento-grid, .footer-cols { grid-template-columns: 1fr; gap: 40px; } .hero { padding-top: 100px; text-align: center; } .hero-visual { height: 300px; margin-top: 40px; } .bento-wide { grid-column: span 1; } }
 
-    		/* Ajustes del contenedor principal para que no se pegue a los bordes */
-    		.hero { 
-        		padding-top: 100px; 
-        		text-align: center; 
-        		padding-left: 20px;  /* Margen seguridad izq */
-        		padding-right: 20px; /* Margen seguridad der */
-        		overflow-x: hidden;  /* Evita scroll horizontal */
-    		} 
-
-    		/* REDUCCIÓN DE TÍTULO (La clave para que no se corte) */
-    		.hero h1 {
-        		font-size: 2.2rem; /* Antes era 3.5rem (muy grande) */
-        		line-height: 1.2;
-    		}
-
-    		/* Ajuste de descripción */
-    		.hero-desc {
-        		font-size: 1rem;
-    		}
-
-    		/* CONTROL DE IMÁGENES (Mascota y Persona) */
-    		.hero-content img, 
-    		.hero-grid > div > img { 
-        		max-width: 80%;      /* Las reduce un poco para que se vean bien */
-        		margin: 0 auto;      /* Las centra */
-        		display: block;
-    		}
-
-    		/* Ajuste de la visualización flotante */
-    		.hero-visual { 
-        		height: 300px; 
-        		margin-top: 40px; 
-    		} 
-
-    		.bento-wide { 
-        		grid-column: span 1; 
-    		} 
-		}
         /* =========================================
            2. ESTILOS DE LA APP
            ========================================= */
@@ -720,8 +672,7 @@
                 <nav class="pida-main-nav">
                     <button id="nav-investigador" type="button" class="app-nav-link active"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18.031 16.6168L22.3137 20.8995L20.8995 22.3137L16.6168 18.031C15.0769 19.263 13.124 20 11 20C6.032 20 2 15.968 2 11C2 6.032 6.032 2 11 2C15.968 2 20 6.032 20 11C20 13.124 19.263 15.0769 18.031 16.6168ZM11 18C14.866 18 18 11C18 7.13401 14.866 4 11 4C7.13401 4 4 7.13401 4 11C4 14.866 7.13401 18 11 18Z"></path></svg><span>Experto en DDHH</span></button>
                     <button id="nav-analizador" type="button" class="app-nav-link"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15 4H5V20H19V8H15V4ZM3 2.9918C3 2.44405 3.44749 2 3.99826 2H16L21 7V20.9925C21 21.5489 20.5551 22 20.0066 22H3.9934C3.44476 22 3 21.556 3 21.0082V2.9918ZM13 12H7V14H13V12ZM13 16H7V18H13V16Z"></path></svg><span>Analizador Docs</span></button>
-                	<button id="nav-cuenta" type="button" class="app-nav-link"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24"><path fill-rule="evenodd" d="M7.5 6a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM3.751 20.105a8.25 8.25 0 0116.498 0 .75.75 0 01-.437.695A18.683 18.683 0 0112 22.5c-2.786 0-5.433-.608-7.812-1.7a.75.75 0 01-.437-.695z" clip-rule="evenodd" /></svg><span>Mi Cuenta</span></button>
-				</nav>
+                </nav>
                 <div class="pida-sidebar-user">
                     <img id="pida-profile-avatar" src="" class="pida-user-avatar" alt="Avatar" />
                     <div class="pida-user-info" id="sidebar-user-info-click">
@@ -820,9 +771,6 @@
                                 <h3 style="font-size:1rem;color:var(--pida-text-muted);margin-bottom:15px;text-transform:uppercase;">Seguridad</h3>
                                 <button id="acc-reset-btn" class="pida-button-secondary" style="border: 1px solid #ccc; width:100%; padding: 10px; border-radius: 6px;">Restablecer contraseña</button>
                             </div>
-							<div class="account-section" style="border-top:1px solid #eee;padding-top:20px; margin-top: 20px;">
-     							<button id="acc-logout-btn-main" class="pida-button-secondary" style="border: 1px solid #EF4444; color: #EF4444; width:100%; padding: 12px; border-radius: 6px; font-weight: bold; cursor: pointer;">Cerrar Sesión</button>
-							</div>
                         </div>
                     </div>
                 </div>
@@ -1098,65 +1046,42 @@
                 console.error("Critical Firebase Error:", firebaseError);
             }
 
-
-			// --- ACCESS CHECK FUNCTION (Opción B: Delegar al Backend) ---
-			async function checkAccessAuthorization(user) {
-    			console.log("Consultando autorización con el Backend para:", user.email);
-    
+            // --- ACCESS CHECK FUNCTION ---
+            async function checkAccessAuthorization(user) {
+    			console.log("Verificando suscripción para:", user.uid);
     			try {
-        			// 1. Obtenemos el token de seguridad del usuario
-        			const token = await user.getIdToken();
-        
-        			// 2. Hacemos una consulta ligera al Backend
-        			// El Backend verificará internamente si es Admin (VIP) o si tiene Suscripción activa.
-        			const response = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations`, {
-            			method: 'GET',
-            			headers: {
-                			'Authorization': 'Bearer ' + token,
-                			'Content-Type': 'application/json'
-            			}
-        			});
-
-        			// 3. Si el Backend dice OK (200), el usuario tiene permiso (VIP o Pago)
-        			if (response.ok) {
-            			console.log("✅ Acceso autorizado por el Backend.");
-            			return true;
-        			} 
-        
-        			// 4. Si el Backend dice Prohibido (403), es porque no pagó y no es VIP
-        			if (response.status === 403) {
-            			console.warn("⛔ Acceso denegado por el Backend (403).");
-            			return false; // Se va al Paywall
-        			}
-
-    			} catch (error) {
-        			console.error("Error de conexión al validar acceso, intentando respaldo local:", error);
-        			// Si el backend no responde, intentamos verificar suscripción localmente
-        			return await checkSubscriptionLocalFallback(user);
-    			}
-    
-    			return false;
-			}
-
-			// Función de respaldo por si el Backend está caído o inaccesible
-			async function checkSubscriptionLocalFallback(user) {
-    			try {
-        			const snapshot = await db.collection('customers')
+        			const subscriptionsRef = db.collection('customers')
             			.doc(user.uid)
-            			.collection('subscriptions')
+            			.collection('subscriptions');
+        
+        			// Buscamos suscripciones activas o en periodo de prueba
+        			const snapshot = await subscriptionsRef
             			.where('status', 'in', ['active', 'trialing'])
             			.get();
-        
+
         			if (!snapshot.empty) {
-            			console.log("✅ Acceso concedido por respaldo local.");
-            			return true;
+            			console.log("Acceso Concedido: Suscripción activa encontrada");
+            			return true; // TIENE SUSCRIPCIÓN -> ENTRA
         			}
-    			} catch (e) { 
-        			console.error("Fallo en respaldo local:", e); 
+    			} catch (error) {
+        			console.error("Error al verificar suscripción:", error);
+        			// En caso de error técnico, decidimos si bloquear o dejar pasar. 
+        			// Para un paywall estricto, mejor devolver false.
+       	 		return false; 
     			}
-    			return false;
+
+    			console.log("Acceso Denegado: No se encontró suscripción activa");
+    			return false; // NO TIENE SUSCRIPCIÓN -> NO ENTRA (Se va al Paywall)
 			}
 
+            // 4. UI Handlers (Login)
+            document.querySelectorAll('.trigger-login').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (loginScreen) loginScreen.style.display = 'flex';
+                    switchAuthMode('login'); // Reset to login default
+                });
+            });
 
             // HANDLE AUTH FORM (Login / Register explicit)
             document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -1202,37 +1127,12 @@
                 }
             });
 
-            // CORRECCIÓN: Lógica híbrida (Popup en PC, Redirect en Móvil)
-			document.getElementById('google-login-btn').addEventListener('click', async () => {
-    			const msg = document.getElementById('login-message');
-    			msg.style.display = 'none';
-    
-    			// Detectar si es dispositivo móvil
-    			const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
-    			try { 
-        			if (isMobile) {
-            			// En móvil usamos REDIRECT (más seguro y estable)
-            			await auth.signInWithRedirect(googleProvider);
-        			} else {
-            			// En PC usamos POPUP (más cómodo, no recarga la página)
-            			await auth.signInWithPopup(googleProvider);
-        			}
-    			} 
-    			catch (error) { 
-        			console.error(error);
-        			msg.style.display = 'block'; 
-        			msg.textContent = "Error Google: " + error.message; 
-    			}
-			});
-			
-			auth.getRedirectResult().catch((error) => {
-    			const msg = document.getElementById('login-message');
-    			if (msg) {
-        			msg.style.display = 'block';
-        			msg.textContent = "Error al regresar de Google: " + error.message;
-    			}
-			});
+            document.getElementById('google-login-btn').addEventListener('click', async () => {
+                const msg = document.getElementById('login-message');
+                msg.style.display = 'none';
+                try { await auth.signInWithPopup(googleProvider); } 
+                catch (error) { msg.style.display = 'block'; msg.textContent = "Error Google: " + error.message; }
+            });
 
             // 5. CHECKOUT LOGIC (STRIPE EXTENSION - PRO VERSION)
             async function startCheckout(priceId) {
@@ -1404,9 +1304,7 @@
                     dlAnaPdf: document.getElementById('analyzer-download-pdf-btn'),
                     dlAnaDoc: document.getElementById('analyzer-download-docx-btn'),
                     dlAnaTxt: document.getElementById('analyzer-download-txt-btn'),
-                    sidebarUser: document.getElementById('sidebar-user-info-click'),
-					navCuenta: document.getElementById('nav-cuenta'),
-					accLogoutMain: document.getElementById('acc-logout-btn-main')
+                    sidebarUser: document.getElementById('sidebar-user-info-click')
                 };
 
                 let state = { currentView: 'investigador', conversations: [], currentChat: { id: null, title: '', messages: [] }, anaFiles: [], anaText: "", anaHistory: [] };
@@ -1430,7 +1328,6 @@
                     state.currentView = view;
                     dom.navInv.classList.toggle('active', view === 'investigador');
                     dom.navAna.classList.toggle('active', view === 'analizador');
-					dom.navCuenta.classList.toggle('active', view === 'cuenta');
                     dom.viewInv.classList.toggle('hidden', view !== 'investigador');
                     dom.viewAna.classList.toggle('hidden', view !== 'analizador');
                     dom.viewAcc.classList.toggle('hidden', view !== 'cuenta');
@@ -1445,16 +1342,6 @@
                 dom.navAna.onclick = () => setView('analizador');
                 dom.sidebarUser.onclick = () => setView('cuenta');
                 dom.pAvatar.onclick = () => setView('cuenta');
-				dom.accLogoutMain.onclick = () => {
-    				if(confirm("¿Estás seguro de que quieres salir?")) {
-        				auth.signOut().then(() => {
-            				document.getElementById('pida-app-root').style.display = 'none';
-            				document.getElementById('landing-page-root').style.display = 'block';
-            				window.scrollTo(0,0);
-            				currentUser = null;
-        				});
-    				}
-				};
 
                 function toggleDrop(content) {
                     const show = content.classList.contains('show');
