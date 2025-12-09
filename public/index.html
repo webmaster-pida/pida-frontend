@@ -342,6 +342,48 @@
         </div>
     </div>
 
+    <div id="contact-modal" class="pida-overlay hidden" style="z-index: 200005;">
+    <div class="login-card" style="max-width: 500px; text-align: left;">
+        <button class="close-login-btn" id="close-contact-btn" type="button">×</button>
+        
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: var(--pida-primary); margin-top: 0;">Contacto Corporativo</h2>
+            <p style="color: #666; font-size: 0.9rem;">Déjanos tus datos y un asesor te contactará.</p>
+        </div>
+
+        <form id="contact-form">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 600; color: var(--pida-text-muted);">Nombre</label>
+                    <input type="text" id="contact-name" class="login-input" style="margin-bottom: 0;" required>
+                </div>
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 600; color: var(--pida-text-muted);">Empresa</label>
+                    <input type="text" id="contact-company" class="login-input" style="margin-bottom: 0;">
+                </div>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 0.8rem; font-weight: 600; color: var(--pida-text-muted);">Correo Corporativo</label>
+                <input type="email" id="contact-email" class="login-input" style="margin-bottom: 0;" required>
+            </div>
+
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 0.8rem; font-weight: 600; color: var(--pida-text-muted);">Teléfono</label>
+                <input type="tel" id="contact-phone" class="login-input" style="margin-bottom: 0;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 0.8rem; font-weight: 600; color: var(--pida-text-muted);">Mensaje o Requerimiento</label>
+                <textarea id="contact-message" class="login-input" style="margin-bottom: 0; min-height: 80px; font-family: inherit;" required></textarea>
+            </div>
+
+            <button type="submit" class="login-btn" id="contact-submit-btn">Enviar Solicitud</button>
+            <p id="contact-status" style="text-align: center; margin-top: 10px; font-size: 0.9rem; display: none;"></p>
+        </form>
+    </div>
+</div>
+
     <!-- Scripts Libraries -->
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
