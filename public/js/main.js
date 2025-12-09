@@ -1,8 +1,7 @@
 // ------------- CONFIGURATION ZONE -------------
 const STRIPE_ROLE_PRICES = {
     basic: 'price_1ScEcgGgaloBN5L8BQVnYeFl', 
-    pro:   'price_1ScEeFGgaloBN5L8psSOfigs',
-    corp:  ''
+    pro:   'price_1ScEeFGgaloBN5L8psSOfigs'
 };
 
 const PIDA_CONFIG = {
