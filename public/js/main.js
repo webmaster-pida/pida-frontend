@@ -202,6 +202,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // 2. Init Firebase
     try {
         if (!firebase.apps.length) firebase.initializeApp(PIDA_CONFIG.FIREBASE);
+        const analytics = firebase.analytics();
         auth = firebase.auth();
         db = firebase.firestore();
         googleProvider = new firebase.auth.GoogleAuthProvider();
