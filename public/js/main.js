@@ -467,6 +467,12 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
             const planKey = btn.getAttribute('data-plan');
 
+            // Si el plan es corporativo, abrimos el correo y detenemos la ejecución
+            if (planKey === 'corp') {
+                window.location.href = 'mailto:contacto@pida-ai.com';
+                return;
+            }
+
             if (currentUser) {
                 if (STRIPE_ROLE_PRICES[planKey]) {
                     btn.textContent = "Iniciando Stripe...";
