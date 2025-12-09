@@ -204,6 +204,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const analytics = firebase.analytics();
         auth = firebase.auth();
         db = firebase.firestore();
+
+        // --- INICIALIZACIÓN DE REMOTE CONFIG ---
+        const remoteConfig = firebase.remoteConfig();
+        // 1. Valores predeterminados para cuando la app no puede conectarse
+        remoteConfig.defaultConfig = {
+            'maintenance_mode_enabled': 'false', 
+            'maintenance_details': '(Servicio no disponible temporalmente)' // Nuevo parámetro para el detalle
+        };
+        // 2. Configuración para pruebas (permite refrescar rápido)
+        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+            remoteConfig.settings.minimumFetchIntervalMillis = 10000; // 10 segundos
+        }
+        // ----------------------------------------
+        
         googleProvider = new firebase.auth.GoogleAuthProvider();
         googleProvider.setCustomParameters({ prompt: 'select_account' });
 
@@ -241,6 +255,79 @@ document.addEventListener('DOMContentLoaded', function () {
                 }, (error) => { console.log("Alerts unavailable:", error.code); });
             }
         } catch (e) { console.warn("Error initiating alerts:", e); }
+
+
+        // ==========================================
+        // 2.5. REMOTE CONFIG LOGIC (Maintenance Mode)
+        // ==========================================
+        async function checkMaintenanceMode() {
+            const maintenanceMsg = document.getElementById('maintenance-message');
+            const maintenanceDetails = document.getElementById('maintenance-details');
+            const loginForm = document.getElementById('login-form');
+            const googleLoginBtn = document.getElementById('google-login-btn');
+            const authSubmitBtn = document.getElementById('auth-submit-btn');
+            const planCTAs = document.querySelectorAll('.plan-cta');
+            const loginTriggers = document.querySelectorAll('.trigger-login');
+
+            try {
+                // 1. Obtener la configuración más reciente y activarla
+                await remoteConfig.fetchAndActivate();
+
+                // 2. Obtener los valores del parámetro
+                // Usamos getBoolean porque es mejor que usar getString y luego "==='true'"
+                const isMaintenanceEnabled = remoteConfig.getBoolean('maintenance_mode_enabled');
+                const details = remoteConfig.getString('maintenance_details');
+                
+                if (isMaintenanceEnabled) {
+                    maintenanceMsg.style.display = 'block';
+                    maintenanceDetails.textContent = details;
+                    
+                    // Ocultar y deshabilitar UI de Login
+                    if (loginForm) loginForm.style.display = 'none';
+                    if (googleLoginBtn) googleLoginBtn.style.display = 'none';
+                    if (authSubmitBtn) authSubmitBtn.disabled = true;
+
+                    // Deshabilitar botones de planes
+                    planCTAs.forEach(btn => {
+                        btn.disabled = true;
+                        btn.textContent = 'Mantenimiento';
+                        btn.style.pointerEvents = 'none';
+                        btn.style.opacity = '0.5';
+                    });
+                    
+                    // Deshabilitar botones que abren el modal de login (ej: en el nav)
+                    loginTriggers.forEach(btn => {
+                        btn.style.pointerEvents = 'none';
+                        btn.style.opacity = '0.5';
+                    });
+
+                } else {
+                    // Modo normal: Asegurarse de que el mensaje de mantenimiento esté oculto
+                    maintenanceMsg.style.display = 'none';
+                    if (authSubmitBtn) authSubmitBtn.disabled = false;
+                    
+                    // Restaurar botones de planes
+                    planCTAs.forEach(btn => {
+                        btn.disabled = false;
+                        btn.textContent = btn.getAttribute('data-original-text') || 'Elegir';
+                        btn.style.pointerEvents = 'auto';
+                        btn.style.opacity = '1';
+                    });
+                    
+                    // Restaurar triggers de login
+                    loginTriggers.forEach(btn => {
+                        btn.style.pointerEvents = 'auto';
+                        btn.style.opacity = '1';
+                    });
+                }
+            } catch (error) {
+                console.warn("Remote Config/Maintenance Error:", error);
+                // Si falla, el modo de mantenimiento no se activa y la app sigue normal.
+            }
+        }
+        
+        // Ejecutar la verificación inmediatamente al cargar el DOM
+        checkMaintenanceMode();
 
 
         // ==========================================
