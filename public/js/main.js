@@ -427,6 +427,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 .collection('checkout_sessions')
                 .add({
                     price: priceId,
+                    trial_period_days: 5, // 5 días de prueba gratis
                     success_url: successUrl,
                     cancel_url: cancelUrl,
                     allow_promotion_codes: true,
