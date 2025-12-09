@@ -242,6 +242,88 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         } catch (e) { console.warn("Error initiating alerts:", e); }
 
+
+        // ==========================================
+        // 3. LÓGICA DE CONTACTO (GUARDAR EN FIRESTORE)
+        // ==========================================
+        const contactModal = document.getElementById('contact-modal');
+        const btnCorp = document.getElementById('btn-corp-contact');
+        const btnCloseContact = document.getElementById('close-contact-btn');
+        const contactForm = document.getElementById('contact-form');
+        const contactStatus = document.getElementById('contact-status');
+
+        // Abrir modal
+        if(btnCorp) {
+            btnCorp.addEventListener('click', (e) => {
+                e.preventDefault();
+                contactModal.classList.remove('hidden');
+                contactModal.style.display = 'flex';
+            });
+        }
+
+        // Cerrar modal
+        if(btnCloseContact) {
+            btnCloseContact.addEventListener('click', (e) => {
+                e.preventDefault();
+                contactModal.classList.add('hidden');
+                contactModal.style.display = 'none'; 
+            });
+        }
+
+        // Guardar en Firestore
+        if(contactForm) {
+            contactForm.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                const btn = document.getElementById('contact-submit-btn');
+                const originalText = btn.textContent;
+            
+                // Recolectar datos
+                const leadData = {
+                    name: document.getElementById('contact-name').value,
+                    company: document.getElementById('contact-company').value,
+                    email: document.getElementById('contact-email').value,
+                    phone: document.getElementById('contact-phone').value,
+                    message: document.getElementById('contact-message').value,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(), // Marca de tiempo exacta
+                    status: 'nuevo' // Para tu panel de admin futuro
+                };
+
+                btn.textContent = 'Guardando...';
+                btn.disabled = true;
+                contactStatus.style.display = 'none';
+
+                try {
+                    // GUARDADO DIRECTO A FIRESTORE
+                    // No requiere backend, usa el SDK cliente
+                    await db.collection('leads_corporativos').add(leadData);
+
+                    // Éxito visual
+                    btn.textContent = '¡Enviado!';
+                    contactStatus.textContent = 'Datos recibidos. Te contactaremos pronto.';
+                    contactStatus.style.color = '#10B981';
+                    contactStatus.style.display = 'block';
+                
+                    setTimeout(() => {
+                        contactModal.classList.add('hidden');
+                        contactModal.style.display = 'none'; 
+                        contactForm.reset();
+                        btn.textContent = originalText;
+                        btn.disabled = false;
+                        contactStatus.style.display = 'none';
+                    }, 3000);
+
+                } catch (error) {
+                    console.error("Error al guardar lead:", error);
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    contactStatus.textContent = 'Error de conexión. Intenta de nuevo.';
+                    contactStatus.style.color = '#EF4444';
+                    contactStatus.style.display = 'block';
+                }
+            });
+        }
+
+        
         // Auth State & Transition Logic
         const globalLoader = document.getElementById('pida-global-loader');
         
@@ -1057,88 +1139,6 @@ document.addEventListener('DOMContentLoaded', function () {
             } catch { alert('Error conectando a Stripe'); dom.accBilling.innerText = "Portal de Facturación"; }
         };
 
-
-        // ==========================================
-        // 3. LÓGICA DE CONTACTO (GUARDAR EN FIRESTORE)
-        // ==========================================
-        const contactModal = document.getElementById('contact-modal');
-        const btnCorp = document.getElementById('btn-corp-contact');
-        const btnCloseContact = document.getElementById('close-contact-btn');
-        const contactForm = document.getElementById('contact-form');
-        const contactStatus = document.getElementById('contact-status');
-
-        // Abrir modal
-        if(btnCorp) {
-            btnCorp.addEventListener('click', (e) => {
-                e.preventDefault();
-                contactModal.classList.remove('hidden');
-                contactModal.style.display = 'flex';
-            });
-        }
-
-        // Cerrar modal
-        if(btnCloseContact) {
-            btnCloseContact.addEventListener('click', (e) => {
-                e.preventDefault();
-                contactModal.classList.add('hidden');
-                contactModal.style.display = 'none'; 
-            });
-        }
-
-        // Guardar en Firestore
-        if(contactForm) {
-            contactForm.addEventListener('submit', async function(event) {
-                event.preventDefault();
-                const btn = document.getElementById('contact-submit-btn');
-                const originalText = btn.textContent;
-            
-                // Recolectar datos
-                const leadData = {
-                    name: document.getElementById('contact-name').value,
-                    company: document.getElementById('contact-company').value,
-                    email: document.getElementById('contact-email').value,
-                    phone: document.getElementById('contact-phone').value,
-                    message: document.getElementById('contact-message').value,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(), // Marca de tiempo exacta
-                    status: 'nuevo' // Para tu panel de admin futuro
-                };
-
-                btn.textContent = 'Guardando...';
-                btn.disabled = true;
-                contactStatus.style.display = 'none';
-
-                try {
-                    // GUARDADO DIRECTO A FIRESTORE
-                    // No requiere backend, usa el SDK cliente
-                    await db.collection('leads_corporativos').add(leadData);
-
-                    // Éxito visual
-                    btn.textContent = '¡Enviado!';
-                    contactStatus.textContent = 'Datos recibidos. Te contactaremos pronto.';
-                    contactStatus.style.color = '#10B981';
-                    contactStatus.style.display = 'block';
-                
-                    setTimeout(() => {
-                        contactModal.classList.add('hidden');
-                        contactModal.style.display = 'none'; 
-                        contactForm.reset();
-                        btn.textContent = originalText;
-                        btn.disabled = false;
-                        contactStatus.style.display = 'none';
-                    }, 3000);
-
-                } catch (error) {
-                    console.error("Error al guardar lead:", error);
-                    btn.textContent = originalText;
-                    btn.disabled = false;
-                    contactStatus.textContent = 'Error de conexión. Intenta de nuevo.';
-                    contactStatus.style.color = '#EF4444';
-                    contactStatus.style.display = 'block';
-                }
-            });
-        }
-
-        
         setView('investigador');
     }
 });
