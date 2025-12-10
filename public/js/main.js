@@ -1,8 +1,32 @@
 // ------------- CONFIGURATION ZONE -------------
-const STRIPE_ROLE_PRICES = {
-    basic: 'price_1ScEcgGgaloBN5L8BQVnYeFl', 
-    pro:   'price_1ScEeFGgaloBN5L8psSOfigs'
+// =========================================================
+// CONFIGURACIÓN DE PRECIOS MULTIMONEDA (USD / MXN)
+// =========================================================
+const STRIPE_PRICES = {
+    basic: {
+        USD: { 
+            id: 'price_1ScEcgGgaloBN5L8BQVnYeFl',
+            text: '$29.99' 
+        },
+        MXN: { 
+            id: 'price_1ScbShGgaloBN5L8KAUpK5Bn',
+            text: '$600.00 MXN' 
+        }
+    },
+    pro: {
+        USD: { 
+            id: 'price_1ScEeFGgaloBN5L8psSOfigs',
+            text: '$299.99' 
+        },
+        MXN: { 
+            id: 'price_1ScbTBGgaloBN5L8c0izUGmr',
+            text: '$6,000.00 MXN' 
+        }
+    }
 };
+
+// Variable global para controlar la moneda (Inicia en Dólares por defecto)
+let currentCurrency = 'USD';
 
 const PIDA_CONFIG = {
     API_CHAT: "https://chat-v20-465781488910.us-central1.run.app",
