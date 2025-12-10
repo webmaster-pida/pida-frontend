@@ -9,8 +9,8 @@ const STRIPE_PRICES = {
             text: '$29.99' 
         },
         MXN: { 
-            id: 'price_1ScbShGgaloBN5L8KAUpK5Bn',
-            text: '$600 MXN' 
+            id: 'price_1ScnlrGgaloBN5L8fWzCvIFp',
+            text: '$599 MXN' 
         }
     },
     pro: {
@@ -20,7 +20,7 @@ const STRIPE_PRICES = {
         },
         MXN: { 
             id: 'price_1ScbTBGgaloBN5L8c0izUGmr',
-            text: '$6,000 MXN' 
+            text: '$5,999 MXN' 
         }
     }
 };
