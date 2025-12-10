@@ -467,7 +467,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     appRoot.style.display = 'none';
                     
                     if (pendingPlan) {
-                        startCheckout(STRIPE_ROLE_PRICES[pendingPlan]);
+                        startCheckout(STRIPE_PRICES[pendingPlan][currentCurrency].id);
                         pendingPlan = null; 
                     } else {
                         window.location.hash = 'planes';
