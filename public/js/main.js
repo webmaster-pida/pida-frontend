@@ -623,7 +623,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     success_url: successUrl,
                     cancel_url: cancelUrl,
                     allow_promotion_codes: true,
-                    metadata: { source: 'web_app_v7' }
+                    metadata: { source: 'web_app_v7' },
+                    consent_collection: { terms_of_service: 'required' }
                 });
 
             docRef.onSnapshot((snap) => {
