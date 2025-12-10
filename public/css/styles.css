@@ -342,40 +342,45 @@
             .pida-view-content { padding: 15px; }
         }
 
-		/* --- Estilos para el Menú Flotante y Visibilidad --- */
+		/* --- Estilos para el Menú Flotante y Visibilidad (CORREGIDO PIXEL/ANDROID) --- */
 
 /* Clase utilitaria para ocultar elementos */
 .hidden {
     display: none !important;
 }
 
-/* El fondo oscuro que cubre toda la pantalla */
+/* El fondo oscuro */
 #mobile-menu-overlay {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100vw;
-    height: 100vh;
-    background-color: rgba(0, 0, 0, 0.5); /* Sombra semitransparente */
-    z-index: 9999; /* Muy alto para estar encima de todo */
+    right: 0;
+    bottom: 0; /* Usar bottom:0 es más seguro que height:100vh en móviles */
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
     
-    /* Para centrar o posicionar el menú */
     display: flex;
     justify-content: center;
-    align-items: flex-end; /* Aparece desde abajo en móvil */
+    align-items: flex-end; /* Alineado al fondo */
 }
 
 /* El cuadro blanco del menú */
 .mobile-menu-content {
     background-color: #ffffff;
     width: 100%;
-    max-width: 400px; 
+    max-width: 400px;
     padding: 20px;
-    border-radius: 20px 20px 0 0; /* Bordes redondeados arriba */
+    border-radius: 20px 20px 0 0;
     box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
     animation: slideUp 0.3s ease-out;
-    margin-bottom: 90px;
-	padding-bottom: env(safe-area-inset-bottom, 20px);
+    
+    /* --- ZONA DE CORRECCIÓN --- */
+    /* 1. Margen base grande para superar la barra azul (65px) */
+    margin-bottom: 85px; 
+    
+    /* 2. Margen extra para respetar la "Barra de Inicio" o gestos del Pixel */
+    /* Si el celular tiene barra de gestos, esto añade espacio extra automáticamente */
+    padding-bottom: env(safe-area-inset-bottom, 20px); 
 }
 
 /* Estilo de los botones dentro del menú */
@@ -391,7 +396,7 @@
     color: #374151;
     cursor: pointer;
     text-align: left;
-    gap: 12px; /* Espacio entre ícono y texto */
+    gap: 12px;
     transition: background-color 0.2s;
 }
 
@@ -400,31 +405,25 @@
     border-radius: 8px;
 }
 
-/* Animación suave al aparecer */
 @keyframes slideUp {
     from { transform: translateY(100%); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
 
-/* --- LÓGICA INTELIGENTE DE VISIBILIDAD --- */
+/* --- LÓGICA DE VISIBILIDAD INTELIGENTE --- */
 
-/* 1. EN COMPUTADORA (PC): 
-   Ocultamos el botón "Menú" por defecto para que no se duplique. */
+/* PC: Ocultar botón Menú */
 #nav-mobile-menu-btn {
     display: none; 
 }
 
-/* 2. EN CELULARES (Pantallas pequeñas): */
+/* MÓVIL: Mostrar botón Menú y Ocultar Perfil inferior */
 @media (max-width: 768px) {
-    
-    /* Hacemos visible el botón Menú */
     #nav-mobile-menu-btn {
         display: flex; 
-        margin-top: auto; /* Lo empuja hacia el final de la barra */
+        margin-top: auto;
     }
 
-    /* Ocultamos la sección vieja de perfil (foto y nombre de abajo) 
-       para ganar espacio y que no se vea doble. */
     .pida-sidebar-user {
         display: none !important;
     }
