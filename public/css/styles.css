@@ -369,12 +369,12 @@
 .mobile-menu-content {
     background-color: #ffffff;
     width: 100%;
-    max-width: 400px; /* Que no sea gigante en tablets */
+    max-width: 400px; 
     padding: 20px;
-    border-radius: 20px 20px 0 0; /* Bordes redondeados solo arriba */
+    border-radius: 20px 20px 0 0; /* Bordes redondeados arriba */
     box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
     animation: slideUp 0.3s ease-out;
-    margin-bottom: 0;
+    margin-bottom: 85px;
 }
 
 /* Estilo de los botones dentro del menú */
