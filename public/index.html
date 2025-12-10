@@ -353,6 +353,7 @@
                 <nav class="pida-main-nav">
                     <button id="nav-investigador" type="button" class="app-nav-link active"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18.031 16.6168L22.3137 20.8995L20.8995 22.3137L16.6168 18.031C15.0769 19.263 13.124 20 11 20C6.032 20 2 15.968 2 11C2 6.032 6.032 2 11 2C15.968 2 20 6.032 20 11C20 13.124 19.263 15.0769 18.031 16.6168ZM11 18C14.866 18 18 14.866 18 11C18 7.13401 14.866 4 11 4C7.13401 4 4 7.13401 4 11C4 14.866 7.13401 18 11 18Z"></path></svg><span>Experto en DDHH</span></button>
                     <button id="nav-analizador" type="button" class="app-nav-link"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15 4H5V20H19V8H15V4ZM3 2.9918C3 2.44405 3.44749 2 3.99826 2H16L21 7V20.9925C21 21.5489 20.5551 22 20.0066 22H3.9934C3.44476 22 3 21.556 3 21.0082V2.9918ZM13 12H7V14H13V12ZM13 16H7V18H13V16Z"></path></svg><span>Analizador Docs</span></button>
+                    <button id="nav-mobile-menu-btn" type="button" class="app-nav-link mobile-menu-toggle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4H21V6H3V4ZM3 11H21V13H3V11ZM3 18H21V20H3V18Z"></path></svg><span>Menú</span></button>
                 </nav>
                 <div class="pida-sidebar-user">
                     <img id="pida-profile-avatar" src="" class="pida-user-avatar" alt="Avatar" />
@@ -363,6 +364,16 @@
                     <button id="pida-profile-logout" class="pida-logout-icon-btn" title="Cerrar Sesión"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></button>
                 </div>
             </aside>
+
+            <div id="mobile-menu-overlay" class="hidden">
+                <div class="mobile-menu-content">
+                    <button id="mobile-nav-profile" class="mobile-menu-item">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>Mi Cuenta / Pagos</button><hr style="border: 0; border-top: 1px solid #eee; margin: 5px 0;">
+                    <button id="mobile-nav-logout" class="mobile-menu-item" style="color: #EF4444;">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>Cerrar Sesión</button>
+                </div>
+            </div>
+            
             <main id="pida-main-content">
                 <header class="pida-top-header">
                     <div class="pida-context-controls">
