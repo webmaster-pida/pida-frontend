@@ -652,31 +652,91 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // ---------------------------------------------------------
+    // A. DETECCIÓN AUTOMÁTICA DE PAÍS (MÉXICO)
+    // ---------------------------------------------------------
+    async function detectUserCountry() {
+        try {
+            const response = await fetch('https://ipapi.co/json/');
+            const data = await response.json();
+
+            if (data.country_code === 'MX') {
+                console.log("🇲🇽 Usuario en México detectado. Cambiando precios a MXN.");
+                currentCurrency = 'MXN'; 
+
+                // Actualizamos el HTML visualmente usando los IDs que pusiste
+                const monthlyDisplay = document.getElementById('price-val-monthly');
+                const annualDisplay = document.getElementById('price-val-annual');
+
+                if (monthlyDisplay) monthlyDisplay.textContent = STRIPE_PRICES.basic.MXN.text;
+                if (annualDisplay)  annualDisplay.textContent  = STRIPE_PRICES.pro.MXN.text;
+            }
+        } catch (error) {
+            console.log("No se pudo detectar ubicación. Se mantiene precio en USD.");
+        }
+    }
+    
+    // Ejecutamos la detección apenas carga la lógica
+    detectUserCountry();
+
+    // ---------------------------------------------------------
+    // B. LÓGICA DE LOS BOTONES DE COMPRA (NUEVA)
+    // ---------------------------------------------------------
     document.querySelectorAll('.plan-cta').forEach(btn => {
-        btn.setAttribute('data-original-text', btn.textContent);
+        // Guardamos el texto original
+        if (!btn.getAttribute('data-original-text')) {
+            btn.setAttribute('data-original-text', btn.textContent);
+        }
         
         btn.addEventListener('click', (e) => {
             e.preventDefault();
-            const planKey = btn.getAttribute('data-plan');
+
+            // 1. SEGURIDAD: Si está deshabilitado (por mantenimiento), no hacemos nada
+            if (btn.disabled || btn.style.pointerEvents === 'none') {
+                return; 
+            }
+
+            const planKey = btn.getAttribute('data-plan'); // 'basic' o 'pro'
+
+            // 2. SELECCIÓN DE ID SEGÚN MONEDA
+            let selectedPriceId = null;
+            
+            // Verificamos que existan los datos en la configuración nueva
+            if (STRIPE_PRICES[planKey] && STRIPE_PRICES[planKey][currentCurrency]) {
+                selectedPriceId = STRIPE_PRICES[planKey][currentCurrency].id;
+            }
 
             if (currentUser) {
-                if (STRIPE_ROLE_PRICES[planKey]) {
-                    btn.textContent = "Iniciando Stripe...";
+                // USUARIO LOGUEADO
+                if (selectedPriceId) {
+                    console.log(`Iniciando pago para ${planKey} en ${currentCurrency}`);
+                    
+                    btn.textContent = "Procesando...";
                     btn.style.opacity = "0.7";
                     btn.style.pointerEvents = "none";
                     
-                    startCheckout(STRIPE_ROLE_PRICES[planKey]);
+                    startCheckout(selectedPriceId);
                     
+                    // Restaurar botón después de 8 segundos
                     setTimeout(() => {
-                        btn.textContent = btn.getAttribute('data-original-text');
-                        btn.style.opacity = "1";
-                        btn.style.pointerEvents = "auto";
-                    }, 10000);
+                        if (!btn.disabled) {
+                            btn.textContent = btn.getAttribute('data-original-text');
+                            btn.style.opacity = "1";
+                            btn.style.pointerEvents = "auto";
+                        }
+                    }, 8000);
+                } else {
+                    alert("Error: Precio no configurado correctamente.");
                 }
             } else {
+                // USUARIO NO LOGUEADO -> REGISTRO
                 pendingPlan = planKey;
-                loginScreen.style.display = 'flex';
-                switchAuthMode('register');
+                if (typeof loginScreen !== 'undefined' && loginScreen) {
+                    loginScreen.style.display = 'flex';
+                }
+                if (typeof switchAuthMode === 'function') {
+                    switchAuthMode('register');
+                }
             }
         });
     });
