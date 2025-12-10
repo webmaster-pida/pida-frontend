@@ -342,7 +342,7 @@
             .pida-view-content { padding: 15px; }
         }
 
-		/* --- Estilos para el Menú Flotante --- */
+		/* --- Estilos para el Menú Flotante y Visibilidad --- */
 
 /* Clase utilitaria para ocultar elementos */
 .hidden {
@@ -375,9 +375,6 @@
     box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
     animation: slideUp 0.3s ease-out;
     margin-bottom: 0;
-    
-    /* Si prefieres que flote cerca del botón en desktop, 
-       podríamos cambiar esto, pero en móvil 'bottom sheet' es lo estándar */
 }
 
 /* Estilo de los botones dentro del menú */
@@ -408,26 +405,26 @@
     to { transform: translateY(0); opacity: 1; }
 }
 
-/* Ajuste opcional para el botón del menú en la barra lateral */
+/* --- LÓGICA INTELIGENTE DE VISIBILIDAD --- */
+
+/* 1. EN COMPUTADORA (PC): 
+   Ocultamos el botón "Menú" por defecto para que no se duplique. */
 #nav-mobile-menu-btn {
-    margin-top: auto; /* Empuja el botón hacia el final de la barra si usas flexbox */
+    display: none; 
 }
 
-/* Media Query: Ajustes para Desktop (opcional)
-   Si quieres que el menú flote al lado del sidebar en PC en lugar de abajo */
-@media (min-width: 768px) {
-    #mobile-menu-overlay {
-        justify-content: flex-start;
-        align-items: flex-end;
-        padding-left: 80px; /* Espacio para no tapar el sidebar */
-        padding-bottom: 20px;
-        background-color: rgba(0,0,0,0.1); /* Fondo más sutil en PC */
-    }
+/* 2. EN CELULARES (Pantallas pequeñas): */
+@media (max-width: 768px) {
     
-    .mobile-menu-content {
-        border-radius: 12px; /* Bordes redondeados completos */
-        width: 250px;
-        margin-left: 10px;
-        margin-bottom: 60px; /* Subirlo un poco */
+    /* Hacemos visible el botón Menú */
+    #nav-mobile-menu-btn {
+        display: flex; 
+        margin-top: auto; /* Lo empuja hacia el final de la barra */
+    }
+
+    /* Ocultamos la sección vieja de perfil (foto y nombre de abajo) 
+       para ganar espacio y que no se vea doble. */
+    .pida-sidebar-user {
+        display: none !important;
     }
 }
