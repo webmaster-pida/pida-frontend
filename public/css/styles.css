@@ -341,3 +341,93 @@
             .account-container { padding: 20px; border: none; box-shadow: none; }
             .pida-view-content { padding: 15px; }
         }
+
+		/* --- Estilos para el Menú Flotante --- */
+
+/* Clase utilitaria para ocultar elementos */
+.hidden {
+    display: none !important;
+}
+
+/* El fondo oscuro que cubre toda la pantalla */
+#mobile-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5); /* Sombra semitransparente */
+    z-index: 9999; /* Muy alto para estar encima de todo */
+    
+    /* Para centrar o posicionar el menú */
+    display: flex;
+    justify-content: center;
+    align-items: flex-end; /* Aparece desde abajo en móvil */
+}
+
+/* El cuadro blanco del menú */
+.mobile-menu-content {
+    background-color: #ffffff;
+    width: 100%;
+    max-width: 400px; /* Que no sea gigante en tablets */
+    padding: 20px;
+    border-radius: 20px 20px 0 0; /* Bordes redondeados solo arriba */
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+    animation: slideUp 0.3s ease-out;
+    margin-bottom: 0;
+    
+    /* Si prefieres que flote cerca del botón en desktop, 
+       podríamos cambiar esto, pero en móvil 'bottom sheet' es lo estándar */
+}
+
+/* Estilo de los botones dentro del menú */
+.mobile-menu-item {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+    text-align: left;
+    gap: 12px; /* Espacio entre ícono y texto */
+    transition: background-color 0.2s;
+}
+
+.mobile-menu-item:hover {
+    background-color: #f3f4f6;
+    border-radius: 8px;
+}
+
+/* Animación suave al aparecer */
+@keyframes slideUp {
+    from { transform: translateY(100%); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Ajuste opcional para el botón del menú en la barra lateral */
+#nav-mobile-menu-btn {
+    margin-top: auto; /* Empuja el botón hacia el final de la barra si usas flexbox */
+}
+
+/* Media Query: Ajustes para Desktop (opcional)
+   Si quieres que el menú flote al lado del sidebar en PC en lugar de abajo */
+@media (min-width: 768px) {
+    #mobile-menu-overlay {
+        justify-content: flex-start;
+        align-items: flex-end;
+        padding-left: 80px; /* Espacio para no tapar el sidebar */
+        padding-bottom: 20px;
+        background-color: rgba(0,0,0,0.1); /* Fondo más sutil en PC */
+    }
+    
+    .mobile-menu-content {
+        border-radius: 12px; /* Bordes redondeados completos */
+        width: 250px;
+        margin-left: 10px;
+        margin-bottom: 60px; /* Subirlo un poco */
+    }
+}
