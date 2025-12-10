@@ -786,9 +786,48 @@ document.addEventListener('DOMContentLoaded', function () {
             dlAnaPdf: document.getElementById('analyzer-download-pdf-btn'),
             dlAnaDoc: document.getElementById('analyzer-download-docx-btn'),
             dlAnaTxt: document.getElementById('analyzer-download-txt-btn'),
-            sidebarUser: document.getElementById('sidebar-user-info-click')
+            sidebarUser: document.getElementById('sidebar-user-info-click'),
+            mobileMenuBtn: document.getElementById('nav-mobile-menu-btn'),
+            mobileMenuOverlay: document.getElementById('mobile-menu-overlay'),
+            mobileMenuProfile: document.getElementById('mobile-nav-profile'),
+            mobileMenuLogout: document.getElementById('mobile-nav-logout')
         };
 
+        // ==========================================
+        // LÓGICA DEL MENÚ MÓVIL (FLOTANTE)
+        // ==========================================
+        if (dom.mobileMenuBtn && dom.mobileMenuOverlay) {
+            // Abrir menú
+            dom.mobileMenuBtn.onclick = (e) => {
+                e.stopPropagation();
+                dom.mobileMenuOverlay.classList.remove('hidden');
+            };
+
+            // Cerrar al tocar el fondo oscuro
+            dom.mobileMenuOverlay.onclick = (e) => {
+                if (e.target === dom.mobileMenuOverlay) {
+                    dom.mobileMenuOverlay.classList.add('hidden');
+                }
+            };
+        }
+
+        // Acción: Ir a Perfil (Reutiliza tu función setView)
+        if (dom.mobileMenuProfile) {
+            dom.mobileMenuProfile.onclick = () => {
+                setView('cuenta'); 
+                dom.mobileMenuOverlay.classList.add('hidden');
+            };
+        }
+
+        // Acción: Cerrar Sesión (Simula click en el botón de logout original)
+        if (dom.mobileMenuLogout) {
+            dom.mobileMenuLogout.onclick = () => {
+                dom.mobileMenuOverlay.classList.add('hidden');
+                // Usamos el botón de logout existente para mantener la lógica centralizada
+                if (dom.pLogout) dom.pLogout.click(); 
+            };
+        }
+        
         let state = { currentView: 'investigador', conversations: [], currentChat: { id: null, title: '', messages: [] }, anaFiles: [], anaText: "", anaHistory: [] };
 
         dom.pName.textContent = user.displayName || 'Usuario';
