@@ -498,7 +498,15 @@
 
             <div style="margin-bottom: 15px;">
                 <label style="font-size: 0.8rem; font-weight: 600; color: var(--pida-text-muted);">Teléfono</label>
-                <input type="tel" id="contact-phone" class="login-input" style="margin-bottom: 0;">
+                <div style="margin-bottom: 15px;">
+                    <label style="font-size: 0.8rem; font-weight: 600; color: var(--pida-text-muted);">Teléfono</label>
+                    <div style="display: flex; gap: 8px;">
+                        <select id="contact-country-code" class="login-input" style="margin-bottom: 0; width: 130px; padding-right: 5px; font-size: 0.9rem;" required>
+                            <option value="" disabled selected>Código</option>
+                            <option value="+54">🇦🇷 +54</option> <option value="+591">🇧🇴 +591</option> <option value="+56">🇨🇱 +56</option> <option value="+57">🇨🇴 +57</option> <option value="+506">🇨🇷 +506</option> <option value="+53">🇨🇺 +53</option> <option value="+593">🇪🇨 +593</option> <option value="+503">🇸🇻 +503</option> <option value="+502">🇬🇹 +502</option> <option value="+504">🇭🇳 +504</option> <option value="+52">🇲🇽 +52</option> <option value="+505">🇳🇮 +505</option> <option value="+507">🇵🇦 +507</option> <option value="+595">🇵🇾 +595</option> <option value="+51">🇵🇪 +51</option> <option value="+1">🇩🇴 +1</option>   <option value="+598">🇺🇾 +598</option> <option value="+58">🇻🇪 +58</option> </select>
+                        <input type="tel" id="contact-phone" class="login-input" style="margin-bottom: 0; flex: 1;" placeholder="Número" required>
+                    </div>
+                </div>
             </div>
 
             <div style="margin-bottom: 20px;">
