@@ -393,7 +393,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     name: document.getElementById('contact-name').value,
                     company: document.getElementById('contact-company').value,
                     email: document.getElementById('contact-email').value,
-                    phone: document.getElementById('contact-phone').value,
+                    phone: document.getElementById('contact-country-code').value + ' ' + document.getElementById('contact-phone').value,
                     message: document.getElementById('contact-message').value,
                     createdAt: firebase.firestore.FieldValue.serverTimestamp(), // Marca de tiempo exacta
                     status: 'nuevo' // Para tu panel de admin futuro
