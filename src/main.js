@@ -1,6 +1,7 @@
-import './style.css'; // Importamos los estilos para que Vite los procese
+// 1. Importar estilos (Vite los manejará automáticamente)
+import './style.css';
 
-// --- IMPORTACIONES DE LIBRERÍAS (Ya no usamos CDNs) ---
+// 2. Importar Firebase en modo compatibilidad (para que tu código actual funcione sin cambios)
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
@@ -8,10 +9,18 @@ import 'firebase/compat/functions';
 import 'firebase/compat/analytics';
 import 'firebase/compat/remote-config';
 
-import { marked } from 'marked';
-import DOMPurify from 'dompurify';
+// 3. Importar librerías externas
 import { jsPDF } from "jspdf";
 import * as docx from "docx";
+import { marked } from "marked";
+import DOMPurify from "dompurify";
+
+// Hacemos accesibles estas librerías globalmente (parche para código legacy)
+window.jspdf = { jsPDF };
+window.docx = docx;
+window.marked = marked;
+window.DOMPurify = DOMPurify;
+window.firebase = firebase; // Importante para que el resto de tu script encuentre 'firebase'
 
 // ------------- CONFIGURATION ZONE -------------
 // =========================================================
