@@ -1,21 +1,23 @@
-nname: Deploy a Canal de Prueba
+name: Deploy a Canal de Prueba
 on:
   push:
     branches:
-      - test-migration  # <--- Solo se activa en esta rama de pruebas
+      - test-migration
 
 jobs:
   build_and_preview:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
       
+      # CORREGIDO: Usamos npm install para evitar errores de lockfile
       - name: Instalar dependencias
-        run: npm ci
+        run: npm install
       
       - name: Construir proyecto
         run: npm run build
@@ -25,5 +27,5 @@ jobs:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PIDA_AI_V20 }}'
           projectId: pida-ai-v20
-          channelId: 'prueba-vite'  # <--- ESTO ES LA CLAVE: Crea una URL temporal separada
-          expires: 7d # La web de prueba se borrará sola en 7 días
+          channelId: 'prueba-vite'
+          expires: 7d
