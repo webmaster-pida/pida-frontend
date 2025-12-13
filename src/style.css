@@ -55,7 +55,7 @@
         body { background-color: var(--white); color: var(--navy); font-family: var(--font-body); line-height: 1.6; overflow-x: hidden; -webkit-font-smoothing: antialiased; transition: margin-top 0.3s ease; }
         h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; line-height: 1.1; letter-spacing: -0.03em; }
         .wrapper { max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; }
-        .text-gradient { background: linear-gradient(135deg, var(--navy) 0%, #b92f32 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .text-gradient { background: linear-gradient(135deg, var(--navy) 0%, #b92f32 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
         .label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--cyan); margin-bottom: 12px; display: inline-block; }
 
         .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 24px; font-weight: 600; font-size: 0.95rem; border-radius: 8px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; gap: 8px; text-decoration: none;}

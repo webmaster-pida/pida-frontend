@@ -682,7 +682,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     
                     const delBtn = document.createElement('button');
                     delBtn.className = 'delete-icon-btn';
-                    delBtn.innerHTML = '🗑️'; // Simplificado
+                    delBtn.style.color = '#EF4444'; 
+                    delBtn.style.minWidth = '24px';
+                    delBtn.style.border = 'none';
+                    delBtn.style.background = 'transparent';
+                    delBtn.style.cursor = 'pointer';
+                    delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>`;
                     delBtn.onclick = async (e) => {
                         e.stopPropagation();
                         if(confirm('¿Borrar chat?')) {
@@ -875,8 +880,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 state.anaHistory.forEach(a => {
                     const item = document.createElement('div');
                     item.className = 'pida-history-item';
-                    item.innerHTML = `<span style="flex:1">${a.title}</span>`;
-                    item.onclick = async () => {
+                    // 1. TÍTULO
+                    const titleSpan = document.createElement('span');
+                    titleSpan.textContent = a.title;
+                    titleSpan.style.flex = "1";
+                    titleSpan.onclick = async (e) => {
+                        // ... (tu lógica de cargar análisis existente) ...
                         const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { headers: h });
                         const d2 = await r2.json();
                         state.anaText = d2.analysis;
@@ -887,6 +896,29 @@ document.addEventListener('DOMContentLoaded', function () {
                         dom.anaControls.style.display = 'flex';
                         if(anaHistContent) anaHistContent.classList.remove('show');
                     };
+                    // 2. BOTÓN DE BORRAR (Que faltaba)
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'delete-icon-btn';
+                    // --- ESTILO FORZADO ---
+                    delBtn.style.color = '#EF4444'; 
+                    delBtn.style.minWidth = '24px';
+                    delBtn.style.border = 'none';
+                    delBtn.style.background = 'transparent';
+                    delBtn.style.cursor = 'pointer';
+
+                    delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>`;
+
+                    delBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        if(confirm('¿Borrar análisis?')) {
+                            await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
+                            loadAnaHistory();
+                        }
+                    };
+
+                    // 3. AGREGAR AL ITEM
+                    item.appendChild(titleSpan);
+                    item.appendChild(delBtn);
                     list.appendChild(item);
                 });
             } catch(e) {}
