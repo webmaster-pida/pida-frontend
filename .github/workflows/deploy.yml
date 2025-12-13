@@ -1,16 +1,29 @@
-name: Despliegue a Firebase Hosting
+nname: Deploy a Canal de Prueba
 on:
   push:
     branches:
-      - main
+      - test-migration  # <--- Solo se activa en esta rama de pruebas
+
 jobs:
-  build_and_deploy:
+  build_and_preview:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Instalar dependencias
+        run: npm ci
+      
+      - name: Construir proyecto
+        run: npm run build
+      
       - uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PIDA_AI_V20 }}'
-          channelId: live
           projectId: pida-ai-v20
+          channelId: 'prueba-vite'  # <--- ESTO ES LA CLAVE: Crea una URL temporal separada
+          expires: 7d # La web de prueba se borrará sola en 7 días

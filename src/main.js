@@ -1,3 +1,18 @@
+import './style.css'; // Importamos los estilos para que Vite los procese
+
+// --- IMPORTACIONES DE LIBRERÍAS (Ya no usamos CDNs) ---
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
+import 'firebase/compat/firestore';
+import 'firebase/compat/functions';
+import 'firebase/compat/analytics';
+import 'firebase/compat/remote-config';
+
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
+import { jsPDF } from "jspdf";
+import * as docx from "docx";
+
 // ------------- CONFIGURATION ZONE -------------
 // =========================================================
 // CONFIGURACIÓN DE PRECIOS MULTIMONEDA (USD / MXN)
@@ -28,21 +43,18 @@ const STRIPE_PRICES = {
 // Variable global para controlar la moneda (Inicia en Dólares por defecto)
 let currentCurrency = 'USD';
 
+// USAMOS LAS VARIABLES DE ENTORNO (SEGURO)
 const PIDA_CONFIG = {
-    API_CHAT: "https://chat-v20-465781488910.us-central1.run.app",
-    API_ANA: "https://analize-v20-465781488910.us-central1.run.app",
+    API_CHAT: import.meta.env.VITE_API_CHAT,
+    API_ANA: import.meta.env.VITE_API_ANA,
     FIREBASE: {
-        apiKey: "AIzaSyC5nqsx4Fe4gMKkKdvnbMf8VFnI6TYL64k",
-        authDomain: "pida-ai.com",
-        projectId: "pida-ai-v20",
-        storageBucket: "pida-ai-v20.firebasestorage.app",
-        messagingSenderId: "465781488910",
-        appId: "1:465781488910:web:6f9c2b4bc91317a6bbab5f",
-        measurementId: "G-4FEDD254GY"
-    },
-    LIBS: {
-        JSPDF: 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
-        DOCX: 'https://unpkg.com/docx@8.2.2/build/index.umd.js'
+        apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+        authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+        projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+        storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+        messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+        appId: import.meta.env.VITE_FIREBASE_APP_ID,
+        measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
     }
 };
 // ----------------------------------------------
@@ -59,7 +71,7 @@ function closeBanner() {
     const nav = document.getElementById('navbar');
     const appLayout = document.getElementById('pida-app-layout');
     
-    banner.classList.add('hidden');
+    if(banner) banner.classList.add('hidden');
     document.body.style.marginTop = '0px';
     if (nav) nav.style.top = '0px';
     if (appLayout) appLayout.style.top = '0px';
@@ -76,34 +88,32 @@ function switchAuthMode(mode) {
     const googleText = document.getElementById('google-text');
     const errMsg = document.getElementById('login-message');
     
-    errMsg.style.display = 'none';
+    if(errMsg) errMsg.style.display = 'none';
 
     if (mode === 'login') {
-        btnLogin.classList.add('active');
-        btnReg.classList.remove('active');
-        title.textContent = 'Bienvenido de nuevo';
-        desc.textContent = 'Accede para continuar tu investigación.';
-        submitBtn.textContent = 'Ingresar';
-        googleText.textContent = 'Entrar con Google';
+        if(btnLogin) btnLogin.classList.add('active');
+        if(btnReg) btnReg.classList.remove('active');
+        if(title) title.textContent = 'Bienvenido de nuevo';
+        if(desc) desc.textContent = 'Accede para continuar tu investigación.';
+        if(submitBtn) submitBtn.textContent = 'Ingresar';
+        if(googleText) googleText.textContent = 'Entrar con Google';
     } else {
-        btnLogin.classList.remove('active');
-        btnReg.classList.add('active');
-        title.textContent = 'Crear una cuenta';
-        desc.textContent = 'Únete para acceder a PIDA.';
-        submitBtn.textContent = 'Registrarse';
-        googleText.textContent = 'Registrarse con Google';
+        if(btnLogin) btnLogin.classList.remove('active');
+        if(btnReg) btnReg.classList.add('active');
+        if(title) title.textContent = 'Crear una cuenta';
+        if(desc) desc.textContent = 'Únete para acceder a PIDA.';
+        if(submitBtn) submitBtn.textContent = 'Registrarse';
+        if(googleText) googleText.textContent = 'Registrarse con Google';
     }
 }
 
 // Markdown config
-if (typeof marked !== 'undefined') {
-    marked.setOptions({ gfm: true, breaks: true, headerIds: false });
-}
-if (typeof DOMPurify !== 'undefined') {
-    DOMPurify.addHook('afterSanitizeAttributes', function (node) {
-        if ('target' in node) { node.setAttribute('target', '_blank'); node.setAttribute('rel', 'noopener noreferrer'); }
-    });
-}
+marked.setOptions({ gfm: true, breaks: true, headerIds: false });
+
+DOMPurify.addHook('afterSanitizeAttributes', function (node) {
+    if ('target' in node) { node.setAttribute('target', '_blank'); node.setAttribute('rel', 'noopener noreferrer'); }
+});
+
 
 document.addEventListener('DOMContentLoaded', function () {
     const landingRoot = document.getElementById('landing-page-root');
@@ -111,16 +121,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const appRoot = document.getElementById('pida-app-root');
 
     // ==========================================
-    // 1. UTILIDADES (Movido arriba para alcance global)
+    // 1. UTILIDADES
     // ==========================================
     const Utils = {
-        async loadScript(src) {
-            return new Promise((resolve, reject) => {
-                if (document.querySelector(`script[src="${src}"]`)) return resolve();
-                const s = document.createElement('script'); s.src = src; s.onload = resolve; s.onerror = reject; document.head.appendChild(s);
-            });
-        },
-        sanitize(html) { return typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(html) : html; },
+        // loadScript ELIMINADO: Ya importamos las librerías arriba
+        sanitize(html) { return DOMPurify.sanitize(html); },
         getTimestampedFilename(title) { const now=new Date(); return `${(title||"Doc").replace(/[^a-zA-Z0-9]/g,"")}_${now.getTime()}`; },
         getRawText(html) { const t=document.createElement('div'); t.innerHTML=html; return t.innerText||""; },
         
@@ -136,8 +141,18 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const Exporter = {
-        async downloadPDF(fname, title, content) { await Utils.loadScript(PIDA_CONFIG.LIBS.JSPDF); const doc=new window.jspdf.jsPDF(); doc.text(title,10,10); doc.save(fname+".pdf"); },
-        async downloadDOCX(fname, title, content) { await Utils.loadScript(PIDA_CONFIG.LIBS.DOCX); const {Document,Packer,Paragraph,TextRun}=window.docx; const doc=new Document({sections:[{children:[new Paragraph({children:[new TextRun(title)]}) ]}]}); Packer.toBlob(doc).then(b=>{const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=fname+".docx";a.click();}); },
+        async downloadPDF(fname, title, content) { 
+            // Usamos jsPDF importado directamente
+            const doc = new jsPDF(); 
+            doc.text(title,10,10); 
+            doc.save(fname+".pdf"); 
+        },
+        async downloadDOCX(fname, title, content) { 
+            // Usamos docx importado directamente
+            const {Document,Packer,Paragraph,TextRun} = docx; 
+            const doc = new Document({sections:[{children:[new Paragraph({children:[new TextRun(title)]}) ]}]}); 
+            Packer.toBlob(doc).then(b=>{const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=fname+".docx";a.click();}); 
+        },
         downloadTXT(fname, title, content) { let t=title+"\n"; content.forEach(c=>{t+=`[${c.role}]: ${c.content}\n`}); const b=new Blob([t]); const u=URL.createObjectURL(b); const a=document.createElement('a');a.href=u;a.download=fname+".txt";a.click(); }
     };
 
@@ -234,7 +249,7 @@ document.addEventListener('DOMContentLoaded', function () {
         // 1. Valores predeterminados para cuando la app no puede conectarse
         remoteConfig.defaultConfig = {
             'maintenance_mode_enabled': 'false', 
-            'maintenance_details': '(Servicio no disponible temporalmente)' // Nuevo parámetro para el detalle
+            'maintenance_details': '(Servicio no disponible temporalmente)' 
         };
         // 2. Configuración para pruebas (permite refrescar rápido)
         if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
@@ -252,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const nav = document.getElementById('navbar');
             const appLayout = document.getElementById('pida-app-layout');
 
-            if(banner.classList.contains('hidden')) {
+            if(banner && banner.classList.contains('hidden')) {
                 db.collection('config').doc('alerts').onSnapshot((doc) => {
                     if (doc.exists) {
                         const data = doc.data();
@@ -298,20 +313,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 await remoteConfig.fetchAndActivate();
 
                 // 2. Obtener los valores del parámetro
-                // Usamos getBoolean porque es mejor que usar getString y luego "==='true'"
                 const isMaintenanceEnabled = remoteConfig.getBoolean('maintenance_mode_enabled');
                 const details = remoteConfig.getString('maintenance_details');
                 
                 if (isMaintenanceEnabled) {
-                    maintenanceMsg.style.display = 'block';
-                    maintenanceDetails.textContent = details;
+                    if(maintenanceMsg) maintenanceMsg.style.display = 'block';
+                    if(maintenanceDetails) maintenanceDetails.textContent = details;
                     
-                    // Ocultar y deshabilitar UI de Login
                     if (loginForm) loginForm.style.display = 'none';
                     if (googleLoginBtn) googleLoginBtn.style.display = 'none';
                     if (authSubmitBtn) authSubmitBtn.disabled = true;
 
-                    // Deshabilitar botones de planes
                     planCTAs.forEach(btn => {
                         btn.disabled = true;
                         btn.textContent = 'Mantenimiento';
@@ -319,18 +331,15 @@ document.addEventListener('DOMContentLoaded', function () {
                         btn.style.opacity = '0.5';
                     });
                     
-                    // Deshabilitar botones que abren el modal de login (ej: en el nav)
                     loginTriggers.forEach(btn => {
                         btn.style.pointerEvents = 'none';
                         btn.style.opacity = '0.5';
                     });
 
                 } else {
-                    // Modo normal: Asegurarse de que el mensaje de mantenimiento esté oculto
-                    maintenanceMsg.style.display = 'none';
+                    if(maintenanceMsg) maintenanceMsg.style.display = 'none';
                     if (authSubmitBtn) authSubmitBtn.disabled = false;
                     
-                    // Restaurar botones de planes
                     planCTAs.forEach(btn => {
                         btn.disabled = false;
                         btn.textContent = btn.getAttribute('data-original-text') || 'Elegir';
@@ -338,7 +347,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         btn.style.opacity = '1';
                     });
                     
-                    // Restaurar triggers de login
                     loginTriggers.forEach(btn => {
                         btn.style.pointerEvents = 'auto';
                         btn.style.opacity = '1';
@@ -346,11 +354,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             } catch (error) {
                 console.warn("Remote Config/Maintenance Error:", error);
-                // Si falla, el modo de mantenimiento no se activa y la app sigue normal.
             }
         }
         
-        // Ejecutar la verificación inmediatamente al cargar el DOM
         checkMaintenanceMode();
 
 
@@ -363,7 +369,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const contactForm = document.getElementById('contact-form');
         const contactStatus = document.getElementById('contact-status');
 
-        // Abrir modal
         if(btnCorp) {
             btnCorp.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -372,7 +377,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // Cerrar modal
         if(btnCloseContact) {
             btnCloseContact.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -381,22 +385,20 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // Guardar en Firestore
         if(contactForm) {
             contactForm.addEventListener('submit', async function(event) {
                 event.preventDefault();
                 const btn = document.getElementById('contact-submit-btn');
                 const originalText = btn.textContent;
             
-                // Recolectar datos
                 const leadData = {
                     name: document.getElementById('contact-name').value,
                     company: document.getElementById('contact-company').value,
                     email: document.getElementById('contact-email').value,
                     phone: document.getElementById('contact-country-code').value + ' ' + document.getElementById('contact-phone').value,
                     message: document.getElementById('contact-message').value,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(), // Marca de tiempo exacta
-                    status: 'nuevo' // Para tu panel de admin futuro
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(), 
+                    status: 'nuevo'
                 };
 
                 btn.textContent = 'Guardando...';
@@ -404,11 +406,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 contactStatus.style.display = 'none';
 
                 try {
-                    // GUARDADO DIRECTO A FIRESTORE
-                    // No requiere backend, usa el SDK cliente
                     await db.collection('leads_corporativos').add(leadData);
 
-                    // Éxito visual
                     btn.textContent = '¡Enviado!';
                     contactStatus.textContent = 'Datos recibidos. Te contactaremos pronto.';
                     contactStatus.style.color = '#10B981';
@@ -451,20 +450,19 @@ document.addEventListener('DOMContentLoaded', function () {
             currentUser = user;
             
             if (user) {
-                loginScreen.style.display = 'none';
+                if(loginScreen) loginScreen.style.display = 'none';
                 
-                // CHECK ACCESS AUTHORIZATION
                 const accessGranted = await checkAccessAuthorization(user);
 
                 if (accessGranted) {
-                    landingRoot.style.display = 'none';
-                    appRoot.style.display = 'block';
+                    if(landingRoot) landingRoot.style.display = 'none';
+                    if(appRoot) appRoot.style.display = 'block';
                     runApp(user); 
                     requestAnimationFrame(() => hideLoader());
 
                 } else {
-                    landingRoot.style.display = 'block';
-                    appRoot.style.display = 'none';
+                    if(landingRoot) landingRoot.style.display = 'block';
+                    if(appRoot) appRoot.style.display = 'none';
                     
                     if (pendingPlan) {
                         startCheckout(STRIPE_PRICES[pendingPlan][currentCurrency].id);
@@ -475,8 +473,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     hideLoader();
                 }
             } else {
-                landingRoot.style.display = 'block';
-                appRoot.style.display = 'none';
+                if(landingRoot) landingRoot.style.display = 'block';
+                if(appRoot) appRoot.style.display = 'none';
                 hideLoader();
             }
         });
@@ -488,11 +486,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- ACCESO CHECK FUNCTION ---
     async function checkAccessAuthorization(user) {
         console.log("Verificando acceso para:", user.email);
-        // AHORA UTILS ESTÁ DEFINIDO Y FUNCIONARÁ
         const headers = await Utils.getHeaders(user);
         if (!headers) return false;
 
-        // 1. Verificar Suscripción de Pago
         try {
             const subscriptionsRef = db.collection('customers')
                 .doc(user.uid)
@@ -510,7 +506,6 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error("Error al verificar Stripe:", error);
         }
 
-        // 2. Verificar Acceso VIP/Admin
         try {
             console.log("Verificando acceso VIP/Admin a través de Cloud Run...");
 
@@ -547,61 +542,67 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // HANDLE AUTH FORM
-    document.getElementById('login-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('login-email').value;
-        const pass = document.getElementById('login-password').value;
-        const btn = e.target.querySelector('button');
-        const msg = document.getElementById('login-message');
-        
-        msg.style.display = 'none';
-        btn.disabled = true;
-        
-        try {
-            if (authMode === 'login') {
-                btn.textContent = 'Verificando...';
-                await auth.signInWithEmailAndPassword(email, pass);
-            } else {
-                btn.textContent = 'Creando cuenta...';
-                await auth.createUserWithEmailAndPassword(email, pass);
-            }
-        } catch (error) {
-            btn.disabled = false;
-            msg.style.display = 'block';
+    const loginForm = document.getElementById('login-form');
+    if(loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const pass = document.getElementById('login-password').value;
+            const btn = e.target.querySelector('button');
+            const msg = document.getElementById('login-message');
             
-            if (authMode === 'login') {
-                btn.textContent = 'Ingresar';
-                if (error.code === 'auth/wrong-password') {
-                    msg.textContent = "Contraseña incorrecta. Intenta de nuevo.";
+            msg.style.display = 'none';
+            btn.disabled = true;
+            
+            try {
+                if (authMode === 'login') {
+                    btn.textContent = 'Verificando...';
+                    await auth.signInWithEmailAndPassword(email, pass);
                 } else {
-                    switchAuthMode('register');
-                    msg.textContent = "¡Bienvenido! No encontramos tu cuenta. Por favor, regístrate.";
+                    btn.textContent = 'Creando cuenta...';
+                    await auth.createUserWithEmailAndPassword(email, pass);
                 }
-            } else {
-                btn.textContent = 'Registrarse';
-                if (error.code === 'auth/email-already-in-use') {
-                    switchAuthMode('login');
-                    msg.textContent = "Ya tienes una cuenta registrada. Por favor, ingresa tu contraseña.";
-                } else if (error.code === 'auth/weak-password') {
-                    msg.textContent = "La contraseña es muy débil (mínimo 6 caracteres).";
+            } catch (error) {
+                btn.disabled = false;
+                msg.style.display = 'block';
+                
+                if (authMode === 'login') {
+                    btn.textContent = 'Ingresar';
+                    if (error.code === 'auth/wrong-password') {
+                        msg.textContent = "Contraseña incorrecta. Intenta de nuevo.";
+                    } else {
+                        switchAuthMode('register');
+                        msg.textContent = "¡Bienvenido! No encontramos tu cuenta. Por favor, regístrate.";
+                    }
                 } else {
-                    msg.textContent = "Error al crear cuenta: " + error.message;
+                    btn.textContent = 'Registrarse';
+                    if (error.code === 'auth/email-already-in-use') {
+                        switchAuthMode('login');
+                        msg.textContent = "Ya tienes una cuenta registrada. Por favor, ingresa tu contraseña.";
+                    } else if (error.code === 'auth/weak-password') {
+                        msg.textContent = "La contraseña es muy débil (mínimo 6 caracteres).";
+                    } else {
+                        msg.textContent = "Error al crear cuenta: " + error.message;
+                    }
                 }
             }
-        }
-    });
+        });
+    }
 
-    document.getElementById('google-login-btn').addEventListener('click', async () => {
-        const msg = document.getElementById('login-message');
-        msg.style.display = 'none';
-        try { await auth.signInWithPopup(googleProvider); } 
-        catch (error) { msg.style.display = 'block'; msg.textContent = "Error Google: " + error.message; }
-    });
+    const googleBtn = document.getElementById('google-login-btn');
+    if(googleBtn) {
+        googleBtn.addEventListener('click', async () => {
+            const msg = document.getElementById('login-message');
+            if(msg) msg.style.display = 'none';
+            try { await auth.signInWithPopup(googleProvider); } 
+            catch (error) { if(msg) { msg.style.display = 'block'; msg.textContent = "Error Google: " + error.message; } }
+        });
+    }
 
     // CHECKOUT LOGIC
     async function startCheckout(priceId) {
         if (!currentUser) {
-            loginScreen.style.display = 'flex';
+            if(loginScreen) loginScreen.style.display = 'flex';
             switchAuthMode('register'); 
             return;
         }
@@ -795,16 +796,14 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         // ==========================================
-        // LÓGICA DEL MENÚ MÓVIL (FLOTANTE)
+        // LÓGICA DEL MENÚ MÓVIL
         // ==========================================
         if (dom.mobileMenuBtn && dom.mobileMenuOverlay) {
-            // Abrir menú
             dom.mobileMenuBtn.onclick = (e) => {
                 e.stopPropagation();
                 dom.mobileMenuOverlay.classList.remove('hidden');
             };
 
-            // Cerrar al tocar el fondo oscuro
             dom.mobileMenuOverlay.onclick = (e) => {
                 if (e.target === dom.mobileMenuOverlay) {
                     dom.mobileMenuOverlay.classList.add('hidden');
@@ -812,7 +811,6 @@ document.addEventListener('DOMContentLoaded', function () {
             };
         }
 
-        // Acción: Ir a Perfil (Reutiliza tu función setView)
         if (dom.mobileMenuProfile) {
             dom.mobileMenuProfile.onclick = () => {
                 setView('cuenta'); 
@@ -820,11 +818,9 @@ document.addEventListener('DOMContentLoaded', function () {
             };
         }
 
-        // Acción: Cerrar Sesión (Simula click en el botón de logout original)
         if (dom.mobileMenuLogout) {
             dom.mobileMenuLogout.onclick = () => {
                 dom.mobileMenuOverlay.classList.add('hidden');
-                // Usamos el botón de logout existente para mantener la lógica centralizada
                 if (dom.pLogout) dom.pLogout.click(); 
             };
         }
@@ -884,7 +880,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 safeContent = safeContent.replace(/(?:[\n\r\s]*)(?:\*\*|__)?(Fuente:)(?:\*\*|__)?/g, '\n\n<hr>\n\n<strong>$1</strong>');
             }
             
-            d.innerHTML = Utils.sanitize(marked.parse(safeContent));
+            d.innerHTML = DOMPurify.sanitize(marked.parse(safeContent));
             dom.chatBox.appendChild(d);
             if (msg.role === 'model') renderFollowUpQuestions(d);
             dom.chatBox.parentElement.scrollTop = dom.chatBox.parentElement.scrollHeight;
@@ -996,7 +992,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                     if (isFirstChunk) { botBubble.innerHTML = ''; isFirstChunk = false; }
                                     fullText += d.text;
                                     let safeContent = fullText.replace(/(?:[\n\r\s]*)(?:\*\*|__)?(Fuente:)(?:\*\*|__)?/g, '\n\n<hr>\n\n<strong>$1</strong>');
-                                    botBubble.innerHTML = Utils.sanitize(marked.parse(safeContent));
+                                    botBubble.innerHTML = DOMPurify.sanitize(marked.parse(safeContent));
                                     dom.chatBox.parentElement.scrollTop = dom.chatBox.parentElement.scrollHeight;
                                 }
                             } catch (e) { }
@@ -1093,7 +1089,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                         isFirstChunk = false; 
                                     }
                                     fullText += data.text;
-                                    dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
+                                    dom.anaResTxt.innerHTML = DOMPurify.sanitize(marked.parse(fullText));
                                     const scrollContainer = dom.viewAna.querySelector('.pida-view-content');
                                     scrollContainer.scrollTop = scrollContainer.scrollHeight;
                                 }
@@ -1136,7 +1132,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { headers: h });
                     const d2 = await r2.json();
                     state.anaText = d2.analysis;
-                    dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(d2.analysis));
+                    dom.anaResTxt.innerHTML = DOMPurify.sanitize(marked.parse(d2.analysis));
                     dom.anaLoader.style.display = 'none';
                     document.getElementById('analyzer-response-container').style.display = 'block';
                     dom.anaResBox.style.display = 'block';

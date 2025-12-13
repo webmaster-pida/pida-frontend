@@ -73,3 +73,5 @@ node_modules/
 key_old.json 
 key_new.json 
 *.log 
+
+dist/
