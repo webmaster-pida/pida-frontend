@@ -1085,8 +1085,18 @@ document.addEventListener('DOMContentLoaded', function () {
             dom.accReset.onclick = () => auth.sendPasswordResetEmail(user.email).then(()=>alert('Correo enviado'));
         }
 
-        // Init view
+        // ==========================================
+        // INICIALIZACIÓN (AL CARGAR LA PÁGINA)
+        // ==========================================
+        
+        // 1. Establecer vista inicial
         setView('investigador');
+
+        // 2. Mostrar burbuja de bienvenida inmediatamente (Sin crear sesión en DB)
+        handleNewChat(true); 
+
+        // 3. Cargar historial en la barra lateral (sin afectar la pantalla principal)
+        loadChatHistory();
     }
 
 });
