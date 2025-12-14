@@ -807,16 +807,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
         dom.anaBtn.onclick = async () => {
             if (!state.anaFiles.length) return;
-            dom.anaResBox.style.display = 'block'; dom.anaLoader.style.display = 'block';
-            document.getElementById('analyzer-response-container').style.display = 'none';
-            dom.anaResTxt.innerHTML = ''; dom.anaControls.style.display = 'none';
             
+            // 1. Preparar UI
+            dom.anaResBox.style.display = 'block'; 
+            dom.anaLoader.style.display = 'block';
+            document.getElementById('analyzer-response-container').style.display = 'none';
+            dom.anaResTxt.innerHTML = ''; 
+            dom.anaControls.style.display = 'none';
+            
+            // 2. Preparar Datos
             const fd = new FormData();
             state.anaFiles.forEach(f => fd.append('files', f));
             fd.append('instructions', dom.anaInst.value);
             
-            const h = await Utils.getHeaders(user); // headers con content-type json
-            // Nota: Para FormData NO se debe poner Content-Type manualmente, el navegador lo pone con el boundary
+            // Nota: Utils.getHeaders devuelve content-type json, pero FormData lo necesita multipart automático
+            // Así que usamos solo el token manualmente aquí.
             const token = await user.getIdToken();
 
             try {
@@ -848,6 +853,13 @@ document.addEventListener('DOMContentLoaded', function () {
                                     }
                                     fullText += data.text;
                                     dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
+                                    
+                                    // === AQUÍ AGREGAMOS EL SCROLL AUTOMÁTICO QUE FALTABA ===
+                                    // Buscamos el contenedor que tiene el scroll (.pida-view-content)
+                                    const scrollContainer = dom.viewAna.querySelector('.pida-view-content');
+                                    if(scrollContainer) {
+                                        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                                    }
                                 }
                                 if (data.done) {
                                     state.anaText = fullText;
