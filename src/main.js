@@ -594,7 +594,9 @@ document.addEventListener('DOMContentLoaded', function () {
         if(userInfoBtn) userInfoBtn.onclick = () => setView('cuenta');
 
         // Menú Móvil
-        if (dom.mobileMenuBtn) dom.mobileMenuBtn.onclick = (e) => { e.stopPropagation(); dom.mobileMenuOverlay.classList.remove('hidden'); };
+        if (dom.mobileMenuBtn) dom.mobileMenuBtn.onclick = (e) => { 
+            e.stopPropagation(); 
+            dom.mobileMenuOverlay.classList.toggle('hidden'); };
         if (dom.mobileMenuOverlay) dom.mobileMenuOverlay.onclick = (e) => { if (e.target === dom.mobileMenuOverlay) dom.mobileMenuOverlay.classList.add('hidden'); };
         if (dom.mobileMenuProfile) dom.mobileMenuProfile.onclick = () => { setView('cuenta'); dom.mobileMenuOverlay.classList.add('hidden'); };
 
