@@ -1010,16 +1010,32 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // --- VINCULACIÓN DE BOTONES (CRÍTICO: Asegúrate que esto no esté duplicado más abajo) ---
-        const btnNewChat = document.getElementById('pida-new-chat-btn') || document.getElementById('new-chat-btn');
-        if (btnNewChat) {
-            btnNewChat.onclick = (e) => {
-                e.preventDefault(); 
-                e.stopPropagation();
-                handleNewChat(true);
-            };
-        }
+        // --- VINCULACIÓN DE BOTONES (CORREGIDO PARA DETECTAR AMBOS) ---
         
+        // 1. Buscamos los dos posibles botones por separado
+        const btnSidebar = document.getElementById('pida-new-chat-btn');
+        const btnMobile = document.getElementById('new-chat-btn');
+
+        // 2. Función común para manejar el clic
+        const onNewChatClick = (e) => {
+            e.preventDefault(); 
+            e.stopPropagation();
+            console.log("Clic en Nuevo Chat detectado"); // Para verificar en consola
+            handleNewChat(true);
+        };
+
+        // 3. Asignamos el evento a CADA botón que exista (no usamos ||)
+        if (btnSidebar) {
+            btnSidebar.onclick = onNewChatClick;
+        } else {
+            console.warn("No se encontró el botón 'pida-new-chat-btn'");
+        }
+
+        if (btnMobile) {
+            btnMobile.onclick = onNewChatClick;
+        }
+
+        // 4. Botón Limpiar (Escoba)
         const btnClear = document.getElementById('chat-clear-btn');
         if(btnClear) {
             btnClear.onclick = (e) => { e.preventDefault(); handleNewChat(true); };
@@ -1027,9 +1043,6 @@ document.addEventListener('DOMContentLoaded', function () {
         
         if (dom.sendBtn) dom.sendBtn.onclick = (e) => { e.preventDefault(); sendChat(); };
         if (dom.input) dom.input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } };
-        
-        // (Fin de la lógica de chat, justo antes del Analizador)
-
         // --- ANALYZER LOGIC ---
         const anaUploadBtn = document.getElementById('analyzer-upload-btn');
         if(anaUploadBtn) anaUploadBtn.onclick = () => dom.anaInput.click();
