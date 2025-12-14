@@ -107,7 +107,7 @@ const Exporter = {
         y += 6;
         doc.setFontSize(9);
         doc.setTextColor(120);
-        doc.text(`Fecha: ${new Date().toLocaleDateString()} | pida-ai.com`, margin, y);
+        doc.text(`Fecha: ${new Date().toLocaleString()} | pida-ai.com`, margin, y);
         
         y += 15; // Espacio antes del contenido
 
@@ -550,6 +550,14 @@ document.addEventListener('DOMContentLoaded', function () {
         // Estado
         let state = { currentView: 'investigador', conversations: [], currentChat: { id: null, title: '', messages: [] }, anaFiles: [], anaText: "", anaHistory: [] };
 
+        // HELPER PARA NOMBRES DE ARCHIVO CON FECHA
+        const getTimestampedName = (prefix) => {
+            const now = new Date();
+            const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
+            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-').substring(0, 5); // HH-MM
+            return `${prefix}_${dateStr}_${timeStr}`;
+        };
+
         // Perfil UI
         if(dom.pName) dom.pName.textContent = user.displayName || 'Usuario';
         if(dom.pEmail) dom.pEmail.textContent = user.email;
@@ -882,9 +890,18 @@ document.addEventListener('DOMContentLoaded', function () {
         if (dom.input) dom.input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } };
 
         // --- BOTONES DE DESCARGA CHAT ---
-        document.getElementById('chat-download-txt-btn').onclick = () => Exporter.downloadTXT("Chat_PIDA", "Chat PIDA", state.currentChat.messages);
-        document.getElementById('chat-download-pdf-btn').onclick = () => Exporter.downloadPDF("Chat_PIDA", "Chat PIDA", state.currentChat.messages);
-        document.getElementById('chat-download-docx-btn').onclick = () => Exporter.downloadDOCX("Chat_PIDA", "Chat PIDA", state.currentChat.messages);
+        document.getElementById('chat-download-txt-btn').onclick = () => {
+            const name = getTimestampedName("Experto-PIDA");
+            Exporter.downloadTXT(name, "Reporte Experto Jurídico", state.currentChat.messages);
+        };
+        document.getElementById('chat-download-pdf-btn').onclick = () => {
+            const name = getTimestampedName("Experto-PIDA");
+            Exporter.downloadPDF(name, "Reporte Experto Jurídico", state.currentChat.messages);
+        };
+        document.getElementById('chat-download-docx-btn').onclick = () => {
+            const name = getTimestampedName("Experto-PIDA");
+            Exporter.downloadDOCX(name, "Reporte Experto Jurídico", state.currentChat.messages);
+        };
 
         // --- ANALYZER LOGIC ---
         const anaUploadBtn = document.getElementById('analyzer-upload-btn');
@@ -992,19 +1009,21 @@ document.addEventListener('DOMContentLoaded', function () {
             };
         }
 
-        // --- BOTONES DE DESCARGA ANALIZADOR (VINCULACIÓN CORREGIDA) ---
-        // Usamos state.anaText como fuente
+        // --- BOTONES DE DESCARGA ANALIZADOR ---
         document.getElementById('analyzer-download-txt-btn').onclick = () => {
             if(!state.anaText) return alert("No hay análisis para descargar.");
-            Exporter.downloadTXT("Analisis_PIDA", "Análisis de Documentos", state.anaText);
+            const name = getTimestampedName("Analizador-PIDA");
+            Exporter.downloadTXT(name, "Reporte Análisis Documental", state.anaText);
         };
         document.getElementById('analyzer-download-pdf-btn').onclick = () => {
             if(!state.anaText) return alert("No hay análisis para descargar.");
-            Exporter.downloadPDF("Analisis_PIDA", "Análisis de Documentos", state.anaText);
+            const name = getTimestampedName("Analizador-PIDA");
+            Exporter.downloadPDF(name, "Reporte Análisis Documental", state.anaText);
         };
         document.getElementById('analyzer-download-docx-btn').onclick = () => {
             if(!state.anaText) return alert("No hay análisis para descargar.");
-            Exporter.downloadDOCX("Analisis_PIDA", "Análisis de Documentos", state.anaText);
+            const name = getTimestampedName("Analizador-PIDA");
+            Exporter.downloadDOCX(name, "Reporte Análisis Documental", state.anaText);
         };
 
         // --- CUENTA ---
