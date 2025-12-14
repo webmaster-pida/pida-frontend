@@ -922,7 +922,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 renderChat({
                     role: 'model',
-                    content: "**¡Hola! Soy PIDA, tu asistente experto en Derechos Humanos.**\n\nEstoy aquí para apoyarte en investigaciones, análisis de casos, búsqueda de jurisprudencia y redacción legal.\n\n**¿Qué te gustaría hacer hoy?**"
+                    content: "**¡Hola! Soy PIDA, tu asistente experto en Derechos Humanos y temas afines.**\n\nEstoy para apoyarte y responder cualquier pregunta que me hagas, incluyendo investigaciones, análisis de casos, búsqueda de jurisprudencia y redacción legal de todo tipo de documentos, cartas, informes, elaboración de proyectos y seguimiento y monitoreo.
+.\n\n**¿Qué te gustaría pedirme ahora?**"
                 });
             }
         }
@@ -980,13 +981,13 @@ document.addEventListener('DOMContentLoaded', function () {
             dom.anaResTxt.innerHTML = `
                 <div class="pida-bubble pida-message-bubble">
                     <h3>📑 Analizador de Documentos</h3>
-                    <p>Sube tus archivos (PDF, DOCX) y escribe una instrucción clara. PIDA leerá el documento por ti.</p>
+                    <p>Sube tus archivos (PDF, DOCX) y escribe una instrucción clara. PIDA leerá, resumirá y sitematizará el documento por ti.</p>
                     <hr>
                     <strong>Ejemplos de lo que puedes pedir:</strong>
                     <ul style="margin-top: 10px; padding-left: 20px; line-height: 1.6;">
-                        <li>"Haz un resumen ejecutivo de este contrato."</li>
+                        <li>"Haz un resumen ejecutivo de este documento (contrato, sentencia, tesis, etc)."</li>
                         <li>"Identifica las cláusulas de rescisión y sus penalizaciones."</li>
-                        <li>"Extrae una lista cronológica de los hechos en esta sentencia."</li>
+                        <li>"Extrae una lista cronológica de los hechos en esta sentencia y prepara un borrador de recurso de impugnación confirme a la legislación del país que se trate."</li>
                         <li>"¿Existen riesgos legales para mi cliente en este documento?"</li>
                     </ul>
 
