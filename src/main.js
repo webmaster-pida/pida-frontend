@@ -620,9 +620,9 @@ document.addEventListener('DOMContentLoaded', function () {
         let state = { currentView: 'investigador', conversations: [], currentChat: { id: null, title: '', messages: [] }, anaFiles: [], anaText: "", anaHistory: [] };
 
         // Setup Perfil
-        dom.pName.textContent = user.displayName || 'Usuario';
-        dom.pEmail.textContent = user.email;
-        dom.pAvatar.src = user.photoURL || 'img/PIDA_logo-P3-80.png'; // Usamos logo local si no hay foto
+        if(dom.pName) dom.pName.textContent = user.displayName || 'Usuario';
+        if(dom.pEmail) dom.pEmail.textContent = user.email;
+        if(dom.pAvatar) dom.pAvatar.src = user.photoURL || 'img/PIDA_logo-P3-80.png';
         
         // Logout
         const doLogout = () => {
@@ -630,7 +630,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 window.location.reload();
             });
         };
-        dom.pLogout.onclick = doLogout;
+        if(dom.pLogout) dom.pLogout.onclick = doLogout;
         if(dom.mobileMenuLogout) dom.mobileMenuLogout.onclick = doLogout;
 
         // Vistas
@@ -655,9 +655,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if(dom.navInv) dom.navInv.onclick = () => setView('investigador');
         if(dom.navAna) dom.navAna.onclick = () => setView('analizador');
-        document.getElementById('sidebar-user-info-click').onclick = () => setView('cuenta');
-        dom.pAvatar.onclick = () => setView('cuenta');
-        document.getElementById('app-home-link').onclick = (e) => { e.preventDefault(); setView('investigador'); };
+        const userInfoBtn = document.getElementById('sidebar-user-info-click');
+        if(userInfoBtn) userInfoBtn.onclick = () => setView('cuenta');
+        if(dom.pAvatar) dom.pAvatar.onclick = () => setView('cuenta');
+        const homeLink = document.getElementById('app-home-link');
+        if(homeLink) homeLink.onclick = (e) => { e.preventDefault(); setView('investigador'); };
 
         // Menú Móvil
         if (dom.mobileMenuBtn && dom.mobileMenuOverlay) {
@@ -673,10 +675,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
 
         if(histBtn && histContent) {
-            histBtn.onclick = (e) => { e.stopPropagation(); histContent.classList.toggle('show'); anaHistContent?.classList.remove('show'); };
+            histBtn.onclick = (e) => { e.stopPropagation(); histContent.classList.toggle('show'); if(anaHistContent) anaHistContent.classList.remove('show'); };
         }
         if(anaHistBtn && anaHistContent) {
-            anaHistBtn.onclick = (e) => { e.stopPropagation(); anaHistContent.classList.toggle('show'); histContent?.classList.remove('show'); };
+            anaHistBtn.onclick = (e) => { e.stopPropagation(); anaHistContent.classList.toggle('show'); if(histContent) histContent.classList.remove('show'); };
         }
         window.onclick = () => { 
             if(histContent) histContent.classList.remove('show'); 
@@ -698,7 +700,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         function renderFollowUpQuestions(element) {
-            // Lógica simplificada para encontrar headers de seguimiento
             const headings = Array.from(element.querySelectorAll("h2, h3"));
             const followUpHeading = headings.find(h => h.textContent.includes("Preguntas de Seguimiento"));
             if (followUpHeading) {
@@ -727,37 +728,38 @@ document.addEventListener('DOMContentLoaded', function () {
                 const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations`, { headers: h });
                 state.conversations = await r.json();
                 const list = document.getElementById('pida-history-list');
-                list.innerHTML = '';
-                state.conversations.forEach(c => {
-                    const item = document.createElement('div');
-                    item.className = `pida-history-item ${c.id === state.currentChat.id ? 'active' : ''}`;
-                    
-                    const titleSpan = document.createElement('span');
-                    titleSpan.className = 'pida-history-item-title';
-                    titleSpan.textContent = c.title;
-                    titleSpan.style.flex = "1";
-                    titleSpan.onclick = (e) => { e.stopPropagation(); loadChat(c.id); if(histContent) histContent.classList.remove('show'); };
-                    
-                    const delBtn = document.createElement('button');
-                    delBtn.className = 'delete-icon-btn';
-                    delBtn.style.color = '#EF4444'; 
-                    delBtn.style.minWidth = '24px';
-                    delBtn.style.border = 'none';
-                    delBtn.style.background = 'transparent';
-                    delBtn.style.cursor = 'pointer';
-                    delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>`;
-                    delBtn.onclick = async (e) => {
-                        e.stopPropagation();
-                        const confirmado = await showCustomConfirm('Esta acción no se puede deshacer.');
+                if(list) {
+                    list.innerHTML = '';
+                    state.conversations.forEach(c => {
+                        const item = document.createElement('div');
+                        item.className = `pida-history-item ${c.id === state.currentChat.id ? 'active' : ''}`;
                         
-                        if(confirmado) {
-                            await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${c.id}`, { method: 'DELETE', headers: h });
-                            loadChatHistory();
-                            if(state.currentChat.id === c.id) handleNewChat(true);
-                        }
-                    };
-                    item.appendChild(titleSpan); item.appendChild(delBtn); list.appendChild(item);
-                });
+                        const titleSpan = document.createElement('span');
+                        titleSpan.className = 'pida-history-item-title';
+                        titleSpan.textContent = c.title;
+                        titleSpan.style.flex = "1";
+                        titleSpan.onclick = (e) => { e.stopPropagation(); loadChat(c.id); if(histContent) histContent.classList.remove('show'); };
+                        
+                        const delBtn = document.createElement('button');
+                        delBtn.className = 'delete-icon-btn';
+                        delBtn.style.color = '#EF4444'; 
+                        delBtn.style.minWidth = '24px';
+                        delBtn.style.border = 'none';
+                        delBtn.style.background = 'transparent';
+                        delBtn.style.cursor = 'pointer';
+                        delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>`;
+                        delBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            const confirmado = await showCustomConfirm('Esta acción no se puede deshacer.');
+                            if(confirmado) {
+                                await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${c.id}`, { method: 'DELETE', headers: h });
+                                loadChatHistory();
+                                if(state.currentChat.id === c.id) handleNewChat(true);
+                            }
+                        };
+                        item.appendChild(titleSpan); item.appendChild(delBtn); list.appendChild(item);
+                    });
+                }
             } catch (e) { console.error(e); }
         }
 
@@ -831,14 +833,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         async function handleNewChat(clearUI = true) {
-            console.log("Ejecutando Nuevo Chat..."); // Log para verificar
+            console.log("🔄 Iniciando Nuevo Chat...");
             if (clearUI) { 
                 dom.chatBox.innerHTML = ''; 
-                dom.input.value = ''; 
-                // Reiniciamos el estado visual
+                if(dom.input) dom.input.value = ''; 
                 state.currentChat = { id: null, title: '', messages: [] };
-                
-                // Quitamos la clase 'active' de cualquier item del historial
                 document.querySelectorAll('.pida-history-item').forEach(el => el.classList.remove('active'));
             }
             
@@ -854,8 +853,30 @@ document.addEventListener('DOMContentLoaded', function () {
             } catch (e) { console.error("Error creando chat:", e); }
         }
 
+        // VINCULACIÓN SEGURA DE BOTONES
+        const btnNewChat = document.getElementById('pida-new-chat-btn') || document.getElementById('new-chat-btn');
+        if (btnNewChat) {
+            btnNewChat.onclick = (e) => {
+                e.preventDefault(); 
+                e.stopPropagation();
+                handleNewChat(true);
+            };
+        }
+        
+        const btnClear = document.getElementById('chat-clear-btn');
+        if(btnClear) {
+            btnClear.onclick = (e) => { e.preventDefault(); handleNewChat(true); };
+        }
+        
+        if (dom.sendBtn) dom.sendBtn.onclick = (e) => { e.preventDefault(); sendChat(); };
+        if (dom.input) dom.input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } };
+        const newChatBtnSidebar = document.getElementById('pida-new-chat-btn');
+        if(newChatBtnSidebar) newChatBtnSidebar.onclick = () => handleNewChat(true);
+
+        // --- ANALYZER LOGIC ---
+        const anaUploadBtn = document.getElementById('analyzer-upload-btn');
         if(anaUploadBtn) anaUploadBtn.onclick = () => dom.anaInput.click();
-        dom.anaInput.onchange = (e) => { state.anaFiles.push(...e.target.files); renderFiles(); };
+        if(dom.anaInput) dom.anaInput.onchange = (e) => { state.anaFiles.push(...e.target.files); renderFiles(); };
 
         function renderFiles() {
             dom.anaFiles.innerHTML = '';
@@ -868,82 +889,78 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        dom.anaBtn.onclick = async () => {
-            if (!state.anaFiles.length) return;
-            
-            // 1. Preparar UI
-            dom.anaResBox.style.display = 'block'; 
-            dom.anaLoader.style.display = 'block';
-            document.getElementById('analyzer-response-container').style.display = 'none';
-            dom.anaResTxt.innerHTML = ''; 
-            dom.anaControls.style.display = 'none';
-            
-            // 2. Preparar Datos
-            const fd = new FormData();
-            state.anaFiles.forEach(f => fd.append('files', f));
-            fd.append('instructions', dom.anaInst.value);
-            
-            // Nota: Utils.getHeaders devuelve content-type json, pero FormData lo necesita multipart automático
-            // Así que usamos solo el token manualmente aquí.
-            const token = await user.getIdToken();
-
-            try {
-                const r = await fetch(`${PIDA_CONFIG.API_ANA}/analyze/`, {
-                    method: 'POST', 
-                    headers: { 'Authorization': 'Bearer ' + token }, 
-                    body: fd
-                });
+        if(dom.anaBtn) {
+            dom.anaBtn.onclick = async () => {
+                if (!state.anaFiles.length) return;
                 
-                const reader = r.body.getReader();
-                const decoder = new TextDecoder();
-                let fullText = "";
-                let started = false;
+                dom.anaResBox.style.display = 'block'; 
+                dom.anaLoader.style.display = 'block';
+                document.getElementById('analyzer-response-container').style.display = 'none';
+                dom.anaResTxt.innerHTML = ''; 
+                dom.anaControls.style.display = 'none';
+                
+                const fd = new FormData();
+                state.anaFiles.forEach(f => fd.append('files', f));
+                fd.append('instructions', dom.anaInst.value);
+                const token = await user.getIdToken();
 
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
-                    const chunk = decoder.decode(value);
-                    const lines = chunk.split('\n\n');
-                    for (const line of lines) {
-                        if (line.startsWith('data:')) {
-                            try {
-                                const data = JSON.parse(line.substring(5).trim());
-                                if (data.text) {
-                                    if (!started) { 
-                                        dom.anaLoader.style.display = 'none'; 
-                                        document.getElementById('analyzer-response-container').style.display = 'block';
-                                        started = true; 
+                try {
+                    const r = await fetch(`${PIDA_CONFIG.API_ANA}/analyze/`, {
+                        method: 'POST', 
+                        headers: { 'Authorization': 'Bearer ' + token }, 
+                        body: fd
+                    });
+                    
+                    const reader = r.body.getReader();
+                    const decoder = new TextDecoder();
+                    let fullText = "";
+                    let started = false;
+
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n\n');
+                        for (const line of lines) {
+                            if (line.startsWith('data:')) {
+                                try {
+                                    const data = JSON.parse(line.substring(5).trim());
+                                    if (data.text) {
+                                        if (!started) { 
+                                            dom.anaLoader.style.display = 'none'; 
+                                            document.getElementById('analyzer-response-container').style.display = 'block';
+                                            started = true; 
+                                        }
+                                        fullText += data.text;
+                                        dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
+                                        
+                                        // Scroll automático
+                                        const scrollContainer = dom.viewAna.querySelector('.pida-view-content');
+                                        if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
                                     }
-                                    fullText += data.text;
-                                    dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
-                                    
-                                    // === AQUÍ AGREGAMOS EL SCROLL AUTOMÁTICO QUE FALTABA ===
-                                    // Buscamos el contenedor que tiene el scroll (.pida-view-content)
-                                    const scrollContainer = dom.viewAna.querySelector('.pida-view-content');
-                                    if(scrollContainer) {
-                                        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                                    if (data.done) {
+                                        state.anaText = fullText;
+                                        dom.anaControls.style.display = 'flex';
+                                        loadAnaHistory();
                                     }
-                                }
-                                if (data.done) {
-                                    state.anaText = fullText;
-                                    dom.anaControls.style.display = 'flex';
-                                    loadAnaHistory();
-                                }
-                            } catch (e) {}
+                                } catch (e) {}
+                            }
                         }
                     }
+                } catch (e) {
+                    dom.anaLoader.style.display = 'none';
+                    dom.anaResTxt.innerHTML = `<span style='color:red'>Error: ${e.message}</span>`;
+                    document.getElementById('analyzer-response-container').style.display = 'block';
                 }
-            } catch (e) {
-                dom.anaLoader.style.display = 'none';
-                dom.anaResTxt.innerHTML = `<span style='color:red'>Error: ${e.message}</span>`;
-                document.getElementById('analyzer-response-container').style.display = 'block';
-            }
-        };
+            };
+        }
 
-        dom.analyzerClearBtn.onclick = () => {
-            state.anaFiles = []; state.anaText = ""; renderFiles();
-            dom.anaInst.value = ''; dom.anaResBox.style.display = 'none';
-        };
+        if(dom.analyzerClearBtn) {
+            dom.analyzerClearBtn.onclick = () => {
+                state.anaFiles = []; state.anaText = ""; renderFiles();
+                dom.anaInst.value = ''; dom.anaResBox.style.display = 'none';
+            };
+        }
 
         async function loadAnaHistory() {
             const h = await Utils.getHeaders(user);
@@ -951,64 +968,54 @@ document.addEventListener('DOMContentLoaded', function () {
                 const r = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/`, { headers: h });
                 state.anaHistory = await r.json();
                 const list = document.getElementById('analyzer-history-list');
-                list.innerHTML = '';
-                state.anaHistory.forEach(a => {
-                    const item = document.createElement('div');
-                    item.className = 'pida-history-item';
-                    // 1. TÍTULO
-                    const titleSpan = document.createElement('span');
-                    titleSpan.textContent = a.title;
-                    titleSpan.style.flex = "1";
-                    titleSpan.onclick = async (e) => {
-                        // ... (tu lógica de cargar análisis existente) ...
-                        const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { headers: h });
-                        const d2 = await r2.json();
-                        state.anaText = d2.analysis;
-                        dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(d2.analysis));
-                        dom.anaLoader.style.display = 'none';
-                        document.getElementById('analyzer-response-container').style.display = 'block';
-                        dom.anaResBox.style.display = 'block';
-                        dom.anaControls.style.display = 'flex';
-                        if(anaHistContent) anaHistContent.classList.remove('show');
-                    };
-                    // 2. BOTÓN DE BORRAR (Que faltaba)
-                    const delBtn = document.createElement('button');
-                    delBtn.className = 'delete-icon-btn';
-                    // --- ESTILO FORZADO ---
-                    delBtn.style.color = '#EF4444'; 
-                    delBtn.style.minWidth = '24px';
-                    delBtn.style.border = 'none';
-                    delBtn.style.background = 'transparent';
-                    delBtn.style.cursor = 'pointer';
-
-                    delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>`;
-
-                    delBtn.onclick = async (e) => {
-                        e.stopPropagation();
-                        const confirmado = await showCustomConfirm('Se eliminará este análisis y sus resultados.');
+                if(list) {
+                    list.innerHTML = '';
+                    state.anaHistory.forEach(a => {
+                        const item = document.createElement('div');
+                        item.className = 'pida-history-item';
+                        const titleSpan = document.createElement('span');
+                        titleSpan.textContent = a.title;
+                        titleSpan.style.flex = "1";
+                        titleSpan.style.cursor = "pointer";
+                        titleSpan.onclick = async () => {
+                            const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { headers: h });
+                            const d2 = await r2.json();
+                            state.anaText = d2.analysis;
+                            dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(d2.analysis));
+                            dom.anaLoader.style.display = 'none';
+                            document.getElementById('analyzer-response-container').style.display = 'block';
+                            dom.anaResBox.style.display = 'block';
+                            dom.anaControls.style.display = 'flex';
+                            if(anaHistContent) anaHistContent.classList.remove('show');
+                        };
                         
-                        if(confirmado) {
-                            await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
-                            loadAnaHistory();
-                        }
-                    };
-
-                    // 3. AGREGAR AL ITEM
-                    item.appendChild(titleSpan);
-                    item.appendChild(delBtn);
-                    list.appendChild(item);
-                });
+                        const delBtn = document.createElement('button');
+                        delBtn.className = 'delete-icon-btn';
+                        delBtn.style.color = '#EF4444'; 
+                        delBtn.style.minWidth = '24px';
+                        delBtn.style.border = 'none';
+                        delBtn.style.background = 'transparent';
+                        delBtn.style.cursor = 'pointer';
+                        delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>`;
+                        delBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            const confirmado = await showCustomConfirm('Se eliminará este análisis.');
+                            if(confirmado) {
+                                await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
+                                loadAnaHistory();
+                            }
+                        };
+                        item.appendChild(titleSpan); item.appendChild(delBtn); list.appendChild(item);
+                    });
+                }
             } catch(e) {}
         }
 
         // Descargas
-        // (Reutilizamos la lógica del botón, llamando a Exporter)
-        document.getElementById('chat-download-txt-btn').onclick = () => {
+        const dlBtn = document.getElementById('chat-download-txt-btn');
+        if(dlBtn) dlBtn.onclick = () => {
             Exporter.downloadTXT("Chat_"+Date.now(), "Chat PIDA", state.currentChat.messages);
         };
-        // Para PDF y DOCX del chat, se usa la API backend si está disponible (como en el original), 
-        // o Exporter local como fallback. Aquí mantenemos el código simple llamando a la función original 
-        // o implementándola dentro. (Por brevedad, usamos Exporter local para TXT y asumimos backend para otros)
         
         // CUENTA
         if(dom.accUpdate) {
