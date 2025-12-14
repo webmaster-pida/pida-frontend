@@ -189,49 +189,181 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     const Exporter = {
+        // Función para limpiar símbolos de Markdown (**, ##, etc) para que se lea bien en papel
+        cleanText(text) {
+            if (!text) return "";
+            return text
+                .replace(/\*\*/g, "")      // Quitar negritas markdown
+                .replace(/__/g, "")        // Quitar cursivas markdown
+                .replace(/##/g, "")        // Quitar headers markdown
+                .replace(/^\* /gm, "• ")   // Convertir viñetas markdown en puntos
+                .replace(/\[/g, "(")       // Cambiar corchetes por paréntesis
+                .replace(/\]/g, ")");
+        },
+
         async downloadPDF(fname, title, content) { 
             const doc = new window.jspdf.jsPDF(); 
-            // Corrección: Usar splitTextToSize para evitar que el texto se salga
-            doc.setFontSize(14);
-            doc.text(title, 10, 10);
-            doc.setFontSize(11);
+            const margin = 15;
+            const pageHeight = doc.internal.pageSize.height;
+            const pageWidth = doc.internal.pageSize.width;
+            const maxWidth = pageWidth - (margin * 2);
+            let y = 20; // Posición vertical inicial
+
+            // --- ENCABEZADO ---
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(18);
+            doc.setTextColor(29, 53, 87); // Azul PIDA
+            doc.text(title || "Documento PIDA", margin, y);
             
-            let body = "";
+            y += 8;
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`Generado el: ${new Date().toLocaleDateString()} - pida-ai.com`, margin, y);
+            
+            y += 15; // Espacio antes del contenido
+            doc.setDrawColor(200);
+            doc.line(margin, y - 5, pageWidth - margin, y - 5); // Línea separadora
+
+            // Preparar mensajes
+            let messages = [];
             if(Array.isArray(content)){
-                content.forEach(c => body += `[${c.role.toUpperCase()}]: ${c.content}\n\n`);
+                messages = content;
             } else {
-                body = content;
+                messages = [{ role: 'system', content: content }];
             }
-            
-            const lines = doc.splitTextToSize(body, 180);
-            doc.text(lines, 10, 20);
+
+            // --- CUERPO DEL DOCUMENTO ---
+            messages.forEach(msg => {
+                // 1. Verificar si cabe el Título del Rol, si no, nueva página
+                if (y > pageHeight - 30) { doc.addPage(); y = 20; }
+
+                // 2. Escribir Nombre del Rol (PIDA o INVESTIGADOR)
+                const isPida = msg.role === 'model';
+                const roleName = isPida ? "PIDA" : "INVESTIGADOR";
+                
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(11);
+                if (isPida) doc.setTextColor(29, 53, 87); // Azul para PIDA
+                else doc.setTextColor(50); // Gris oscuro para usuario
+                
+                doc.text(roleName, margin, y);
+                y += 6;
+
+                // 3. Procesar y Escribir el Texto
+                doc.setFont("helvetica", "normal");
+                doc.setFontSize(11);
+                doc.setTextColor(0); // Negro
+
+                const cleanContent = this.cleanText(msg.content);
+                const lines = doc.splitTextToSize(cleanContent, maxWidth);
+
+                // Verificar espacio para el texto
+                // Si el bloque es muy grande, calculamos cuánto cabe
+                if (y + (lines.length * 5) > pageHeight - 15) {
+                    // Imprimir línea por línea para manejar el salto de página
+                    lines.forEach(line => {
+                        if (y > pageHeight - 15) { doc.addPage(); y = 20; }
+                        doc.text(line, margin, y);
+                        y += 5; // Interlineado
+                    });
+                } else {
+                    // Si cabe todo el bloque
+                    doc.text(lines, margin, y);
+                    y += (lines.length * 5);
+                }
+
+                y += 10; // Espacio extra entre mensajes
+            });
+
             doc.save(fname+".pdf"); 
         },
+
         async downloadDOCX(fname, title, content) { 
-            const {Document, Packer, Paragraph, TextRun} = window.docx; 
+            const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = window.docx; 
+            
+            // Preparar los párrafos
+            const docChildren = [];
+
+            // Título Principal
+            docChildren.push(
+                new Paragraph({
+                    text: title || "Reporte PIDA",
+                    heading: HeadingLevel.HEADING_1,
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 300 }
+                })
+            );
+
+            let messages = Array.isArray(content) ? content : [{ role: 'system', content: content }];
+
+            messages.forEach(msg => {
+                const isPida = msg.role === 'model';
+                const roleName = isPida ? "PIDA" : "INVESTIGADOR";
+                const roleColor = isPida ? "1D3557" : "444444"; // Hex colors
+
+                // Nombre del Rol
+                docChildren.push(
+                    new Paragraph({
+                        children: [
+                            new TextRun({
+                                text: roleName,
+                                bold: true,
+                                color: roleColor,
+                                size: 24 // 12pt
+                            })
+                        ],
+                        spacing: { before: 200, after: 100 }
+                    })
+                );
+
+                // Contenido
+                const cleanContent = this.cleanText(msg.content);
+                // Dividir por saltos de línea para respetar párrafos
+                const paragraphs = cleanContent.split('\n');
+                
+                paragraphs.forEach(pText => {
+                    if(pText.trim()) {
+                        docChildren.push(
+                            new Paragraph({
+                                children: [ new TextRun({ text: pText.trim(), size: 22 }) ], // 11pt
+                                spacing: { after: 100 }
+                            })
+                        );
+                    }
+                });
+            });
+
             const doc = new Document({
-                sections:[{children:[new Paragraph({children:[new TextRun(title)]}) ]}]
+                sections: [{ children: docChildren }]
             }); 
-            Packer.toBlob(doc).then(b=>{
-                const u=URL.createObjectURL(b);
-                const a=document.createElement('a');
-                a.href=u;
-                a.download=fname+".docx";
+
+            Packer.toBlob(doc).then(b => {
+                const u = URL.createObjectURL(b);
+                const a = document.createElement('a');
+                a.href = u;
+                a.download = fname + ".docx";
                 a.click();
             }); 
         },
+
         downloadTXT(fname, title, content) { 
-            let t=title+"\n"; 
-            if(Array.isArray(content)){
-                content.forEach(c=>{t+=`[${c.role}]: ${c.content}\n`}); 
-            } else {
-                t += content;
-            }
-            const b=new Blob([t]); 
-            const u=URL.createObjectURL(b); 
-            const a=document.createElement('a');
-            a.href=u;
-            a.download=fname+".txt";
+            let t = (title || "Documento PIDA") + "\n";
+            t += "====================================\n\n";
+            
+            let messages = Array.isArray(content) ? content : [{ role: 'system', content: content }];
+            
+            messages.forEach(c => {
+                const role = c.role === 'model' ? "PIDA" : "INVESTIGADOR";
+                const cleanContent = this.cleanText(c.content);
+                t += `[${role}]:\n${cleanContent}\n\n------------------------------------\n\n`;
+            });
+
+            const b = new Blob([t]); 
+            const u = URL.createObjectURL(b); 
+            const a = document.createElement('a');
+            a.href = u;
+            a.download = fname + ".txt";
             a.click(); 
         }
     };
