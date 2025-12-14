@@ -831,7 +831,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         async function handleNewChat(clearUI = true) {
-            console.log("Creando nuevo chat..."); // Para depurar
+            console.log("Ejecutando Nuevo Chat..."); // Log para verificar
             if (clearUI) { 
                 dom.chatBox.innerHTML = ''; 
                 dom.input.value = ''; 
@@ -851,28 +851,37 @@ document.addEventListener('DOMContentLoaded', function () {
                 state.conversations.unshift(newConvo);
                 state.currentChat = { id: newConvo.id, title: newConvo.title, messages: [] };
                 loadChatHistory();
-            } catch (e) { console.error(e); }
+            } catch (e) { console.error("Error creando chat:", e); }
         }
 
-        // === PEGA ESTO AQUÍ PARA REACTIVAR EL BOTÓN ===
+        // === ZONA DE BOTONES DE CHAT CORREGIDA ===
+        
+        // 1. Botón "Nuevo Chat" (Busca ambas variantes de ID por seguridad)
         const btnNewChat = document.getElementById('pida-new-chat-btn') || document.getElementById('new-chat-btn');
         if (btnNewChat) {
             btnNewChat.onclick = (e) => {
-                e.preventDefault();
+                e.preventDefault(); 
+                e.stopPropagation(); // Evita que el clic se propague
                 handleNewChat(true);
             };
         } else {
-            console.warn("No se encontró el botón de Nuevo Chat en el HTML");
+            console.warn("ADVERTENCIA: No se encontró el botón de 'Nuevo Chat' en el HTML. Revisa los IDs.");
         }
         
-        // También reactivamos el botón de limpiar chat (el de la escobita si lo tienes)
+        // 2. Botón "Limpiar" (Escoba)
         const btnClear = document.getElementById('chat-clear-btn');
-        if(btnClear) btnClear.onclick = () => handleNewChat(true);
+        if(btnClear) {
+            btnClear.onclick = (e) => {
+                e.preventDefault();
+                handleNewChat(true);
+            };
+        }
 
-        dom.sendBtn.onclick = (e) => { e.preventDefault(); sendChat(); };
-        dom.input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } };
-        document.getElementById('pida-new-chat-btn').onclick = () => handleNewChat(true);
-        document.getElementById('chat-clear-btn').onclick = () => handleNewChat(true);
+        // 3. Eventos de envío de mensajes
+        if (dom.sendBtn) dom.sendBtn.onclick = (e) => { e.preventDefault(); sendChat(); };
+        if (dom.input) dom.input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } };
+
+        // --- (BORRA LAS LÍNEAS ANTIGUAS QUE ESTABAN AQUÍ ABAJO CAUSANDO EL ERROR) ---
 
         // --- ANALYZER LOGIC ---
         const anaUploadBtn = document.getElementById('analyzer-upload-btn');
