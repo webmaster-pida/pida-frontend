@@ -854,37 +854,6 @@ document.addEventListener('DOMContentLoaded', function () {
             } catch (e) { console.error("Error creando chat:", e); }
         }
 
-        // === ZONA DE BOTONES DE CHAT CORREGIDA ===
-        
-        // 1. Botón "Nuevo Chat" (Busca ambas variantes de ID por seguridad)
-        const btnNewChat = document.getElementById('pida-new-chat-btn') || document.getElementById('new-chat-btn');
-        if (btnNewChat) {
-            btnNewChat.onclick = (e) => {
-                e.preventDefault(); 
-                e.stopPropagation(); // Evita que el clic se propague
-                handleNewChat(true);
-            };
-        } else {
-            console.warn("ADVERTENCIA: No se encontró el botón de 'Nuevo Chat' en el HTML. Revisa los IDs.");
-        }
-        
-        // 2. Botón "Limpiar" (Escoba)
-        const btnClear = document.getElementById('chat-clear-btn');
-        if(btnClear) {
-            btnClear.onclick = (e) => {
-                e.preventDefault();
-                handleNewChat(true);
-            };
-        }
-
-        // 3. Eventos de envío de mensajes
-        if (dom.sendBtn) dom.sendBtn.onclick = (e) => { e.preventDefault(); sendChat(); };
-        if (dom.input) dom.input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } };
-
-        // --- (BORRA LAS LÍNEAS ANTIGUAS QUE ESTABAN AQUÍ ABAJO CAUSANDO EL ERROR) ---
-
-        // --- ANALYZER LOGIC ---
-        const anaUploadBtn = document.getElementById('analyzer-upload-btn');
         if(anaUploadBtn) anaUploadBtn.onclick = () => dom.anaInput.click();
         dom.anaInput.onchange = (e) => { state.anaFiles.push(...e.target.files); renderFiles(); };
 
