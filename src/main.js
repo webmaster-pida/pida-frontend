@@ -1,9 +1,8 @@
 // =========================================================
-// 1. ZONA DE IMPORTACIONES (Vite / Módulos Modernos)
+// 1. ZONA DE IMPORTACIONES
 // =========================================================
-import './style.css'; // Tus estilos CSS
+import './style.css'; 
 
-// Importar Firebase (Compatibilidad v9)
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
@@ -11,7 +10,6 @@ import 'firebase/compat/functions';
 import 'firebase/compat/analytics';
 import 'firebase/compat/remote-config';
 
-// Importar Librerías de utilidades
 import { jsPDF } from "jspdf";
 import * as docx from "docx";
 import { marked } from "marked";
@@ -23,7 +21,6 @@ window.docx = docx;
 window.marked = marked;
 window.DOMPurify = DOMPurify;
 window.firebase = firebase;
-
 
 // =========================================================
 // 2. CONFIGURACIÓN
@@ -55,8 +52,196 @@ const PIDA_CONFIG = {
     }
 };
 
+// --- UTILIDAD DE EXPORTACIÓN UNIFICADA Y PROFESIONAL ---
+const Exporter = {
+    // Limpia el Markdown para impresión (quita **, ##, __)
+    cleanText(text) {
+        if (!text) return "";
+        return text
+            .replace(/\*\*/g, "")      // Negritas
+            .replace(/__/g, "")        // Cursivas
+            .replace(/^#+\s/gm, "")    // Títulos (## Título)
+            .replace(/^\* /gm, "• ")   // Viñetas
+            .replace(/\[/g, "(")       // Corchetes
+            .replace(/\]/g, ")");
+    },
 
-// --- FUNCIÓN AUXILIAR: CONFIRMACIÓN SUTIL ---
+    // Normaliza la entrada (sea Chat array o Analizador string) a un formato común
+    normalizeContent(content) {
+        if (Array.isArray(content)) {
+            return content; // Ya es un chat
+        } else {
+            // Es el analizador (texto único), lo convertimos a estructura de chat simulado
+            return [{ role: 'model', content: content }];
+        }
+    },
+
+    async downloadPDF(fname, title, rawContent) { 
+        const doc = new window.jspdf.jsPDF(); 
+        const margin = 15;
+        const pageHeight = doc.internal.pageSize.height;
+        const pageWidth = doc.internal.pageSize.width;
+        const maxWidth = pageWidth - (margin * 2);
+        let y = 20;
+
+        // --- ENCABEZADO CORPORATIVO ---
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(22);
+        doc.setTextColor(29, 53, 87); // Azul PIDA (#1D3557)
+        doc.text("PIDA", margin, y);
+        
+        doc.setFontSize(12);
+        doc.setTextColor(100);
+        doc.text("Plataforma de Investigación y Defensa Avanzada", margin + 25, y);
+
+        y += 10;
+        doc.setDrawColor(29, 53, 87);
+        doc.setLineWidth(0.5);
+        doc.line(margin, y, pageWidth - margin, y); // Línea azul
+
+        y += 10;
+        doc.setFontSize(14);
+        doc.setTextColor(0);
+        doc.text(title || "Reporte Generado", margin, y);
+        
+        y += 6;
+        doc.setFontSize(9);
+        doc.setTextColor(120);
+        doc.text(`Fecha: ${new Date().toLocaleDateString()} | pida-ai.com`, margin, y);
+        
+        y += 15; // Espacio antes del contenido
+
+        const messages = this.normalizeContent(rawContent);
+
+        // --- CUERPO DEL DOCUMENTO ---
+        messages.forEach(msg => {
+            // Verificar fin de página para el Título del Rol
+            if (y > pageHeight - 25) { doc.addPage(); y = 20; }
+
+            const isPida = msg.role === 'model';
+            const roleName = isPida ? "RESPUESTA PIDA" : "CONSULTA INVESTIGADOR";
+            
+            // Título de Sección
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            if (isPida) doc.setTextColor(29, 53, 87); // Azul
+            else doc.setTextColor(80); // Gris
+            
+            doc.text(roleName, margin, y);
+            y += 5;
+
+            // Contenido
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(11);
+            doc.setTextColor(0); // Negro puro
+
+            const cleanContent = this.cleanText(msg.content);
+            const lines = doc.splitTextToSize(cleanContent, maxWidth);
+
+            // Verificar si el bloque cabe, si no, imprimir línea a línea
+            if (y + (lines.length * 5) > pageHeight - 15) {
+                lines.forEach(line => {
+                    if (y > pageHeight - 15) { doc.addPage(); y = 20; }
+                    doc.text(line, margin, y);
+                    y += 5; 
+                });
+            } else {
+                doc.text(lines, margin, y);
+                y += (lines.length * 5);
+            }
+
+            y += 10; // Separación entre bloques
+        });
+
+        doc.save(fname+".pdf"); 
+    },
+
+    async downloadDOCX(fname, title, rawContent) { 
+        const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, UnderlineType } = window.docx; 
+        
+        const docChildren = [];
+        const messages = this.normalizeContent(rawContent);
+
+        // Título Principal
+        docChildren.push(
+            new Paragraph({
+                text: title || "Documento PIDA",
+                heading: HeadingLevel.HEADING_1,
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 300 }
+            })
+        );
+
+        messages.forEach(msg => {
+            const isPida = msg.role === 'model';
+            const roleName = isPida ? "PIDA" : "INVESTIGADOR";
+            const roleColor = isPida ? "1D3557" : "666666"; 
+
+            // Nombre del Rol
+            docChildren.push(
+                new Paragraph({
+                    children: [
+                        new TextRun({
+                            text: roleName,
+                            bold: true,
+                            color: roleColor,
+                            size: 24 // 12pt
+                        })
+                    ],
+                    spacing: { before: 200, after: 100 },
+                    border: { bottom: { color: "CCCCCC", space: 1, value: "single", size: 6 } }
+                })
+            );
+
+            // Contenido Limpio
+            const cleanContent = this.cleanText(msg.content);
+            const paragraphs = cleanContent.split('\n');
+            
+            paragraphs.forEach(pText => {
+                if(pText.trim()) {
+                    docChildren.push(
+                        new Paragraph({
+                            children: [ new TextRun({ text: pText.trim(), size: 22 }) ], // 11pt
+                            spacing: { after: 120 }
+                        })
+                    );
+                }
+            });
+        });
+
+        const doc = new Document({ sections: [{ children: docChildren }] }); 
+
+        Packer.toBlob(doc).then(b => {
+            const u = URL.createObjectURL(b);
+            const a = document.createElement('a');
+            a.href = u;
+            a.download = fname + ".docx";
+            a.click();
+        }); 
+    },
+
+    downloadTXT(fname, title, rawContent) { 
+        let t = (title || "Documento PIDA") + "\n";
+        t += "====================================\n\n";
+        
+        const messages = this.normalizeContent(rawContent);
+        
+        messages.forEach(c => {
+            const role = c.role === 'model' ? "PIDA" : "INVESTIGADOR";
+            const cleanContent = this.cleanText(c.content);
+            t += `[${role}]:\n${cleanContent}\n\n------------------------------------\n\n`;
+        });
+
+        const b = new Blob([t]); 
+        const u = URL.createObjectURL(b); 
+        const a = document.createElement('a');
+        a.href = u;
+        a.download = fname + ".txt";
+        a.click(); 
+    }
+};
+
+// --- CONFIRMACIÓN UI ---
 function showCustomConfirm(message) {
     return new Promise((resolve) => {
         const overlay = document.createElement('div');
@@ -71,42 +256,20 @@ function showCustomConfirm(message) {
         overlay.style.alignItems = 'center';
         overlay.style.justifyContent = 'center';
         overlay.style.backdropFilter = 'blur(4px)';
-        overlay.style.opacity = '0';
-        overlay.style.transition = 'opacity 0.2s ease';
-
         overlay.innerHTML = `
-            <div style="background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transform: scale(0.9); transition: transform 0.2s ease;">
+            <div style="background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
                 <div style="font-size: 2rem; margin-bottom: 10px;">🗑️</div>
-                <h3 style="color: #1D3557; margin: 0 0 10px 0; font-family: 'Inter', sans-serif;">¿Eliminar archivo?</h3>
-                <p style="color: #666; font-size: 0.95rem; margin-bottom: 25px; line-height: 1.5;">${message}</p>
+                <h3 style="color: #1D3557; margin: 0 0 10px 0; font-family: 'Inter', sans-serif;">Confirmar</h3>
+                <p style="color: #666; font-size: 0.95rem; margin-bottom: 25px;">${message}</p>
                 <div style="display: flex; gap: 10px; justify-content: center;">
-                    <button id="btn-cancel" style="background: white; border: 1px solid #ccc; color: #666; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: inherit;">Cancelar</button>
-                    <button id="btn-confirm" style="background: #EF4444; border: none; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: inherit; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3);">Sí, eliminar</button>
+                    <button id="btn-cancel" style="background: white; border: 1px solid #ccc; color: #666; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">Cancelar</button>
+                    <button id="btn-confirm" style="background: #EF4444; border: none; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600;">Eliminar</button>
                 </div>
             </div>
         `;
-
         document.body.appendChild(overlay);
-
-        requestAnimationFrame(() => {
-            overlay.style.opacity = '1';
-            overlay.querySelector('div').style.transform = 'scale(1)';
-        });
-
-        const close = (result) => {
-            overlay.style.opacity = '0';
-            overlay.querySelector('div').style.transform = 'scale(0.9)';
-            setTimeout(() => {
-                if(document.body.contains(overlay)) document.body.removeChild(overlay);
-                resolve(result);
-            }, 200);
-        };
-
-        const btnC = document.getElementById('btn-cancel');
-        const btnO = document.getElementById('btn-confirm');
-        if(btnC) btnC.onclick = () => close(false);
-        if(btnO) btnO.onclick = () => close(true);
-        overlay.onclick = (e) => { if(e.target === overlay) close(false); };
+        document.getElementById('btn-cancel').onclick = () => { document.body.removeChild(overlay); resolve(false); };
+        document.getElementById('btn-confirm').onclick = () => { document.body.removeChild(overlay); resolve(true); };
     });
 }
 
@@ -119,16 +282,13 @@ let currentUser = null;
 let pendingPlan = null; 
 let authMode = 'login';
 
-// Funciones Auxiliares UI Globales
+// Funciones Globales
 window.closeBanner = function() {
     const banner = document.getElementById('system-alert-banner');
-    const nav = document.getElementById('navbar');
-    const appLayout = document.getElementById('pida-app-layout');
-    
     if(banner) banner.classList.add('hidden');
     document.body.style.marginTop = '0px';
+    const nav = document.getElementById('navbar');
     if (nav) nav.style.top = '0px';
-    if (appLayout) appLayout.style.top = '0px';
 }
 
 window.switchAuthMode = function(mode) {
@@ -172,372 +332,54 @@ document.addEventListener('DOMContentLoaded', function () {
     const loginScreen = document.getElementById('pida-login-screen');
     const appRoot = document.getElementById('pida-app-root');
 
-    // UTILIDADES
+    // --- UTILIDADES INTERNAS ---
     const Utils = {
         sanitize(html) { return DOMPurify.sanitize(html); },
-        getTimestampedFilename(title) { const now=new Date(); return `${(title||"Doc").replace(/[^a-zA-Z0-9]/g,"")}_${now.getTime()}`; },
-        getRawText(html) { const t=document.createElement('div'); t.innerHTML=html; return t.innerText||""; },
         async getHeaders(user) { 
             try { 
                 const t = await user.getIdToken(); 
-                return { 
-                    'Authorization': 'Bearer ' + t,
-                    'Content-Type': 'application/json' 
-                }; 
+                return { 'Authorization': 'Bearer ' + t, 'Content-Type': 'application/json' }; 
             } catch { return null; } 
-        }
-    };
-
-    const Exporter = {
-        // Función para limpiar símbolos de Markdown (**, ##, etc) para que se lea bien en papel
-        cleanText(text) {
-            if (!text) return "";
-            return text
-                .replace(/\*\*/g, "")      // Quitar negritas markdown
-                .replace(/__/g, "")        // Quitar cursivas markdown
-                .replace(/##/g, "")        // Quitar headers markdown
-                .replace(/^\* /gm, "• ")   // Convertir viñetas markdown en puntos
-                .replace(/\[/g, "(")       // Cambiar corchetes por paréntesis
-                .replace(/\]/g, ")");
-        },
-
-        async downloadPDF(fname, title, content) { 
-            const doc = new window.jspdf.jsPDF(); 
-            const margin = 15;
-            const pageHeight = doc.internal.pageSize.height;
-            const pageWidth = doc.internal.pageSize.width;
-            const maxWidth = pageWidth - (margin * 2);
-            let y = 20; // Posición vertical inicial
-
-            // --- ENCABEZADO ---
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(18);
-            doc.setTextColor(29, 53, 87); // Azul PIDA
-            doc.text(title || "Documento PIDA", margin, y);
-            
-            y += 8;
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(10);
-            doc.setTextColor(100);
-            doc.text(`Generado el: ${new Date().toLocaleDateString()} - pida-ai.com`, margin, y);
-            
-            y += 15; // Espacio antes del contenido
-            doc.setDrawColor(200);
-            doc.line(margin, y - 5, pageWidth - margin, y - 5); // Línea separadora
-
-            // Preparar mensajes
-            let messages = [];
-            if(Array.isArray(content)){
-                messages = content;
-            } else {
-                messages = [{ role: 'system', content: content }];
-            }
-
-            // --- CUERPO DEL DOCUMENTO ---
-            messages.forEach(msg => {
-                // 1. Verificar si cabe el Título del Rol, si no, nueva página
-                if (y > pageHeight - 30) { doc.addPage(); y = 20; }
-
-                // 2. Escribir Nombre del Rol (PIDA o INVESTIGADOR)
-                const isPida = msg.role === 'model';
-                const roleName = isPida ? "PIDA" : "INVESTIGADOR";
-                
-                doc.setFont("helvetica", "bold");
-                doc.setFontSize(11);
-                if (isPida) doc.setTextColor(29, 53, 87); // Azul para PIDA
-                else doc.setTextColor(50); // Gris oscuro para usuario
-                
-                doc.text(roleName, margin, y);
-                y += 6;
-
-                // 3. Procesar y Escribir el Texto
-                doc.setFont("helvetica", "normal");
-                doc.setFontSize(11);
-                doc.setTextColor(0); // Negro
-
-                const cleanContent = this.cleanText(msg.content);
-                const lines = doc.splitTextToSize(cleanContent, maxWidth);
-
-                // Verificar espacio para el texto
-                // Si el bloque es muy grande, calculamos cuánto cabe
-                if (y + (lines.length * 5) > pageHeight - 15) {
-                    // Imprimir línea por línea para manejar el salto de página
-                    lines.forEach(line => {
-                        if (y > pageHeight - 15) { doc.addPage(); y = 20; }
-                        doc.text(line, margin, y);
-                        y += 5; // Interlineado
-                    });
-                } else {
-                    // Si cabe todo el bloque
-                    doc.text(lines, margin, y);
-                    y += (lines.length * 5);
-                }
-
-                y += 10; // Espacio extra entre mensajes
-            });
-
-            doc.save(fname+".pdf"); 
-        },
-
-        async downloadDOCX(fname, title, content) { 
-            const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = window.docx; 
-            
-            // Preparar los párrafos
-            const docChildren = [];
-
-            // Título Principal
-            docChildren.push(
-                new Paragraph({
-                    text: title || "Reporte PIDA",
-                    heading: HeadingLevel.HEADING_1,
-                    alignment: AlignmentType.CENTER,
-                    spacing: { after: 300 }
-                })
-            );
-
-            let messages = Array.isArray(content) ? content : [{ role: 'system', content: content }];
-
-            messages.forEach(msg => {
-                const isPida = msg.role === 'model';
-                const roleName = isPida ? "PIDA" : "INVESTIGADOR";
-                const roleColor = isPida ? "1D3557" : "444444"; // Hex colors
-
-                // Nombre del Rol
-                docChildren.push(
-                    new Paragraph({
-                        children: [
-                            new TextRun({
-                                text: roleName,
-                                bold: true,
-                                color: roleColor,
-                                size: 24 // 12pt
-                            })
-                        ],
-                        spacing: { before: 200, after: 100 }
-                    })
-                );
-
-                // Contenido
-                const cleanContent = this.cleanText(msg.content);
-                // Dividir por saltos de línea para respetar párrafos
-                const paragraphs = cleanContent.split('\n');
-                
-                paragraphs.forEach(pText => {
-                    if(pText.trim()) {
-                        docChildren.push(
-                            new Paragraph({
-                                children: [ new TextRun({ text: pText.trim(), size: 22 }) ], // 11pt
-                                spacing: { after: 100 }
-                            })
-                        );
-                    }
-                });
-            });
-
-            const doc = new Document({
-                sections: [{ children: docChildren }]
-            }); 
-
-            Packer.toBlob(doc).then(b => {
-                const u = URL.createObjectURL(b);
-                const a = document.createElement('a');
-                a.href = u;
-                a.download = fname + ".docx";
-                a.click();
-            }); 
-        },
-
-        downloadTXT(fname, title, content) { 
-            let t = (title || "Documento PIDA") + "\n";
-            t += "====================================\n\n";
-            
-            let messages = Array.isArray(content) ? content : [{ role: 'system', content: content }];
-            
-            messages.forEach(c => {
-                const role = c.role === 'model' ? "PIDA" : "INVESTIGADOR";
-                const cleanContent = this.cleanText(c.content);
-                t += `[${role}]:\n${cleanContent}\n\n------------------------------------\n\n`;
-            });
-
-            const b = new Blob([t]); 
-            const u = URL.createObjectURL(b); 
-            const a = document.createElement('a');
-            a.href = u;
-            a.download = fname + ".txt";
-            a.click(); 
         }
     };
 
     // --- INTERACTIVIDAD BÁSICA ---
     const legalBtn = document.getElementById('open-legal-btn');
     const legalModal = document.getElementById('pida-legal-modal');
-    if(legalBtn && legalModal){
-        legalBtn.addEventListener('click', (e) => { e.preventDefault(); legalModal.classList.remove('hidden'); });
-    }
+    if(legalBtn && legalModal) legalBtn.addEventListener('click', (e) => { e.preventDefault(); legalModal.classList.remove('hidden'); });
 
-    const track = document.getElementById('carouselTrack');
-    if (track) {
-        const dotsNav = document.getElementById('carouselDots');
-        const dots = Array.from(dotsNav?.children || []);
-        let currentSlide = 0;
-        const slides = Array.from(track.children);
-        function updateSlide(index) {
-            track.style.transform = 'translateX(-' + (index * 100) + '%)';
-            dots.forEach(d => d.classList.remove('active'));
-            if(dots[index]) dots[index].classList.add('active');
-            currentSlide = index;
-        }
-        setInterval(() => {
-            let next = currentSlide + 1;
-            if (next >= slides.length) next = 0;
-            updateSlide(next);
-        }, 5000); 
-        dots.forEach((dot, index) => { dot.addEventListener('click', () => updateSlide(index)); });
-    }
-
-    // --- STRIPE RETURN HANDLER ---
+    // --- STRIPE RETURN ---
     const urlParams = new URLSearchParams(window.location.search);
     const paymentStatus = urlParams.get('payment_status');
     if (paymentStatus) {
         const banner = document.getElementById('system-alert-banner');
         const bannerText = document.getElementById('system-alert-text');
         if(banner && bannerText){
+            banner.classList.remove('hidden');
             if (paymentStatus === 'success') {
                 banner.style.backgroundColor = '#10B981'; 
                 bannerText.innerHTML = "¡Suscripción activada! Bienvenido a PIDA.";
-                banner.classList.remove('hidden');
-            } else if (paymentStatus === 'canceled') {
-                banner.style.backgroundColor = '#6B7280'; 
-                bannerText.innerText = "El proceso de pago fue cancelado.";
-                banner.classList.remove('hidden');
-            } else if (paymentStatus === 'error') {
+            } else {
                 banner.style.backgroundColor = '#EF4444'; 
-                bannerText.innerText = "Hubo un problema con el pago. Intenta de nuevo.";
-                banner.classList.remove('hidden');
+                bannerText.innerText = "Hubo un problema con el pago.";
             }
             window.history.replaceState({}, document.title, window.location.pathname);
             setTimeout(() => window.closeBanner(), 8000);
         }
     }
 
-    // Header Scroll
-    window.addEventListener('scroll', () => {
-        const nav = document.getElementById('navbar');
-        if (nav) {
-            if (window.scrollY > 20) nav.classList.add('scrolled');
-            else nav.classList.remove('scrolled');
-        }
-    });
-
     // ==========================================
     // INICIALIZACIÓN DE FIREBASE
     // ==========================================
     try {
-        if (!firebase.apps.length) {
-            firebase.initializeApp(PIDA_CONFIG.FIREBASE);
-        }
-        
+        if (!firebase.apps.length) firebase.initializeApp(PIDA_CONFIG.FIREBASE);
         auth = firebase.auth();
         db = firebase.firestore();
-        const analytics = firebase.analytics();
-
         const remoteConfig = firebase.remoteConfig();
-        remoteConfig.defaultConfig = { 'maintenance_mode_enabled': 'false', 'maintenance_details': '(Servicio no disponible temporalmente)' };
-        if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
-            remoteConfig.settings.minimumFetchIntervalMillis = 10000; 
-        }
+        remoteConfig.defaultConfig = { 'maintenance_mode_enabled': 'false' };
         
         googleProvider = new firebase.auth.GoogleAuthProvider();
         googleProvider.setCustomParameters({ prompt: 'select_account' });
-
-        const banner = document.getElementById('system-alert-banner');
-        const bannerText = document.getElementById('system-alert-text');
-        if(banner && banner.classList.contains('hidden')) {
-            db.collection('config').doc('alerts').onSnapshot((doc) => {
-                if (doc.exists) {
-                    const data = doc.data();
-                    if (data.active) {
-                        bannerText.textContent = data.message;
-                        if(data.type === 'error') banner.style.backgroundColor = '#EF4444';
-                        else if(data.type === 'info') banner.style.backgroundColor = '#1D3557';
-                        else banner.style.backgroundColor = '#ff9800'; 
-                        banner.classList.remove('hidden');
-                    } else {
-                        window.closeBanner();
-                    }
-                }
-            }, (err) => console.log("Alerts unavailable:", err.code));
-        }
-
-        async function checkMaintenanceMode() {
-            try {
-                await remoteConfig.fetchAndActivate();
-                const isMaintenanceEnabled = remoteConfig.getBoolean('maintenance_mode_enabled');
-                const details = remoteConfig.getString('maintenance_details');
-                
-                const maintenanceMsg = document.getElementById('maintenance-message');
-                const maintenanceDetails = document.getElementById('maintenance-details');
-                const authSubmitBtn = document.getElementById('auth-submit-btn');
-                
-                if (isMaintenanceEnabled) {
-                    if(maintenanceMsg) maintenanceMsg.style.display = 'block';
-                    if(maintenanceDetails) maintenanceDetails.textContent = details;
-                    if(authSubmitBtn) authSubmitBtn.disabled = true;
-                    document.querySelectorAll('.plan-cta').forEach(btn => {
-                        btn.disabled = true; btn.textContent = 'Mantenimiento';
-                    });
-                } else {
-                    if(maintenanceMsg) maintenanceMsg.style.display = 'none';
-                    if(authSubmitBtn) authSubmitBtn.disabled = false;
-                }
-            } catch (error) { console.warn("Remote Config Error:", error); }
-        }
-        checkMaintenanceMode();
-
-        const contactForm = document.getElementById('contact-form');
-        if(contactForm) {
-            contactForm.addEventListener('submit', async function(event) {
-                event.preventDefault();
-                const btn = document.getElementById('contact-submit-btn');
-                const status = document.getElementById('contact-status');
-                const originalText = btn.textContent;
-                
-                const leadData = {
-                    name: document.getElementById('contact-name').value,
-                    company: document.getElementById('contact-company').value,
-                    email: document.getElementById('contact-email').value,
-                    phone: (document.getElementById('contact-country-code').value || '') + ' ' + document.getElementById('contact-phone').value,
-                    message: document.getElementById('contact-message').value,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'nuevo'
-                };
-
-                btn.textContent = 'Guardando...'; btn.disabled = true;
-                try {
-                    await db.collection('leads_corporativos').add(leadData);
-                    btn.textContent = '¡Enviado!';
-                    status.textContent = 'Datos recibidos. Te contactaremos pronto.';
-                    status.style.display = 'block'; status.style.color = '#10B981';
-                    setTimeout(() => {
-                        const modal = document.getElementById('contact-modal');
-                        if(modal) modal.classList.add('hidden');
-                        contactForm.reset();
-                        btn.textContent = originalText; btn.disabled = false; status.style.display = 'none';
-                    }, 3000);
-                } catch (error) {
-                    console.error("Error lead:", error);
-                    btn.textContent = originalText; btn.disabled = false;
-                    status.textContent = 'Error de conexión.'; status.style.display = 'block'; status.style.color = '#EF4444';
-                }
-            });
-        }
-        
-        const btnCorp = document.getElementById('btn-corp-contact');
-        const btnCloseContact = document.getElementById('close-contact-btn');
-        const contactModal = document.getElementById('contact-modal');
-        if(btnCorp) btnCorp.addEventListener('click', (e)=>{ e.preventDefault(); contactModal.classList.remove('hidden'); });
-        if(btnCloseContact) btnCloseContact.addEventListener('click', ()=>{ contactModal.classList.add('hidden'); });
-
 
         // AUTH STATE
         const globalLoader = document.getElementById('pida-global-loader');
@@ -577,9 +419,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-    } catch (firebaseError) {
-        console.error("Critical Firebase Error:", firebaseError);
-    }
+    } catch (firebaseError) { console.error("Firebase Error:", firebaseError); }
 
     async function checkAccessAuthorization(user) {
         const headers = await Utils.getHeaders(user);
@@ -588,18 +428,16 @@ document.addEventListener('DOMContentLoaded', function () {
             const subRef = db.collection('customers').doc(user.uid).collection('subscriptions');
             const snap = await subRef.where('status', 'in', ['active', 'trialing']).get();
             if (!snap.empty) return true;
-        } catch (e) { console.error("Stripe check error:", e); }
+        } catch (e) { }
 
         try {
             const res = await fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: headers });
-            if (res.ok) {
-                const r = await res.json();
-                if (r.is_vip_user) return true;
-            }
-        } catch (e) { console.error("VIP check error:", e); }
+            if (res.ok) { const r = await res.json(); if (r.is_vip_user) return true; }
+        } catch (e) { }
         return false;
     }
 
+    // LOGIN & CHECKOUT
     document.querySelectorAll('.trigger-login').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -614,37 +452,22 @@ document.addEventListener('DOMContentLoaded', function () {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-password').value;
             const btn = document.getElementById('auth-submit-btn');
-            const msg = document.getElementById('login-message');
             
-            msg.style.display = 'none'; btn.disabled = true;
+            btn.disabled = true; btn.textContent = "Procesando...";
             try {
-                if (authMode === 'login') {
-                    btn.textContent = 'Verificando...';
-                    await auth.signInWithEmailAndPassword(email, pass);
-                } else {
-                    btn.textContent = 'Creando cuenta...';
-                    await auth.createUserWithEmailAndPassword(email, pass);
-                }
+                if (authMode === 'login') await auth.signInWithEmailAndPassword(email, pass);
+                else await auth.createUserWithEmailAndPassword(email, pass);
             } catch (error) {
-                btn.disabled = false; msg.style.display = 'block';
-                if (authMode === 'login') {
-                    btn.textContent = 'Ingresar';
-                    msg.textContent = (error.code === 'auth/wrong-password') ? "Contraseña incorrecta." : "Error: " + error.message;
-                } else {
-                    btn.textContent = 'Registrarse';
-                    msg.textContent = error.message;
-                }
+                btn.disabled = false; btn.textContent = "Intentar de nuevo";
+                alert(error.message);
             }
         });
     }
 
     const googleBtn = document.getElementById('google-login-btn');
-    if(googleBtn) {
-        googleBtn.addEventListener('click', async () => {
-            try { await auth.signInWithPopup(googleProvider); } 
-            catch (error) { alert("Error Google: " + error.message); }
-        });
-    }
+    if(googleBtn) googleBtn.addEventListener('click', async () => {
+        try { await auth.signInWithPopup(googleProvider); } catch (error) { alert(error.message); }
+    });
 
     async function startCheckout(priceId) {
         if (!currentUser) {
@@ -670,32 +493,16 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (error) { console.error("Checkout Error:", error); }
     }
 
-    async function detectUserCountry() {
-        try {
-            const r = await fetch('https://ipapi.co/json/');
-            const d = await r.json();
-            if (d.country_code === 'MX') {
-                currentCurrency = 'MXN'; 
-                const m = document.getElementById('price-val-monthly');
-                const a = document.getElementById('price-val-annual');
-                if (m) m.textContent = STRIPE_PRICES.basic.MXN.text;
-                if (a) a.textContent = STRIPE_PRICES.pro.MXN.text;
-            }
-        } catch (e) { console.log("Ubicación no detectada (default USD)."); }
-    }
-    detectUserCountry();
-
     document.querySelectorAll('.plan-cta').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             if (btn.disabled) return;
             const planKey = btn.getAttribute('data-plan');
-            const priceId = STRIPE_PRICES[planKey]?.[currentCurrency]?.id;
-
+            const priceId = STRIPE_PRICES[planKey]?.['USD']?.id; // Default USD por simplicidad
+            
             if (currentUser && priceId) {
-                btn.textContent = "Procesando..."; btn.style.pointerEvents = "none";
+                btn.textContent = "Procesando...";
                 startCheckout(priceId);
-                setTimeout(() => { btn.textContent = "Elegir"; btn.style.pointerEvents = "auto"; }, 8000);
             } else {
                 pendingPlan = planKey;
                 if (loginScreen) { loginScreen.style.display = 'flex'; window.switchAuthMode('register'); }
@@ -704,10 +511,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ==========================================
-    // APLICACIÓN PRINCIPAL (Chat & Analyzer)
+    // APLICACIÓN PRINCIPAL (RUNAPP)
     // ==========================================
     function runApp(user) {
-        console.log("🚀 Iniciando aplicación para:", user.email);
+        console.log("🚀 Iniciando aplicación PIDA para:", user.email);
 
         const dom = {
             navInv: document.getElementById('nav-investigador'),
@@ -743,17 +550,12 @@ document.addEventListener('DOMContentLoaded', function () {
         // Estado
         let state = { currentView: 'investigador', conversations: [], currentChat: { id: null, title: '', messages: [] }, anaFiles: [], anaText: "", anaHistory: [] };
 
-        // Setup Perfil
+        // Perfil UI
         if(dom.pName) dom.pName.textContent = user.displayName || 'Usuario';
         if(dom.pEmail) dom.pEmail.textContent = user.email;
         if(dom.pAvatar) dom.pAvatar.src = user.photoURL || 'img/PIDA_logo-P3-80.png';
         
-        // Logout
-        const doLogout = () => {
-            auth.signOut().then(() => {
-                window.location.reload();
-            });
-        };
+        const doLogout = () => auth.signOut().then(() => window.location.reload());
         if(dom.pLogout) dom.pLogout.onclick = doLogout;
         if(dom.mobileMenuLogout) dom.mobileMenuLogout.onclick = doLogout;
 
@@ -779,20 +581,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if(dom.navInv) dom.navInv.onclick = () => setView('investigador');
         if(dom.navAna) dom.navAna.onclick = () => setView('analizador');
+        if(dom.pAvatar) dom.pAvatar.onclick = () => setView('cuenta');
         const userInfoBtn = document.getElementById('sidebar-user-info-click');
         if(userInfoBtn) userInfoBtn.onclick = () => setView('cuenta');
-        if(dom.pAvatar) dom.pAvatar.onclick = () => setView('cuenta');
-        const homeLink = document.getElementById('app-home-link');
-        if(homeLink) homeLink.onclick = (e) => { e.preventDefault(); setView('investigador'); };
 
         // Menú Móvil
-        if (dom.mobileMenuBtn && dom.mobileMenuOverlay) {
-            dom.mobileMenuBtn.onclick = (e) => { e.stopPropagation(); dom.mobileMenuOverlay.classList.remove('hidden'); };
-            dom.mobileMenuOverlay.onclick = (e) => { if (e.target === dom.mobileMenuOverlay) dom.mobileMenuOverlay.classList.add('hidden'); };
-            if (dom.mobileMenuProfile) dom.mobileMenuProfile.onclick = () => { setView('cuenta'); dom.mobileMenuOverlay.classList.add('hidden'); };
-        }
+        if (dom.mobileMenuBtn) dom.mobileMenuBtn.onclick = (e) => { e.stopPropagation(); dom.mobileMenuOverlay.classList.remove('hidden'); };
+        if (dom.mobileMenuOverlay) dom.mobileMenuOverlay.onclick = (e) => { if (e.target === dom.mobileMenuOverlay) dom.mobileMenuOverlay.classList.add('hidden'); };
+        if (dom.mobileMenuProfile) dom.mobileMenuProfile.onclick = () => { setView('cuenta'); dom.mobileMenuOverlay.classList.add('hidden'); };
 
-        // --- FUNCIÓNES DE CARGA ---
+        // --- HISTORIAL ANALIZADOR ---
         async function loadAnaHistory() {
             const h = await Utils.getHeaders(user);
             const list = document.getElementById('analyzer-history-list');
@@ -801,8 +599,6 @@ document.addEventListener('DOMContentLoaded', function () {
             try {
                 list.innerHTML = '<div style="padding:15px; text-align:center; color:#666;">Cargando...</div>';
                 const r = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/`, { headers: h });
-                if (!r.ok) throw new Error("Error API");
-                
                 state.anaHistory = await r.json();
                 list.innerHTML = ''; 
 
@@ -823,7 +619,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         e.stopPropagation();
                         const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { headers: h });
                         const d2 = await r2.json();
-                        state.anaText = d2.analysis;
+                        state.anaText = d2.analysis; // GUARDAMOS EL TEXTO PARA EXPORTAR
                         
                         const titleEl = document.getElementById('analyzer-section-title');
                         if(titleEl) titleEl.style.display = 'block';
@@ -844,13 +640,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     delBtn.style.minWidth = '24px';
                     delBtn.style.border = 'none';
                     delBtn.style.background = 'transparent';
-                    delBtn.style.cursor = 'pointer';
-                    delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>`;
-                    
+                    delBtn.innerHTML = `✕`;
                     delBtn.onclick = async (e) => {
                         e.stopPropagation();
-                        const confirmado = await showCustomConfirm('Se eliminará este análisis.');
-                        if(confirmado) {
+                        const conf = await showCustomConfirm('Se eliminará este análisis.');
+                        if(conf) {
                             await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
                             loadAnaHistory(); 
                         }
@@ -861,53 +655,28 @@ document.addEventListener('DOMContentLoaded', function () {
                     list.appendChild(item);
                 });
 
-            } catch(e) {
-                console.error(e);
-                list.innerHTML = '<div style="padding:10px; color:red; font-size:0.8em;">Error al cargar.</div>';
-            }
+            } catch(e) { list.innerHTML = '<div style="padding:10px; color:red; font-size:0.8em;">Error.</div>'; }
         }
 
+        // Dropdowns de Historial
         const histBtn = document.getElementById('history-dropdown-btn');
         const histContent = document.getElementById('history-dropdown-content');
         const anaHistBtn = document.getElementById('analyzer-history-dropdown-btn');
         const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
 
-        if(histBtn && histContent) {
-            histBtn.onclick = (e) => { 
-                e.stopPropagation(); 
-                histContent.classList.toggle('show'); 
-                if(anaHistContent) anaHistContent.classList.remove('show');
-            };
-        }
-
-        if(anaHistBtn && anaHistContent) {
-            anaHistBtn.onclick = async (e) => { 
-                e.stopPropagation(); 
-                const isOpen = anaHistContent.classList.contains('show');
-                if (!isOpen) {
-                    await loadAnaHistory(); 
-                    anaHistContent.classList.add('show');
-                } else {
-                    anaHistContent.classList.remove('show');
-                }
-                if(histContent) histContent.classList.remove('show'); 
-            };
-        }
-
-        window.onclick = () => { 
-            if(histContent) histContent.classList.remove('show'); 
-            if(anaHistContent) anaHistContent.classList.remove('show'); 
+        if(histBtn) histBtn.onclick = (e) => { e.stopPropagation(); histContent.classList.toggle('show'); anaHistContent.classList.remove('show'); };
+        if(anaHistBtn) anaHistBtn.onclick = async (e) => { 
+            e.stopPropagation(); 
+            if (!anaHistContent.classList.contains('show')) await loadAnaHistory(); 
+            anaHistContent.classList.toggle('show');
+            histContent.classList.remove('show'); 
         };
+        window.onclick = () => { if(histContent) histContent.classList.remove('show'); if(anaHistContent) anaHistContent.classList.remove('show'); };
 
         // --- CHAT LOGIC ---
 
         function toggleChatButtons(show) {
-            const ids = [
-                'chat-download-txt-btn', 
-                'chat-download-pdf-btn', 
-                'chat-download-docx-btn'
-                // Removed 'chat-export-actions' as it doesn't exist in HTML
-            ];
+            const ids = ['chat-download-txt-btn', 'chat-download-pdf-btn', 'chat-download-docx-btn'];
             ids.forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.style.display = show ? 'inline-flex' : 'none';
@@ -918,9 +687,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const d = document.createElement('div');
             d.className = `pida-bubble ${msg.role === 'user' ? 'user-message-bubble' : 'pida-message-bubble'}`;
             let safeContent = msg.content;
-            if (msg.role === 'model') {
-                safeContent = safeContent.replace(/(?:[\n\r\s]*)(?:\*\*|__)?(Fuente:)(?:\*\*|__)?/g, '\n\n<hr>\n\n<strong>$1</strong>');
-            }
+            if (msg.role === 'model') safeContent = safeContent.replace(/(?:[\n\r\s]*)(?:\*\*|__)?(Fuente:)(?:\*\*|__)?/g, '\n\n<hr>\n\n<strong>$1</strong>');
             d.innerHTML = Utils.sanitize(marked.parse(safeContent));
             dom.chatBox.appendChild(d);
             if (msg.role === 'model') renderFollowUpQuestions(d);
@@ -974,14 +741,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         delBtn.style.minWidth = '24px';
                         delBtn.style.border = 'none';
                         delBtn.style.background = 'transparent';
-                        delBtn.style.cursor = 'pointer';
-                        delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>`;
+                        delBtn.innerHTML = `✕`;
                         delBtn.onclick = async (e) => {
                             e.stopPropagation();
-                            const confirmado = await showCustomConfirm('Esta acción no se puede deshacer.');
-                            if(confirmado) {
+                            const conf = await showCustomConfirm('Esta acción no se puede deshacer.');
+                            if(conf) {
                                 await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${c.id}`, { method: 'DELETE', headers: h });
-                                await loadChatHistory(); // Esperar a que recargue
+                                await loadChatHistory(); 
                                 if(state.currentChat.id === c.id) handleNewChat(true);
                             }
                         };
@@ -998,7 +764,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const c = state.conversations.find(x => x.id === id);
             state.currentChat = { id, title: c?.title, messages: msgs };
             dom.chatBox.innerHTML = '';
-            
             toggleChatButtons(true);
             msgs.forEach(renderChat);
             loadChatHistory();
@@ -1014,13 +779,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 state.conversations.unshift(newConvo);
                 state.currentChat.id = newConvo.id;
                 state.currentChat.title = newConvo.title;
-                console.log("✅ Sesión creada en backend:", newConvo.id);
                 loadChatHistory();
                 return true;
-            } catch (e) { 
-                console.error("Error creando sesión:", e); 
-                return false;
-            }
+            } catch (e) { return false; }
         }
 
         async function sendChat() {
@@ -1029,10 +790,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (!state.currentChat.id) {
                 const success = await startBackendSession();
-                if (!success) {
-                    alert("No se pudo iniciar la conexión.");
-                    return;
-                }
+                if (!success) { alert("Error de conexión."); return; }
                 toggleChatButtons(true);
             }
             
@@ -1090,14 +848,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         async function handleNewChat(clearUI = true) {
-            console.log("🔄 Preparando interfaz visual...");
-            
-            // Verificación de seguridad
-            if (!dom.chatBox) {
-                console.error("No se encontró el chatBox");
-                return;
-            }
-
+            if (!dom.chatBox) return;
             if (clearUI) { 
                 dom.chatBox.innerHTML = ''; 
                 if(dom.input) dom.input.value = ''; 
@@ -1115,46 +866,25 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // --- VINCULACIÓN DE BOTONES (VERSIÓN FINAL SEGURA) ---
-        
-        // 1. Evitar envío del formulario (SOLUCIÓN CRÍTICA PARA EL BOTÓN ENVIAR)
+        // --- MANEJADORES DE CHAT ---
         const pidaForm = document.getElementById('pida-form');
-        if (pidaForm) {
-            pidaForm.onsubmit = (e) => {
-                e.preventDefault();
-                sendChat();
-            };
-        }
+        if (pidaForm) pidaForm.onsubmit = (e) => { e.preventDefault(); sendChat(); };
 
-        // 2. Botones de Chat
-        const onNewChatClick = (e) => {
-            e.preventDefault(); 
-            e.stopPropagation();
-            console.log("🖱️ Clic en Nuevo Chat");
-            handleNewChat(true);
-        };
-
+        const onNewChatClick = (e) => { e.preventDefault(); handleNewChat(true); };
         const btnSidebar = document.getElementById('pida-new-chat-btn');
         if (btnSidebar) btnSidebar.onclick = onNewChatClick;
-
         const btnMobile = document.getElementById('new-chat-btn');
         if (btnMobile) btnMobile.onclick = onNewChatClick;
-
         const btnClear = document.getElementById('chat-clear-btn');
         if(btnClear) btnClear.onclick = onNewChatClick;
         
-        // 3. Envío de Chat (Click y Enter)
-        if (dom.sendBtn) dom.sendBtn.onclick = (e) => { 
-            e.preventDefault(); 
-            sendChat(); 
-        };
-        
-        if (dom.input) dom.input.onkeydown = (e) => { 
-            if (e.key === 'Enter' && !e.shiftKey) { 
-                e.preventDefault(); 
-                sendChat(); 
-            } 
-        };
+        if (dom.sendBtn) dom.sendBtn.onclick = (e) => { e.preventDefault(); sendChat(); };
+        if (dom.input) dom.input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } };
+
+        // --- BOTONES DE DESCARGA CHAT ---
+        document.getElementById('chat-download-txt-btn').onclick = () => Exporter.downloadTXT("Chat_PIDA", "Chat PIDA", state.currentChat.messages);
+        document.getElementById('chat-download-pdf-btn').onclick = () => Exporter.downloadPDF("Chat_PIDA", "Chat PIDA", state.currentChat.messages);
+        document.getElementById('chat-download-docx-btn').onclick = () => Exporter.downloadDOCX("Chat_PIDA", "Chat PIDA", state.currentChat.messages);
 
         // --- ANALYZER LOGIC ---
         const anaUploadBtn = document.getElementById('analyzer-upload-btn');
@@ -1177,31 +907,17 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('analyzer-response-container').style.display = 'block';
             dom.anaControls.style.display = 'none'; 
             dom.anaLoader.style.display = 'none';
-
             dom.anaResTxt.innerHTML = `
                 <div class="pida-bubble pida-message-bubble">
                     <h3>📑 Analizador de Documentos</h3>
                     <p>Sube tus archivos (PDF, DOCX) y escribe una instrucción clara. PIDA leerá el documento por ti.</p>
-                    <hr>
-                    <strong>Ejemplos de lo que puedes pedir:</strong>
-                    <ul style="margin-top: 10px; padding-left: 20px; line-height: 1.6;">
-                        <li>"Haz un resumen ejecutivo de este contrato."</li>
-                        <li>"Identifica las cláusulas de rescisión y sus penalizaciones."</li>
-                        <li>"Extrae una lista cronológica de los hechos en esta sentencia."</li>
-                        <li>"¿Existen riesgos legales para mi cliente en este documento?"</li>
-                    </ul>
-                </div>
-            `;
+                </div>`;
         }
-
         showAnalyzerWelcome();
 
         if(dom.anaBtn) {
             dom.anaBtn.onclick = async () => {
-                if (!state.anaFiles.length) {
-                    alert("Por favor, sube al menos un documento para analizar.");
-                    return;
-                }
+                if (!state.anaFiles.length) { alert("Sube al menos un documento."); return; }
                 
                 dom.anaResBox.style.display = 'block'; 
                 dom.anaLoader.style.display = 'block';
@@ -1218,9 +934,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 try {
                     const r = await fetch(`${PIDA_CONFIG.API_ANA}/analyze/`, {
-                        method: 'POST', 
-                        headers: { 'Authorization': 'Bearer ' + token }, 
-                        body: fd
+                        method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd
                     });
                     
                     const reader = r.body.getReader();
@@ -1247,12 +961,12 @@ document.addEventListener('DOMContentLoaded', function () {
                                         }
                                         fullText += data.text;
                                         dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
-                                        
+                                        // Scroll auto
                                         const scrollContainer = dom.viewAna.querySelector('.pida-view-content');
                                         if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
                                     }
                                     if (data.done) {
-                                        state.anaText = fullText;
+                                        state.anaText = fullText; // GUARDAR TEXTO PARA EXPORTAR
                                         dom.anaControls.style.display = 'flex';
                                         loadAnaHistory();
                                     }
@@ -1269,44 +983,36 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (dom.anaInst) {
-            dom.anaInst.placeholder = "Escribe aquí tu instrucción (Ej: 'Resume este contrato')...";
-            dom.anaInst.onkeydown = (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault(); 
-                    if (dom.anaBtn) dom.anaBtn.click(); 
-                }
-            };
+            dom.anaInst.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); dom.anaBtn.click(); } };
         }
-
         if(dom.analyzerClearBtn) {
             dom.analyzerClearBtn.onclick = () => {
-                state.anaFiles = []; 
-                state.anaText = ""; 
-                renderFiles();
-                dom.anaInst.value = ''; 
-                showAnalyzerWelcome(); 
+                state.anaFiles = []; state.anaText = ""; renderFiles();
+                dom.anaInst.value = ''; showAnalyzerWelcome(); 
             };
         }
 
-        const dlBtn = document.getElementById('chat-download-txt-btn');
-        if(dlBtn) dlBtn.onclick = () => {
-            Exporter.downloadTXT("Chat_"+Date.now(), "Chat PIDA", state.currentChat.messages);
+        // --- BOTONES DE DESCARGA ANALIZADOR (VINCULACIÓN CORREGIDA) ---
+        // Usamos state.anaText como fuente
+        document.getElementById('analyzer-download-txt-btn').onclick = () => {
+            if(!state.anaText) return alert("No hay análisis para descargar.");
+            Exporter.downloadTXT("Analisis_PIDA", "Análisis de Documentos", state.anaText);
+        };
+        document.getElementById('analyzer-download-pdf-btn').onclick = () => {
+            if(!state.anaText) return alert("No hay análisis para descargar.");
+            Exporter.downloadPDF("Analisis_PIDA", "Análisis de Documentos", state.anaText);
+        };
+        document.getElementById('analyzer-download-docx-btn').onclick = () => {
+            if(!state.anaText) return alert("No hay análisis para descargar.");
+            Exporter.downloadDOCX("Analisis_PIDA", "Análisis de Documentos", state.anaText);
         };
 
-        const dlPdfBtn = document.getElementById('chat-download-pdf-btn');
-        if(dlPdfBtn) dlPdfBtn.onclick = () => {
-            Exporter.downloadPDF("Chat_"+Date.now(), "Chat PIDA", state.currentChat.messages);
-        };
-        
+        // --- CUENTA ---
         if(dom.accUpdate) {
             dom.accUpdate.onclick = async () => {
                 const f = document.getElementById('acc-firstname').value;
                 const l = document.getElementById('acc-lastname').value;
-                if(f || l) {
-                    await user.updateProfile({ displayName: `${f} ${l}` });
-                    dom.pName.textContent = `${f} ${l}`;
-                    alert('Actualizado');
-                }
+                if(f || l) { await user.updateProfile({ displayName: `${f} ${l}` }); dom.pName.textContent = `${f} ${l}`; alert('Actualizado'); }
             };
         }
         if(dom.accBilling) {
@@ -1320,13 +1026,9 @@ document.addEventListener('DOMContentLoaded', function () {
             dom.accReset.onclick = () => auth.sendPasswordResetEmail(user.email).then(()=>alert('Correo enviado'));
         }
 
-        // ==========================================
-        // INICIALIZACIÓN (AL CARGAR LA PÁGINA)
-        // ==========================================
-        
+        // INICIO
         setView('investigador');
         handleNewChat(true); 
         loadChatHistory();
     }
-
 });
