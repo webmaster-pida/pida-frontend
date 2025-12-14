@@ -831,7 +831,17 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         async function handleNewChat(clearUI = true) {
-            if (clearUI) { dom.chatBox.innerHTML = ''; dom.input.value = ''; }
+            console.log("Creando nuevo chat..."); // Para depurar
+            if (clearUI) { 
+                dom.chatBox.innerHTML = ''; 
+                dom.input.value = ''; 
+                // Reiniciamos el estado visual
+                state.currentChat = { id: null, title: '', messages: [] };
+                
+                // Quitamos la clase 'active' de cualquier item del historial
+                document.querySelectorAll('.pida-history-item').forEach(el => el.classList.remove('active'));
+            }
+            
             const h = await Utils.getHeaders(user);
             try {
                 const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations`, {
@@ -843,6 +853,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 loadChatHistory();
             } catch (e) { console.error(e); }
         }
+
+        // === PEGA ESTO AQUÍ PARA REACTIVAR EL BOTÓN ===
+        const btnNewChat = document.getElementById('pida-new-chat-btn') || document.getElementById('new-chat-btn');
+        if (btnNewChat) {
+            btnNewChat.onclick = (e) => {
+                e.preventDefault();
+                handleNewChat(true);
+            };
+        } else {
+            console.warn("No se encontró el botón de Nuevo Chat en el HTML");
+        }
+        
+        // También reactivamos el botón de limpiar chat (el de la escobita si lo tienes)
+        const btnClear = document.getElementById('chat-clear-btn');
+        if(btnClear) btnClear.onclick = () => handleNewChat(true);
 
         dom.sendBtn.onclick = (e) => { e.preventDefault(); sendChat(); };
         dom.input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } };
