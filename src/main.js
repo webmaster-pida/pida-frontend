@@ -668,18 +668,38 @@ document.addEventListener('DOMContentLoaded', function () {
             if (dom.mobileMenuProfile) dom.mobileMenuProfile.onclick = () => { setView('cuenta'); dom.mobileMenuOverlay.classList.add('hidden'); };
         }
 
-        // Dropdowns Historial
+        // ==========================================
+        // SECCIÓN DE DROPDOWNS (MEJORADA)
+        // ==========================================
         const histBtn = document.getElementById('history-dropdown-btn');
         const histContent = document.getElementById('history-dropdown-content');
         const anaHistBtn = document.getElementById('analyzer-history-dropdown-btn');
         const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
 
         if(histBtn && histContent) {
-            histBtn.onclick = (e) => { e.stopPropagation(); histContent.classList.toggle('show'); if(anaHistContent) anaHistContent.classList.remove('show'); };
+            histBtn.onclick = (e) => { 
+                e.stopPropagation(); 
+                histContent.classList.toggle('show'); 
+                if(anaHistContent) anaHistContent.classList.remove('show');
+            };
         }
+
         if(anaHistBtn && anaHistContent) {
-            anaHistBtn.onclick = (e) => { e.stopPropagation(); anaHistContent.classList.toggle('show'); if(histContent) histContent.classList.remove('show'); };
+            anaHistBtn.onclick = async (e) => { 
+                e.stopPropagation(); 
+                
+                // MAGIA: Si vamos a abrir el menú, recargamos la lista por si estaba vacía
+                if (!anaHistContent.classList.contains('show')) {
+                    console.log("🔄 Cargando historial de análisis...");
+                    await loadAnaHistory(); 
+                }
+                
+                anaHistContent.classList.toggle('show'); 
+                if(histContent) histContent.classList.remove('show'); 
+            };
         }
+
+        // Cerrar al hacer clic fuera
         window.onclick = () => { 
             if(histContent) histContent.classList.remove('show'); 
             if(anaHistContent) anaHistContent.classList.remove('show'); 
