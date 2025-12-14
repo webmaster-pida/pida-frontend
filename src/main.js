@@ -839,6 +839,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 if(dom.input) dom.input.value = ''; 
                 state.currentChat = { id: null, title: '', messages: [] };
                 document.querySelectorAll('.pida-history-item').forEach(el => el.classList.remove('active'));
+                renderChat({
+                    role: 'model',
+                    content: "👋 **¡Hola! Soy PIDA, tu asistente jurídico especialista en Derechos Humanos.**\n\nEstoy aquí para apoyarte con investigaciones, análisis de casos, búsqueda de jurisprudencia y redacción legal.\n\n**¿Qué te gustaría preguntar hoy?**"
+                });
             }
             
             const h = await Utils.getHeaders(user);
