@@ -1010,39 +1010,44 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // --- VINCULACIÓN DE BOTONES (CORREGIDO PARA DETECTAR AMBOS) ---
+        // --- VINCULACIÓN DE BOTONES (CORREGIDO Y ROBUSTO) ---
         
-        // 1. Buscamos los dos posibles botones por separado
-        const btnSidebar = document.getElementById('pida-new-chat-btn');
-        const btnMobile = document.getElementById('new-chat-btn');
-
-        // 2. Función común para manejar el clic
-        const onNewChatClick = (e) => {
+        // 1. Definir la función manejadora
+        const onNewChatClick = async (e) => {
             e.preventDefault(); 
             e.stopPropagation();
-            console.log("Clic en Nuevo Chat detectado"); // Para verificar en consola
-            handleNewChat(true);
+            console.log("🖱️ Clic en Nuevo Chat detectado");
+            
+            try {
+                await handleNewChat(true);
+                console.log("✅ Nuevo chat iniciado correctamente");
+            } catch (error) {
+                console.error("❌ Error al iniciar nuevo chat:", error);
+                alert("Hubo un error al limpiar el chat. Revisa la consola.");
+            }
         };
 
-        // 3. Asignamos el evento a CADA botón que exista (no usamos ||)
+        // 2. Vincular botón de Escritorio
+        const btnSidebar = document.getElementById('pida-new-chat-btn');
         if (btnSidebar) {
             btnSidebar.onclick = onNewChatClick;
+            console.log("✅ Botón 'pida-new-chat-btn' vinculado.");
         } else {
-            console.warn("No se encontró el botón 'pida-new-chat-btn'");
+            console.warn("⚠️ AVISO: No se encontró el botón con ID 'pida-new-chat-btn' en el HTML.");
         }
 
+        // 3. Vincular botón Móvil
+        const btnMobile = document.getElementById('new-chat-btn');
         if (btnMobile) {
             btnMobile.onclick = onNewChatClick;
         }
 
-        // 4. Botón Limpiar (Escoba)
+        // 4. Vincular botón 'Limpiar' (Escoba) si existe
         const btnClear = document.getElementById('chat-clear-btn');
         if(btnClear) {
-            btnClear.onclick = (e) => { e.preventDefault(); handleNewChat(true); };
+            btnClear.onclick = onNewChatClick;
         }
         
-        if (dom.sendBtn) dom.sendBtn.onclick = (e) => { e.preventDefault(); sendChat(); };
-        if (dom.input) dom.input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } };
         // --- ANALYZER LOGIC ---
         const anaUploadBtn = document.getElementById('analyzer-upload-btn');
         if(anaUploadBtn) anaUploadBtn.onclick = () => dom.anaInput.click();
