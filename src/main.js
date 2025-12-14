@@ -157,7 +157,7 @@ const Exporter = {
     },
 
     async downloadDOCX(fname, title, rawContent) { 
-        const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, UnderlineType } = window.docx; 
+        const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = window.docx; 
         
         const docChildren = [];
         const messages = this.normalizeContent(rawContent);
@@ -381,6 +381,56 @@ document.addEventListener('DOMContentLoaded', function () {
         googleProvider = new firebase.auth.GoogleAuthProvider();
         googleProvider.setCustomParameters({ prompt: 'select_account' });
 
+        // --- FORMULARIO DE CONTACTO (ENVÍO) ---
+        const contactForm = document.getElementById('contact-form');
+        if(contactForm) {
+            contactForm.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                const btn = document.getElementById('contact-submit-btn');
+                const status = document.getElementById('contact-status');
+                const originalText = btn.textContent;
+                
+                const leadData = {
+                    name: document.getElementById('contact-name').value,
+                    company: document.getElementById('contact-company').value,
+                    email: document.getElementById('contact-email').value,
+                    phone: (document.getElementById('contact-country-code').value || '') + ' ' + document.getElementById('contact-phone').value,
+                    message: document.getElementById('contact-message').value,
+                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    status: 'nuevo'
+                };
+
+                btn.textContent = 'Guardando...'; btn.disabled = true;
+                try {
+                    await db.collection('leads_corporativos').add(leadData);
+                    btn.textContent = '¡Enviado!';
+                    status.textContent = 'Datos recibidos. Te contactaremos pronto.';
+                    status.style.display = 'block'; status.style.color = '#10B981';
+                    setTimeout(() => {
+                        const modal = document.getElementById('contact-modal');
+                        if(modal) modal.classList.add('hidden');
+                        contactForm.reset();
+                        btn.textContent = originalText; btn.disabled = false; status.style.display = 'none';
+                    }, 3000);
+                } catch (error) {
+                    btn.textContent = originalText; btn.disabled = false;
+                    status.textContent = 'Error de conexión.'; status.style.display = 'block'; status.style.color = '#EF4444';
+                }
+            });
+        }
+
+        // --- BOTONES MODAL CONTACTO (APERTURA/CIERRE) ---
+        const btnCorp = document.getElementById('btn-corp-contact');
+        const contactModal = document.getElementById('contact-modal');
+        const btnCloseContact = document.getElementById('close-contact-btn');
+        // AQUÍ ESTÁ LA CORRECCIÓN:
+        if(btnCorp && contactModal) {
+            btnCorp.onclick = (e) => { e.preventDefault(); contactModal.classList.remove('hidden'); };
+        }
+        if(btnCloseContact && contactModal) {
+            btnCloseContact.onclick = () => contactModal.classList.add('hidden');
+        }
+
         // AUTH STATE
         const globalLoader = document.getElementById('pida-global-loader');
         const hideLoader = () => {
@@ -593,10 +643,11 @@ document.addEventListener('DOMContentLoaded', function () {
         const userInfoBtn = document.getElementById('sidebar-user-info-click');
         if(userInfoBtn) userInfoBtn.onclick = () => setView('cuenta');
 
-        // Menú Móvil
+        // Menú Móvil (CORREGIDO: TOGGLE)
         if (dom.mobileMenuBtn) dom.mobileMenuBtn.onclick = (e) => { 
             e.stopPropagation(); 
-            dom.mobileMenuOverlay.classList.toggle('hidden'); };
+            dom.mobileMenuOverlay.classList.toggle('hidden'); 
+        };
         if (dom.mobileMenuOverlay) dom.mobileMenuOverlay.onclick = (e) => { if (e.target === dom.mobileMenuOverlay) dom.mobileMenuOverlay.classList.add('hidden'); };
         if (dom.mobileMenuProfile) dom.mobileMenuProfile.onclick = () => { setView('cuenta'); dom.mobileMenuOverlay.classList.add('hidden'); };
 
@@ -871,7 +922,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 renderChat({
                     role: 'model',
-                    content: "👋 **¡Hola! Soy PIDA, tu asistente experto en Derechos Humanos.**\n\nEstoy aquí para apoyarte en investigaciones, análisis de casos, búsqueda de jurisprudencia y redacción legal.\n\n**¿Qué te gustaría hacer hoy?**"
+                    content: "**¡Hola! Soy PIDA, tu asistente experto en Derechos Humanos.**\n\nEstoy aquí para apoyarte en investigaciones, análisis de casos, búsqueda de jurisprudencia y redacción legal.\n\n**¿Qué te gustaría hacer hoy?**"
                 });
             }
         }
@@ -938,6 +989,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         <li>"Extrae una lista cronológica de los hechos en esta sentencia."</li>
                         <li>"¿Existen riesgos legales para mi cliente en este documento?"</li>
                     </ul>
+
                 </div>`;
         }
         showAnalyzerWelcome();
