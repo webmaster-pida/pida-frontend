@@ -795,6 +795,23 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         // --- CHAT LOGIC ---
+        // --- FUNCIÓN AUXILIAR: VISIBILIDAD BOTONES CHAT ---
+        function toggleChatButtons(show) {
+            // Lista de IDs de los botones de descarga del chat
+            const buttons = [
+                'chat-download-txt-btn', 
+                'chat-download-pdf-btn', 
+                'chat-download-docx-btn',
+                'chat-export-actions' // Por si tienes un contenedor padre con este ID
+            ];
+            
+            buttons.forEach(id => {
+                const el = document.getElementById(id);
+                // Si existe, cambiamos su display
+                if (el) el.style.display = show ? 'inline-flex' : 'none'; // 'inline-flex' o 'block' según tu CSS
+            });
+        }
+
         function renderChat(msg) {
             const d = document.createElement('div');
             d.className = `pida-bubble ${msg.role === 'user' ? 'user-message-bubble' : 'pida-message-bubble'}`;
@@ -879,6 +896,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const c = state.conversations.find(x => x.id === id);
             state.currentChat = { id, title: c?.title, messages: msgs };
             dom.chatBox.innerHTML = '';
+            toggleChatButtons(true);
             msgs.forEach(renderChat);
             loadChatHistory();
         }
@@ -899,6 +917,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     alert("No se pudo iniciar la conexión con PIDA. Intenta de nuevo.");
                     return;
                 }
+                // MOSTRAR BOTONES AHORA QUE EL CHAT ES REAL
+                toggleChatButtons(true);
             }
             // ---------------------------------------------------------
             
@@ -969,6 +989,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 
                 // Quitamos la selección visual del historial
                 document.querySelectorAll('.pida-history-item').forEach(el => el.classList.remove('active'));
+
+                // OCULTAR BOTONES DE DESCARGA (Porque no hay nada que descargar aún)
+                toggleChatButtons(false);
 
                 // MOSTRAR BURBUJA DE BIENVENIDA INMEDIATAMENTE
                 renderChat({
