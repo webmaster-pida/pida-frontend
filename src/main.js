@@ -795,20 +795,19 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         // --- CHAT LOGIC ---
-        // --- FUNCIÓN AUXILIAR: VISIBILIDAD BOTONES CHAT ---
+
+        // 1. FUNCIÓN AUXILIAR: VISIBILIDAD BOTONES CHAT
+        // (Esta es la que faltaba para que no se rompa handleNewChat)
         function toggleChatButtons(show) {
-            // Lista de IDs de los botones de descarga del chat
-            const buttons = [
+            const ids = [
                 'chat-download-txt-btn', 
                 'chat-download-pdf-btn', 
                 'chat-download-docx-btn',
-                'chat-export-actions' // Por si tienes un contenedor padre con este ID
+                'chat-export-actions' // Contenedor padre (si existe)
             ];
-            
-            buttons.forEach(id => {
+            ids.forEach(id => {
                 const el = document.getElementById(id);
-                // Si existe, cambiamos su display
-                if (el) el.style.display = show ? 'inline-flex' : 'none'; // 'inline-flex' o 'block' según tu CSS
+                if (el) el.style.display = show ? 'inline-flex' : 'none';
             });
         }
 
@@ -896,31 +895,49 @@ document.addEventListener('DOMContentLoaded', function () {
             const c = state.conversations.find(x => x.id === id);
             state.currentChat = { id, title: c?.title, messages: msgs };
             dom.chatBox.innerHTML = '';
+            
+            // MOSTRAR BOTONES (Porque cargamos un chat real)
             toggleChatButtons(true);
+
             msgs.forEach(renderChat);
             loadChatHistory();
         }
 
-        // 3. SEND CHAT (Modificado para crear sesión al vuelo)
+        // FUNCIÓN AUXILIAR: INICIAR SESIÓN EN BACKEND
+        async function startBackendSession() {
+            const h = await Utils.getHeaders(user);
+            try {
+                const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations`, {
+                    method: 'POST', headers: h, body: JSON.stringify({ title: "Nuevo Chat" })
+                });
+                const newConvo = await r.json();
+                state.conversations.unshift(newConvo);
+                state.currentChat.id = newConvo.id;
+                state.currentChat.title = newConvo.title;
+                console.log("✅ Sesión creada en backend:", newConvo.id);
+                loadChatHistory();
+                return true;
+            } catch (e) { 
+                console.error("Error creando sesión:", e); 
+                return false;
+            }
+        }
+
         async function sendChat() {
             const txt = dom.input.value.trim();
             if (!txt) return;
 
-            // --- MAGIA AQUÍ: SI NO HAY ID, CREAMOS LA SESIÓN AHORA ---
+            // CREACIÓN DIFERIDA: Si no hay ID, creamos la sesión ahora
             if (!state.currentChat.id) {
-                // Borramos la burbuja de bienvenida para que el chat empiece limpio
-                // (Opcional: si quieres mantener el saludo, comenta la siguiente línea)
-                // dom.chatBox.innerHTML = ''; 
-                
+                // dom.chatBox.innerHTML = ''; // Opcional: limpiar saludo
                 const success = await startBackendSession();
                 if (!success) {
-                    alert("No se pudo iniciar la conexión con PIDA. Intenta de nuevo.");
+                    alert("No se pudo iniciar la conexión.");
                     return;
                 }
-                // MOSTRAR BOTONES AHORA QUE EL CHAT ES REAL
+                // MOSTRAR BOTONES AHORA
                 toggleChatButtons(true);
             }
-            // ---------------------------------------------------------
             
             renderChat({ role: 'user', content: txt });
             state.currentChat.messages.push({ role: 'user', content: txt });
@@ -964,8 +981,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 state.currentChat.messages.push({ role: 'model', content: fullText });
                 renderFollowUpQuestions(botBubble);
                 
-                // Actualizar título (esto ya funcionaba bien)
-                if (state.currentChat.messages.length === 2) { // 2 porque el saludo inicial no cuenta en el array de mensajes state
+                if (state.currentChat.messages.length === 2) {
                     await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${state.currentChat.id}/title`, {
                         method: 'PATCH', headers: h, body: JSON.stringify({ title: txt.substring(0, 30) })
                     });
@@ -976,24 +992,17 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // 1. HANDLE NEW CHAT (Solo visual - No crea nada en DB aún)
         async function handleNewChat(clearUI = true) {
-            console.log("🔄 Preparando interfaz visual (Sin crear sesión en backend)...");
-            
+            console.log("🔄 Preparando interfaz visual...");
             if (clearUI) { 
                 dom.chatBox.innerHTML = ''; 
                 if(dom.input) dom.input.value = ''; 
-                
-                // Reiniciamos el estado a NULL para indicar que no hay sesión guardada
                 state.currentChat = { id: null, title: '', messages: [] };
-                
-                // Quitamos la selección visual del historial
                 document.querySelectorAll('.pida-history-item').forEach(el => el.classList.remove('active'));
 
-                // OCULTAR BOTONES DE DESCARGA (Porque no hay nada que descargar aún)
+                // OCULTAR BOTONES AL INICIO
                 toggleChatButtons(false);
 
-                // MOSTRAR BURBUJA DE BIENVENIDA INMEDIATAMENTE
                 renderChat({
                     role: 'model',
                     content: "👋 **¡Hola! Soy PIDA, tu asistente jurídico.**\n\nEstoy aquí para apoyarte con análisis de casos, búsqueda de jurisprudencia y redacción legal.\n\n**¿Qué te gustaría preguntar hoy?**"
@@ -1001,30 +1010,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // 2. NUEVA FUNCIÓN AUXILIAR: CREAR SESIÓN EN BACKEND
-        async function startBackendSession() {
-            const h = await Utils.getHeaders(user);
-            try {
-                const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations`, {
-                    method: 'POST', headers: h, body: JSON.stringify({ title: "Nuevo Chat" })
-                });
-                const newConvo = await r.json();
-                
-                // Actualizamos el estado con el ID real que nos dio el servidor
-                state.conversations.unshift(newConvo);
-                state.currentChat.id = newConvo.id;
-                state.currentChat.title = newConvo.title;
-                
-                console.log("✅ Sesión creada en backend:", newConvo.id);
-                loadChatHistory(); // Ahora sí actualizamos la barra lateral
-                return true;
-            } catch (e) { 
-                console.error("Error creando sesión:", e); 
-                return false;
-            }
-        }
-
-        // VINCULACIÓN SEGURA DE BOTONES
+        // --- VINCULACIÓN DE BOTONES (CRÍTICO: Asegúrate que esto no esté duplicado más abajo) ---
         const btnNewChat = document.getElementById('pida-new-chat-btn') || document.getElementById('new-chat-btn');
         if (btnNewChat) {
             btnNewChat.onclick = (e) => {
@@ -1041,8 +1027,8 @@ document.addEventListener('DOMContentLoaded', function () {
         
         if (dom.sendBtn) dom.sendBtn.onclick = (e) => { e.preventDefault(); sendChat(); };
         if (dom.input) dom.input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } };
-        const newChatBtnSidebar = document.getElementById('pida-new-chat-btn');
-        if(newChatBtnSidebar) newChatBtnSidebar.onclick = () => handleNewChat(true);
+        
+        // (Fin de la lógica de chat, justo antes del Analizador)
 
         // --- ANALYZER LOGIC ---
         const anaUploadBtn = document.getElementById('analyzer-upload-btn');
