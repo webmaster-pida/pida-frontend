@@ -922,8 +922,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 renderChat({
                     role: 'model',
-                    content: "**¡Hola! Soy PIDA, tu asistente experto en Derechos Humanos y temas afines.**\n\nEstoy para apoyarte y responder cualquier pregunta que me hagas, incluyendo investigaciones, análisis de casos, búsqueda de jurisprudencia y redacción legal de todo tipo de documentos, cartas, informes, elaboración de proyectos y seguimiento y monitoreo.
-.\n\n**¿Qué te gustaría pedirme ahora?**"
+                    content: "**¡Hola! Soy PIDA, tu asistente experto en Derechos Humanos y temas afines.**\n\nEstoy para apoyarte y responder cualquier pregunta que me hagas, incluyendo investigaciones, análisis de casos, búsqueda de jurisprudencia y redacción legal de todo tipo de documentos, cartas, informes, elaboración de proyectos y seguimiento y monitoreo.\n\n**¿Qué te gustaría pedirme ahora?**"
                 });
             }
         }
