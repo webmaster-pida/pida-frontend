@@ -669,8 +669,93 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         // ==========================================
-        // SECCIÓN DE DROPDOWNS (MEJORADA)
+        // SECCIÓN DE DROPDOWNS Y HISTORIAL
         // ==========================================
+        
+        // 1. DEFINIMOS LA FUNCIÓN DE CARGA AQUÍ MISMO (Para que no falle)
+        async function loadAnaHistory() {
+            const h = await Utils.getHeaders(user);
+            const list = document.getElementById('analyzer-history-list');
+            if(!list) return;
+
+            try {
+                // Indicador visual de carga
+                list.innerHTML = '<div style="padding:15px; text-align:center; color:#666;">Cargando...</div>';
+
+                const r = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/`, { headers: h });
+                if (!r.ok) throw new Error("Error API");
+                
+                state.anaHistory = await r.json();
+                list.innerHTML = ''; // Limpiar loader
+
+                if (state.anaHistory.length === 0) {
+                    list.innerHTML = '<div style="padding:15px; text-align:center; color:#999; font-size:0.9em;">No hay análisis previos.</div>';
+                    return;
+                }
+
+                state.anaHistory.forEach(a => {
+                    const item = document.createElement('div');
+                    item.className = 'pida-history-item';
+                    
+                    // Título y Clic para Cargar
+                    const titleSpan = document.createElement('span');
+                    titleSpan.textContent = a.title || "Sin título";
+                    titleSpan.style.flex = "1";
+                    titleSpan.style.cursor = "pointer";
+                    titleSpan.onclick = async (e) => {
+                        e.stopPropagation();
+                        // Lógica de carga
+                        const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { headers: h });
+                        const d2 = await r2.json();
+                        state.anaText = d2.analysis;
+                        
+                        // Mostrar título "Resultado"
+                        const titleEl = document.getElementById('analyzer-section-title');
+                        if(titleEl) titleEl.style.display = 'block';
+
+                        // Renderizar
+                        dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(d2.analysis));
+                        dom.anaLoader.style.display = 'none';
+                        document.getElementById('analyzer-response-container').style.display = 'block';
+                        dom.anaResBox.style.display = 'block';
+                        dom.anaControls.style.display = 'flex';
+                        
+                        // Cerrar menú
+                        const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
+                        if(anaHistContent) anaHistContent.classList.remove('show');
+                    };
+                    
+                    // Botón Eliminar
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'delete-icon-btn';
+                    delBtn.style.color = '#EF4444'; 
+                    delBtn.style.minWidth = '24px';
+                    delBtn.style.border = 'none';
+                    delBtn.style.background = 'transparent';
+                    delBtn.style.cursor = 'pointer';
+                    delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>`;
+                    
+                    delBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        const confirmado = await showCustomConfirm('Se eliminará este análisis.');
+                        if(confirmado) {
+                            await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
+                            loadAnaHistory(); // Recargar lista
+                        }
+                    };
+
+                    item.appendChild(titleSpan);
+                    item.appendChild(delBtn);
+                    list.appendChild(item);
+                });
+
+            } catch(e) {
+                console.error(e);
+                list.innerHTML = '<div style="padding:10px; color:red; font-size:0.8em;">Error al cargar.</div>';
+            }
+        }
+
+        // 2. VINCULAR BOTONES AHORA (Que la función ya existe)
         const histBtn = document.getElementById('history-dropdown-btn');
         const histContent = document.getElementById('history-dropdown-content');
         const anaHistBtn = document.getElementById('analyzer-history-dropdown-btn');
@@ -688,13 +773,17 @@ document.addEventListener('DOMContentLoaded', function () {
             anaHistBtn.onclick = async (e) => { 
                 e.stopPropagation(); 
                 
-                // MAGIA: Si vamos a abrir el menú, recargamos la lista por si estaba vacía
-                if (!anaHistContent.classList.contains('show')) {
-                    console.log("🔄 Cargando historial de análisis...");
-                    await loadAnaHistory(); 
-                }
+                const isOpen = anaHistContent.classList.contains('show');
                 
-                anaHistContent.classList.toggle('show'); 
+                // Si está cerrado y lo vamos a abrir, cargamos datos
+                if (!isOpen) {
+                    console.log("🔄 Abriendo historial analizador...");
+                    await loadAnaHistory(); 
+                    anaHistContent.classList.add('show');
+                } else {
+                    anaHistContent.classList.remove('show');
+                }
+
                 if(histContent) histContent.classList.remove('show'); 
             };
         }
