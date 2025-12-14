@@ -971,6 +971,9 @@ document.addEventListener('DOMContentLoaded', function () {
                                         if (!started) { 
                                             dom.anaLoader.style.display = 'none'; 
                                             document.getElementById('analyzer-response-container').style.display = 'block';
+                                            // <--- MOSTRAR EL TÍTULO SOLO AHORA --->
+                                            const titleEl = document.getElementById('analyzer-section-title');
+                                            if(titleEl) titleEl.style.display = 'block';
                                             started = true; 
                                         }
                                         fullText += data.text;
