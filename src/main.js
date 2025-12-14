@@ -871,7 +871,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 renderChat({
                     role: 'model',
-                    content: "👋 **¡Hola! Soy PIDA, tu asistente jurídico.**\n\nEstoy aquí para apoyarte con análisis de casos, búsqueda de jurisprudencia y redacción legal.\n\n**¿Qué te gustaría preguntar hoy?**"
+                    content: "👋 **¡Hola! Soy PIDA, tu asistente experto en Derechos Humanos.**\n\nEstoy aquí para apoyarte en investigaciones, análisis de casos, búsqueda de jurisprudencia y redacción legal.\n\n**¿Qué te gustaría hacer hoy?**"
                 });
             }
         }
@@ -930,6 +930,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 <div class="pida-bubble pida-message-bubble">
                     <h3>📑 Analizador de Documentos</h3>
                     <p>Sube tus archivos (PDF, DOCX) y escribe una instrucción clara. PIDA leerá el documento por ti.</p>
+                    <hr>
+                    <strong>Ejemplos de lo que puedes pedir:</strong>
+                    <ul style="margin-top: 10px; padding-left: 20px; line-height: 1.6;">
+                        <li>"Haz un resumen ejecutivo de este contrato."</li>
+                        <li>"Identifica las cláusulas de rescisión y sus penalizaciones."</li>
+                        <li>"Extrae una lista cronológica de los hechos en esta sentencia."</li>
+                        <li>"¿Existen riesgos legales para mi cliente en este documento?"</li>
+                    </ul>
                 </div>`;
         }
         showAnalyzerWelcome();
