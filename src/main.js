@@ -17,7 +17,7 @@ import * as docx from "docx";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 
-// Hacer librerías accesibles globalmente (Puente para código antiguo)
+// Hacer librerías accesibles globalmente
 window.jspdf = { jsPDF };
 window.docx = docx;
 window.marked = marked;
@@ -26,7 +26,7 @@ window.firebase = firebase;
 
 
 // =========================================================
-// 2. CONFIGURACIÓN (Tus claves originales)
+// 2. CONFIGURACIÓN
 // =========================================================
 const STRIPE_PRICES = {
     basic: {
@@ -41,43 +41,39 @@ const STRIPE_PRICES = {
 
 let currentCurrency = 'USD';
 
-// ¡AQUÍ ESTÁ LA CLAVE QUE FALTABA!
 const PIDA_CONFIG = {
     API_CHAT: "https://chat-v20-465781488910.us-central1.run.app",
     API_ANA: "https://analize-v20-465781488910.us-central1.run.app",
     FIREBASE: {
         apiKey: "AIzaSyC5nqsx4Fe4gMKkKdvnbMf8VFnI6TYL64k",
         authDomain: "pida-ai.com",
-        projectId: "pida-ai-v20", // Esta línea es la que causaba el error
+        projectId: "pida-ai-v20",
         storageBucket: "pida-ai-v20.firebasestorage.app",
         messagingSenderId: "465781488910",
         appId: "1:465781488910:web:6f9c2b4bc91317a6bbab5f",
         measurementId: "G-4FEDD254GY"
     }
-    // Nota: Ya no necesitamos LIBS aquí porque las importamos arriba
 };
 
 
 // --- FUNCIÓN AUXILIAR: CONFIRMACIÓN SUTIL ---
 function showCustomConfirm(message) {
     return new Promise((resolve) => {
-        // 1. Crear el fondo oscuro
         const overlay = document.createElement('div');
         overlay.style.position = 'fixed';
         overlay.style.top = '0';
         overlay.style.left = '0';
         overlay.style.width = '100%';
         overlay.style.height = '100%';
-        overlay.style.backgroundColor = 'rgba(29, 53, 87, 0.6)'; // Azul PIDA semitransparente
+        overlay.style.backgroundColor = 'rgba(29, 53, 87, 0.6)';
         overlay.style.zIndex = '999999';
         overlay.style.display = 'flex';
         overlay.style.alignItems = 'center';
         overlay.style.justifyContent = 'center';
-        overlay.style.backdropFilter = 'blur(4px)'; // Efecto moderno de desenfoque
+        overlay.style.backdropFilter = 'blur(4px)';
         overlay.style.opacity = '0';
         overlay.style.transition = 'opacity 0.2s ease';
 
-        // 2. Crear la tarjeta (usando estilos en línea para asegurar consistencia)
         overlay.innerHTML = `
             <div style="background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transform: scale(0.9); transition: transform 0.2s ease;">
                 <div style="font-size: 2rem; margin-bottom: 10px;">🗑️</div>
@@ -92,13 +88,11 @@ function showCustomConfirm(message) {
 
         document.body.appendChild(overlay);
 
-        // Animación de entrada
         requestAnimationFrame(() => {
             overlay.style.opacity = '1';
             overlay.querySelector('div').style.transform = 'scale(1)';
         });
 
-        // 3. Manejar los clics
         const close = (result) => {
             overlay.style.opacity = '0';
             overlay.querySelector('div').style.transform = 'scale(0.9)';
@@ -108,9 +102,10 @@ function showCustomConfirm(message) {
             }, 200);
         };
 
-        document.getElementById('btn-cancel').onclick = () => close(false);
-        document.getElementById('btn-confirm').onclick = () => close(true);
-        // Cerrar si se da clic fuera de la tarjeta
+        const btnC = document.getElementById('btn-cancel');
+        const btnO = document.getElementById('btn-confirm');
+        if(btnC) btnC.onclick = () => close(false);
+        if(btnO) btnO.onclick = () => close(true);
         overlay.onclick = (e) => { if(e.target === overlay) close(false); };
     });
 }
@@ -124,8 +119,8 @@ let currentUser = null;
 let pendingPlan = null; 
 let authMode = 'login';
 
-// Funciones Auxiliares UI
-window.closeBanner = function() { // Hacemos global para que el HTML pueda llamarla
+// Funciones Auxiliares UI Globales
+window.closeBanner = function() {
     const banner = document.getElementById('system-alert-banner');
     const nav = document.getElementById('navbar');
     const appLayout = document.getElementById('pida-app-layout');
@@ -136,7 +131,7 @@ window.closeBanner = function() { // Hacemos global para que el HTML pueda llama
     if (appLayout) appLayout.style.top = '0px';
 }
 
-window.switchAuthMode = function(mode) { // Hacemos global
+window.switchAuthMode = function(mode) {
     authMode = mode;
     const btnLogin = document.getElementById('tab-login');
     const btnReg = document.getElementById('tab-register');
@@ -167,7 +162,6 @@ window.switchAuthMode = function(mode) { // Hacemos global
 
 // Configuración Markdown
 marked.use({ gfm: true, breaks: true });
-// DOMPurify ya se configura solo, usamos el hook si es necesario
 DOMPurify.addHook('afterSanitizeAttributes', function (node) {
     if ('target' in node) { node.setAttribute('target', '_blank'); node.setAttribute('rel', 'noopener noreferrer'); }
 });
@@ -180,7 +174,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // UTILIDADES
     const Utils = {
-        // loadScript eliminado: Ya no cargamos scripts externos, usamos import
         sanitize(html) { return DOMPurify.sanitize(html); },
         getTimestampedFilename(title) { const now=new Date(); return `${(title||"Doc").replace(/[^a-zA-Z0-9]/g,"")}_${now.getTime()}`; },
         getRawText(html) { const t=document.createElement('div'); t.innerHTML=html; return t.innerText||""; },
@@ -197,13 +190,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const Exporter = {
         async downloadPDF(fname, title, content) { 
-            // Usamos window.jspdf directamente
             const doc = new window.jspdf.jsPDF(); 
-            doc.text(title,10,10); 
+            // Corrección: Usar splitTextToSize para evitar que el texto se salga
+            doc.setFontSize(14);
+            doc.text(title, 10, 10);
+            doc.setFontSize(11);
+            
+            let body = "";
+            if(Array.isArray(content)){
+                content.forEach(c => body += `[${c.role.toUpperCase()}]: ${c.content}\n\n`);
+            } else {
+                body = content;
+            }
+            
+            const lines = doc.splitTextToSize(body, 180);
+            doc.text(lines, 10, 20);
             doc.save(fname+".pdf"); 
         },
         async downloadDOCX(fname, title, content) { 
-            // Usamos window.docx directamente
             const {Document, Packer, Paragraph, TextRun} = window.docx; 
             const doc = new Document({
                 sections:[{children:[new Paragraph({children:[new TextRun(title)]}) ]}]
@@ -232,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-    // --- INTERACTIVIDAD BÁSICA (Modales, Carrusel, etc) ---
+    // --- INTERACTIVIDAD BÁSICA ---
     const legalBtn = document.getElementById('open-legal-btn');
     const legalModal = document.getElementById('pida-legal-modal');
     if(legalBtn && legalModal){
@@ -245,7 +249,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const dots = Array.from(dotsNav?.children || []);
         let currentSlide = 0;
         const slides = Array.from(track.children);
-
         function updateSlide(index) {
             track.style.transform = 'translateX(-' + (index * 100) + '%)';
             dots.forEach(d => d.classList.remove('active'));
@@ -294,13 +297,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-
     // ==========================================
     // INICIALIZACIÓN DE FIREBASE
     // ==========================================
     try {
         if (!firebase.apps.length) {
-            // AQUÍ es donde antes fallaba si PIDA_CONFIG no estaba bien definido
             firebase.initializeApp(PIDA_CONFIG.FIREBASE);
         }
         
@@ -308,7 +309,6 @@ document.addEventListener('DOMContentLoaded', function () {
         db = firebase.firestore();
         const analytics = firebase.analytics();
 
-        // Remote Config
         const remoteConfig = firebase.remoteConfig();
         remoteConfig.defaultConfig = { 'maintenance_mode_enabled': 'false', 'maintenance_details': '(Servicio no disponible temporalmente)' };
         if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
@@ -318,7 +318,6 @@ document.addEventListener('DOMContentLoaded', function () {
         googleProvider = new firebase.auth.GoogleAuthProvider();
         googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-        // Alertas Sistema
         const banner = document.getElementById('system-alert-banner');
         const bannerText = document.getElementById('system-alert-text');
         if(banner && banner.classList.contains('hidden')) {
@@ -338,7 +337,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }, (err) => console.log("Alerts unavailable:", err.code));
         }
 
-        // Mantenimiento (Remote Config)
         async function checkMaintenanceMode() {
             try {
                 await remoteConfig.fetchAndActivate();
@@ -353,7 +351,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     if(maintenanceMsg) maintenanceMsg.style.display = 'block';
                     if(maintenanceDetails) maintenanceDetails.textContent = details;
                     if(authSubmitBtn) authSubmitBtn.disabled = true;
-                    // Deshabilitar botones adicionales si es necesario
                     document.querySelectorAll('.plan-cta').forEach(btn => {
                         btn.disabled = true; btn.textContent = 'Mantenimiento';
                     });
@@ -365,7 +362,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         checkMaintenanceMode();
 
-        // Formulario Contacto
         const contactForm = document.getElementById('contact-form');
         if(contactForm) {
             contactForm.addEventListener('submit', async function(event) {
@@ -404,7 +400,6 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
         
-        // Botones contacto modal
         const btnCorp = document.getElementById('btn-corp-contact');
         const btnCloseContact = document.getElementById('close-contact-btn');
         const contactModal = document.getElementById('contact-modal');
@@ -454,7 +449,6 @@ document.addEventListener('DOMContentLoaded', function () {
         console.error("Critical Firebase Error:", firebaseError);
     }
 
-    // CHECK AUTHORIZATION
     async function checkAccessAuthorization(user) {
         const headers = await Utils.getHeaders(user);
         if (!headers) return false;
@@ -474,7 +468,6 @@ document.addEventListener('DOMContentLoaded', function () {
         return false;
     }
 
-    // AUTH FORM HANDLERS
     document.querySelectorAll('.trigger-login').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -521,7 +514,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // STRIPE CHECKOUT
     async function startCheckout(priceId) {
         if (!currentUser) {
             if(loginScreen) loginScreen.style.display = 'flex';
@@ -546,7 +538,6 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (error) { console.error("Checkout Error:", error); }
     }
 
-    // DETECCIÓN PAÍS
     async function detectUserCountry() {
         try {
             const r = await fetch('https://ipapi.co/json/');
@@ -562,7 +553,6 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     detectUserCountry();
 
-    // BOTONES PLANES
     document.querySelectorAll('.plan-cta').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -585,6 +575,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // APLICACIÓN PRINCIPAL (Chat & Analyzer)
     // ==========================================
     function runApp(user) {
+        console.log("🚀 Iniciando aplicación para:", user.email);
+
         const dom = {
             navInv: document.getElementById('nav-investigador'),
             navAna: document.getElementById('nav-analizador'),
@@ -668,25 +660,19 @@ document.addEventListener('DOMContentLoaded', function () {
             if (dom.mobileMenuProfile) dom.mobileMenuProfile.onclick = () => { setView('cuenta'); dom.mobileMenuOverlay.classList.add('hidden'); };
         }
 
-        // ==========================================
-        // SECCIÓN DE DROPDOWNS Y HISTORIAL
-        // ==========================================
-        
-        // 1. DEFINIMOS LA FUNCIÓN DE CARGA AQUÍ MISMO (Para que no falle)
+        // --- FUNCIÓNES DE CARGA ---
         async function loadAnaHistory() {
             const h = await Utils.getHeaders(user);
             const list = document.getElementById('analyzer-history-list');
             if(!list) return;
 
             try {
-                // Indicador visual de carga
                 list.innerHTML = '<div style="padding:15px; text-align:center; color:#666;">Cargando...</div>';
-
                 const r = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/`, { headers: h });
                 if (!r.ok) throw new Error("Error API");
                 
                 state.anaHistory = await r.json();
-                list.innerHTML = ''; // Limpiar loader
+                list.innerHTML = ''; 
 
                 if (state.anaHistory.length === 0) {
                     list.innerHTML = '<div style="padding:15px; text-align:center; color:#999; font-size:0.9em;">No hay análisis previos.</div>';
@@ -697,35 +683,29 @@ document.addEventListener('DOMContentLoaded', function () {
                     const item = document.createElement('div');
                     item.className = 'pida-history-item';
                     
-                    // Título y Clic para Cargar
                     const titleSpan = document.createElement('span');
                     titleSpan.textContent = a.title || "Sin título";
                     titleSpan.style.flex = "1";
                     titleSpan.style.cursor = "pointer";
                     titleSpan.onclick = async (e) => {
                         e.stopPropagation();
-                        // Lógica de carga
                         const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { headers: h });
                         const d2 = await r2.json();
                         state.anaText = d2.analysis;
                         
-                        // Mostrar título "Resultado"
                         const titleEl = document.getElementById('analyzer-section-title');
                         if(titleEl) titleEl.style.display = 'block';
 
-                        // Renderizar
                         dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(d2.analysis));
                         dom.anaLoader.style.display = 'none';
                         document.getElementById('analyzer-response-container').style.display = 'block';
                         dom.anaResBox.style.display = 'block';
                         dom.anaControls.style.display = 'flex';
                         
-                        // Cerrar menú
                         const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
                         if(anaHistContent) anaHistContent.classList.remove('show');
                     };
                     
-                    // Botón Eliminar
                     const delBtn = document.createElement('button');
                     delBtn.className = 'delete-icon-btn';
                     delBtn.style.color = '#EF4444'; 
@@ -740,7 +720,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         const confirmado = await showCustomConfirm('Se eliminará este análisis.');
                         if(confirmado) {
                             await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
-                            loadAnaHistory(); // Recargar lista
+                            loadAnaHistory(); 
                         }
                     };
 
@@ -755,7 +735,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // 2. VINCULAR BOTONES AHORA (Que la función ya existe)
         const histBtn = document.getElementById('history-dropdown-btn');
         const histContent = document.getElementById('history-dropdown-content');
         const anaHistBtn = document.getElementById('analyzer-history-dropdown-btn');
@@ -772,23 +751,17 @@ document.addEventListener('DOMContentLoaded', function () {
         if(anaHistBtn && anaHistContent) {
             anaHistBtn.onclick = async (e) => { 
                 e.stopPropagation(); 
-                
                 const isOpen = anaHistContent.classList.contains('show');
-                
-                // Si está cerrado y lo vamos a abrir, cargamos datos
                 if (!isOpen) {
-                    console.log("🔄 Abriendo historial analizador...");
                     await loadAnaHistory(); 
                     anaHistContent.classList.add('show');
                 } else {
                     anaHistContent.classList.remove('show');
                 }
-
                 if(histContent) histContent.classList.remove('show'); 
             };
         }
 
-        // Cerrar al hacer clic fuera
         window.onclick = () => { 
             if(histContent) histContent.classList.remove('show'); 
             if(anaHistContent) anaHistContent.classList.remove('show'); 
@@ -796,14 +769,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // --- CHAT LOGIC ---
 
-        // 1. FUNCIÓN AUXILIAR: VISIBILIDAD BOTONES CHAT
-        // (Esta es la que faltaba para que no se rompa handleNewChat)
         function toggleChatButtons(show) {
             const ids = [
                 'chat-download-txt-btn', 
                 'chat-download-pdf-btn', 
-                'chat-download-docx-btn',
-                'chat-export-actions' // Contenedor padre (si existe)
+                'chat-download-docx-btn'
+                // Removed 'chat-export-actions' as it doesn't exist in HTML
             ];
             ids.forEach(id => {
                 const el = document.getElementById(id);
@@ -878,7 +849,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             const confirmado = await showCustomConfirm('Esta acción no se puede deshacer.');
                             if(confirmado) {
                                 await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${c.id}`, { method: 'DELETE', headers: h });
-                                loadChatHistory();
+                                await loadChatHistory(); // Esperar a que recargue
                                 if(state.currentChat.id === c.id) handleNewChat(true);
                             }
                         };
@@ -896,14 +867,11 @@ document.addEventListener('DOMContentLoaded', function () {
             state.currentChat = { id, title: c?.title, messages: msgs };
             dom.chatBox.innerHTML = '';
             
-            // MOSTRAR BOTONES (Porque cargamos un chat real)
             toggleChatButtons(true);
-
             msgs.forEach(renderChat);
             loadChatHistory();
         }
 
-        // FUNCIÓN AUXILIAR: INICIAR SESIÓN EN BACKEND
         async function startBackendSession() {
             const h = await Utils.getHeaders(user);
             try {
@@ -927,15 +895,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const txt = dom.input.value.trim();
             if (!txt) return;
 
-            // CREACIÓN DIFERIDA: Si no hay ID, creamos la sesión ahora
             if (!state.currentChat.id) {
-                // dom.chatBox.innerHTML = ''; // Opcional: limpiar saludo
                 const success = await startBackendSession();
                 if (!success) {
                     alert("No se pudo iniciar la conexión.");
                     return;
                 }
-                // MOSTRAR BOTONES AHORA
                 toggleChatButtons(true);
             }
             
@@ -994,13 +959,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
         async function handleNewChat(clearUI = true) {
             console.log("🔄 Preparando interfaz visual...");
+            
+            // Verificación de seguridad
+            if (!dom.chatBox) {
+                console.error("No se encontró el chatBox");
+                return;
+            }
+
             if (clearUI) { 
                 dom.chatBox.innerHTML = ''; 
                 if(dom.input) dom.input.value = ''; 
                 state.currentChat = { id: null, title: '', messages: [] };
-                document.querySelectorAll('.pida-history-item').forEach(el => el.classList.remove('active'));
+                
+                const items = document.querySelectorAll('.pida-history-item');
+                if(items) items.forEach(el => el.classList.remove('active'));
 
-                // OCULTAR BOTONES AL INICIO
                 toggleChatButtons(false);
 
                 renderChat({
@@ -1010,44 +983,47 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // --- VINCULACIÓN DE BOTONES (CORREGIDO Y ROBUSTO) ---
+        // --- VINCULACIÓN DE BOTONES (VERSIÓN FINAL SEGURA) ---
         
-        // 1. Definir la función manejadora
-        const onNewChatClick = async (e) => {
+        // 1. Evitar envío del formulario (SOLUCIÓN CRÍTICA PARA EL BOTÓN ENVIAR)
+        const pidaForm = document.getElementById('pida-form');
+        if (pidaForm) {
+            pidaForm.onsubmit = (e) => {
+                e.preventDefault();
+                sendChat();
+            };
+        }
+
+        // 2. Botones de Chat
+        const onNewChatClick = (e) => {
             e.preventDefault(); 
             e.stopPropagation();
-            console.log("🖱️ Clic en Nuevo Chat detectado");
-            
-            try {
-                await handleNewChat(true);
-                console.log("✅ Nuevo chat iniciado correctamente");
-            } catch (error) {
-                console.error("❌ Error al iniciar nuevo chat:", error);
-                alert("Hubo un error al limpiar el chat. Revisa la consola.");
-            }
+            console.log("🖱️ Clic en Nuevo Chat");
+            handleNewChat(true);
         };
 
-        // 2. Vincular botón de Escritorio
         const btnSidebar = document.getElementById('pida-new-chat-btn');
-        if (btnSidebar) {
-            btnSidebar.onclick = onNewChatClick;
-            console.log("✅ Botón 'pida-new-chat-btn' vinculado.");
-        } else {
-            console.warn("⚠️ AVISO: No se encontró el botón con ID 'pida-new-chat-btn' en el HTML.");
-        }
+        if (btnSidebar) btnSidebar.onclick = onNewChatClick;
 
-        // 3. Vincular botón Móvil
         const btnMobile = document.getElementById('new-chat-btn');
-        if (btnMobile) {
-            btnMobile.onclick = onNewChatClick;
-        }
+        if (btnMobile) btnMobile.onclick = onNewChatClick;
 
-        // 4. Vincular botón 'Limpiar' (Escoba) si existe
         const btnClear = document.getElementById('chat-clear-btn');
-        if(btnClear) {
-            btnClear.onclick = onNewChatClick;
-        }
+        if(btnClear) btnClear.onclick = onNewChatClick;
         
+        // 3. Envío de Chat (Click y Enter)
+        if (dom.sendBtn) dom.sendBtn.onclick = (e) => { 
+            e.preventDefault(); 
+            sendChat(); 
+        };
+        
+        if (dom.input) dom.input.onkeydown = (e) => { 
+            if (e.key === 'Enter' && !e.shiftKey) { 
+                e.preventDefault(); 
+                sendChat(); 
+            } 
+        };
+
         // --- ANALYZER LOGIC ---
         const anaUploadBtn = document.getElementById('analyzer-upload-btn');
         if(anaUploadBtn) anaUploadBtn.onclick = () => dom.anaInput.click();
@@ -1064,15 +1040,12 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
-        // --- FUNCIÓN: MOSTRAR BIENVENIDA ANALIZADOR ---
         function showAnalyzerWelcome() {
-            // Aseguramos que el contenedor de resultados sea visible para mostrar la burbuja
             dom.anaResBox.style.display = 'block'; 
             document.getElementById('analyzer-response-container').style.display = 'block';
-            dom.anaControls.style.display = 'none'; // Ocultamos botones de descarga/borrar
+            dom.anaControls.style.display = 'none'; 
             dom.anaLoader.style.display = 'none';
 
-            // Inyectamos la burbuja con el estilo "pida-message-bubble"
             dom.anaResTxt.innerHTML = `
                 <div class="pida-bubble pida-message-bubble">
                     <h3>📑 Analizador de Documentos</h3>
@@ -1089,11 +1062,8 @@ document.addEventListener('DOMContentLoaded', function () {
             `;
         }
 
-        // Ejecutamos la bienvenida al iniciar la app (si estamos en modo analizador o al cambiar)
         showAnalyzerWelcome();
 
-
-        // LÓGICA DEL BOTÓN ANALIZAR
         if(dom.anaBtn) {
             dom.anaBtn.onclick = async () => {
                 if (!state.anaFiles.length) {
@@ -1101,17 +1071,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     return;
                 }
                 
-                // 1. Preparar UI (Limpiamos la burbuja de bienvenida para poner la respuesta real)
                 dom.anaResBox.style.display = 'block'; 
                 dom.anaLoader.style.display = 'block';
                 document.getElementById('analyzer-response-container').style.display = 'none';
                 dom.anaResTxt.innerHTML = ''; 
                 dom.anaControls.style.display = 'none';
                 
-                // 2. Preparar Datos
                 const fd = new FormData();
                 state.anaFiles.forEach(f => fd.append('files', f));
-                // Si el usuario no escribió nada, enviamos un default, pero mejor obligar o usar placeholder
                 const instructions = dom.anaInst.value.trim() || "Analiza este documento y resume sus puntos clave.";
                 fd.append('instructions', instructions);
                 
@@ -1142,7 +1109,6 @@ document.addEventListener('DOMContentLoaded', function () {
                                         if (!started) { 
                                             dom.anaLoader.style.display = 'none'; 
                                             document.getElementById('analyzer-response-container').style.display = 'block';
-                                            // <--- MOSTRAR EL TÍTULO SOLO AHORA --->
                                             const titleEl = document.getElementById('analyzer-section-title');
                                             if(titleEl) titleEl.style.display = 'block';
                                             started = true; 
@@ -1170,35 +1136,36 @@ document.addEventListener('DOMContentLoaded', function () {
             };
         }
 
-        // TECLA ENTER PARA ANALIZAR
         if (dom.anaInst) {
             dom.anaInst.placeholder = "Escribe aquí tu instrucción (Ej: 'Resume este contrato')...";
             dom.anaInst.onkeydown = (e) => {
                 if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault(); 
-                    if (dom.anaBtn) dom.anaBtn.click(); // Dispara el evento onclick de arriba
+                    if (dom.anaBtn) dom.anaBtn.click(); 
                 }
             };
         }
 
-        // LIMPIAR (RESTAURA LA BIENVENIDA)
         if(dom.analyzerClearBtn) {
             dom.analyzerClearBtn.onclick = () => {
                 state.anaFiles = []; 
                 state.anaText = ""; 
                 renderFiles();
                 dom.anaInst.value = ''; 
-                showAnalyzerWelcome(); // Volvemos a mostrar la burbuja inicial
+                showAnalyzerWelcome(); 
             };
         }
 
-        // Descargas
         const dlBtn = document.getElementById('chat-download-txt-btn');
         if(dlBtn) dlBtn.onclick = () => {
             Exporter.downloadTXT("Chat_"+Date.now(), "Chat PIDA", state.currentChat.messages);
         };
+
+        const dlPdfBtn = document.getElementById('chat-download-pdf-btn');
+        if(dlPdfBtn) dlPdfBtn.onclick = () => {
+            Exporter.downloadPDF("Chat_"+Date.now(), "Chat PIDA", state.currentChat.messages);
+        };
         
-        // CUENTA
         if(dom.accUpdate) {
             dom.accUpdate.onclick = async () => {
                 const f = document.getElementById('acc-firstname').value;
@@ -1225,13 +1192,8 @@ document.addEventListener('DOMContentLoaded', function () {
         // INICIALIZACIÓN (AL CARGAR LA PÁGINA)
         // ==========================================
         
-        // 1. Establecer vista inicial
         setView('investigador');
-
-        // 2. Mostrar burbuja de bienvenida inmediatamente (Sin crear sesión en DB)
         handleNewChat(true); 
-
-        // 3. Cargar historial en la barra lateral (sin afectar la pantalla principal)
         loadChatHistory();
     }
 
