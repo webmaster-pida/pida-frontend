@@ -881,6 +881,26 @@ document.addEventListener('DOMContentLoaded', function () {
         const anaUploadBtn = document.getElementById('analyzer-upload-btn');
         if(anaUploadBtn) anaUploadBtn.onclick = () => dom.anaInput.click();
         if(dom.anaInput) dom.anaInput.onchange = (e) => { state.anaFiles.push(...e.target.files); renderFiles(); };
+        if (dom.anaInst) {
+            // 1. Texto de ejemplo para guiar al usuario
+            dom.anaInst.placeholder = "Ejemplo: \n- Analiza este contrato y busca cláusulas abusivas.\n- Resume los antecedentes de esta sentencia.\n- Identifica los riesgos legales en este documento.";
+            
+            // 2. Activar análisis con la tecla Enter
+            dom.anaInst.onkeydown = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault(); // Evita el salto de línea
+                    
+                    if (state.anaFiles.length > 0 && dom.anaBtn) {
+                        dom.anaBtn.click(); // Simula el clic en "Analizar"
+                    } else {
+                        // Feedback sutil si intenta enviar sin archivos
+                        // (Podemos usar un console.warn o una animación pequeña, 
+                        // por ahora simplemente no hace nada igual que el botón)
+                        console.warn("Sube un archivo primero");
+                    }
+                }
+            };
+        }
 
         function renderFiles() {
             dom.anaFiles.innerHTML = '';
