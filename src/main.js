@@ -881,26 +881,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const anaUploadBtn = document.getElementById('analyzer-upload-btn');
         if(anaUploadBtn) anaUploadBtn.onclick = () => dom.anaInput.click();
         if(dom.anaInput) dom.anaInput.onchange = (e) => { state.anaFiles.push(...e.target.files); renderFiles(); };
-        if (dom.anaInst) {
-            // 1. Texto de ejemplo para guiar al usuario
-            dom.anaInst.placeholder = "Ejemplo: \n- Analiza este contrato y busca cláusulas abusivas.\n- Resume los antecedentes de esta sentencia.\n- Identifica los riesgos legales en este documento.";
-            
-            // 2. Activar análisis con la tecla Enter
-            dom.anaInst.onkeydown = (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault(); // Evita el salto de línea
-                    
-                    if (state.anaFiles.length > 0 && dom.anaBtn) {
-                        dom.anaBtn.click(); // Simula el clic en "Analizar"
-                    } else {
-                        // Feedback sutil si intenta enviar sin archivos
-                        // (Podemos usar un console.warn o una animación pequeña, 
-                        // por ahora simplemente no hace nada igual que el botón)
-                        console.warn("Sube un archivo primero");
-                    }
-                }
-            };
-        }
 
         function renderFiles() {
             dom.anaFiles.innerHTML = '';
@@ -913,19 +893,57 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         }
 
+        // --- FUNCIÓN: MOSTRAR BIENVENIDA ANALIZADOR ---
+        function showAnalyzerWelcome() {
+            // Aseguramos que el contenedor de resultados sea visible para mostrar la burbuja
+            dom.anaResBox.style.display = 'block'; 
+            document.getElementById('analyzer-response-container').style.display = 'block';
+            dom.anaControls.style.display = 'none'; // Ocultamos botones de descarga/borrar
+            dom.anaLoader.style.display = 'none';
+
+            // Inyectamos la burbuja con el estilo "pida-message-bubble"
+            dom.anaResTxt.innerHTML = `
+                <div class="pida-bubble pida-message-bubble">
+                    <h3>📑 Analizador de Documentos</h3>
+                    <p>Sube tus archivos (PDF, DOCX) y escribe una instrucción clara. PIDA leerá el documento por ti.</p>
+                    <hr>
+                    <strong>Ejemplos de lo que puedes pedir:</strong>
+                    <ul style="margin-top: 10px; padding-left: 20px; line-height: 1.6;">
+                        <li>"Haz un resumen ejecutivo de este contrato."</li>
+                        <li>"Identifica las cláusulas de rescisión y sus penalizaciones."</li>
+                        <li>"Extrae una lista cronológica de los hechos en esta sentencia."</li>
+                        <li>"¿Existen riesgos legales para mi cliente en este documento?"</li>
+                    </ul>
+                </div>
+            `;
+        }
+
+        // Ejecutamos la bienvenida al iniciar la app (si estamos en modo analizador o al cambiar)
+        showAnalyzerWelcome();
+
+
+        // LÓGICA DEL BOTÓN ANALIZAR
         if(dom.anaBtn) {
             dom.anaBtn.onclick = async () => {
-                if (!state.anaFiles.length) return;
+                if (!state.anaFiles.length) {
+                    alert("Por favor, sube al menos un documento para analizar.");
+                    return;
+                }
                 
+                // 1. Preparar UI (Limpiamos la burbuja de bienvenida para poner la respuesta real)
                 dom.anaResBox.style.display = 'block'; 
                 dom.anaLoader.style.display = 'block';
                 document.getElementById('analyzer-response-container').style.display = 'none';
                 dom.anaResTxt.innerHTML = ''; 
                 dom.anaControls.style.display = 'none';
                 
+                // 2. Preparar Datos
                 const fd = new FormData();
                 state.anaFiles.forEach(f => fd.append('files', f));
-                fd.append('instructions', dom.anaInst.value);
+                // Si el usuario no escribió nada, enviamos un default, pero mejor obligar o usar placeholder
+                const instructions = dom.anaInst.value.trim() || "Analiza este documento y resume sus puntos clave.";
+                fd.append('instructions', instructions);
+                
                 const token = await user.getIdToken();
 
                 try {
@@ -958,7 +976,6 @@ document.addEventListener('DOMContentLoaded', function () {
                                         fullText += data.text;
                                         dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
                                         
-                                        // Scroll automático
                                         const scrollContainer = dom.viewAna.querySelector('.pida-view-content');
                                         if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
                                     }
@@ -979,60 +996,26 @@ document.addEventListener('DOMContentLoaded', function () {
             };
         }
 
-        if(dom.analyzerClearBtn) {
-            dom.analyzerClearBtn.onclick = () => {
-                state.anaFiles = []; state.anaText = ""; renderFiles();
-                dom.anaInst.value = ''; dom.anaResBox.style.display = 'none';
+        // TECLA ENTER PARA ANALIZAR
+        if (dom.anaInst) {
+            dom.anaInst.placeholder = "Escribe aquí tu instrucción (Ej: 'Resume este contrato')...";
+            dom.anaInst.onkeydown = (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault(); 
+                    if (dom.anaBtn) dom.anaBtn.click(); // Dispara el evento onclick de arriba
+                }
             };
         }
 
-        async function loadAnaHistory() {
-            const h = await Utils.getHeaders(user);
-            try {
-                const r = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/`, { headers: h });
-                state.anaHistory = await r.json();
-                const list = document.getElementById('analyzer-history-list');
-                if(list) {
-                    list.innerHTML = '';
-                    state.anaHistory.forEach(a => {
-                        const item = document.createElement('div');
-                        item.className = 'pida-history-item';
-                        const titleSpan = document.createElement('span');
-                        titleSpan.textContent = a.title;
-                        titleSpan.style.flex = "1";
-                        titleSpan.style.cursor = "pointer";
-                        titleSpan.onclick = async () => {
-                            const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { headers: h });
-                            const d2 = await r2.json();
-                            state.anaText = d2.analysis;
-                            dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(d2.analysis));
-                            dom.anaLoader.style.display = 'none';
-                            document.getElementById('analyzer-response-container').style.display = 'block';
-                            dom.anaResBox.style.display = 'block';
-                            dom.anaControls.style.display = 'flex';
-                            if(anaHistContent) anaHistContent.classList.remove('show');
-                        };
-                        
-                        const delBtn = document.createElement('button');
-                        delBtn.className = 'delete-icon-btn';
-                        delBtn.style.color = '#EF4444'; 
-                        delBtn.style.minWidth = '24px';
-                        delBtn.style.border = 'none';
-                        delBtn.style.background = 'transparent';
-                        delBtn.style.cursor = 'pointer';
-                        delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>`;
-                        delBtn.onclick = async (e) => {
-                            e.stopPropagation();
-                            const confirmado = await showCustomConfirm('Se eliminará este análisis.');
-                            if(confirmado) {
-                                await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
-                                loadAnaHistory();
-                            }
-                        };
-                        item.appendChild(titleSpan); item.appendChild(delBtn); list.appendChild(item);
-                    });
-                }
-            } catch(e) {}
+        // LIMPIAR (RESTAURA LA BIENVENIDA)
+        if(dom.analyzerClearBtn) {
+            dom.analyzerClearBtn.onclick = () => {
+                state.anaFiles = []; 
+                state.anaText = ""; 
+                renderFiles();
+                dom.anaInst.value = ''; 
+                showAnalyzerWelcome(); // Volvemos a mostrar la burbuja inicial
+            };
         }
 
         // Descargas
