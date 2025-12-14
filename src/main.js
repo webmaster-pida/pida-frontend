@@ -58,6 +58,64 @@ const PIDA_CONFIG = {
 };
 
 
+// --- FUNCIÓN AUXILIAR: CONFIRMACIÓN SUTIL ---
+function showCustomConfirm(message) {
+    return new Promise((resolve) => {
+        // 1. Crear el fondo oscuro
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.width = '100%';
+        overlay.style.height = '100%';
+        overlay.style.backgroundColor = 'rgba(29, 53, 87, 0.6)'; // Azul PIDA semitransparente
+        overlay.style.zIndex = '999999';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.backdropFilter = 'blur(4px)'; // Efecto moderno de desenfoque
+        overlay.style.opacity = '0';
+        overlay.style.transition = 'opacity 0.2s ease';
+
+        // 2. Crear la tarjeta (usando estilos en línea para asegurar consistencia)
+        overlay.innerHTML = `
+            <div style="background: white; padding: 30px; border-radius: 16px; width: 90%; max-width: 320px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2); transform: scale(0.9); transition: transform 0.2s ease;">
+                <div style="font-size: 2rem; margin-bottom: 10px;">🗑️</div>
+                <h3 style="color: #1D3557; margin: 0 0 10px 0; font-family: 'Inter', sans-serif;">¿Eliminar archivo?</h3>
+                <p style="color: #666; font-size: 0.95rem; margin-bottom: 25px; line-height: 1.5;">${message}</p>
+                <div style="display: flex; gap: 10px; justify-content: center;">
+                    <button id="btn-cancel" style="background: white; border: 1px solid #ccc; color: #666; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: inherit;">Cancelar</button>
+                    <button id="btn-confirm" style="background: #EF4444; border: none; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: 600; font-family: inherit; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.3);">Sí, eliminar</button>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(overlay);
+
+        // Animación de entrada
+        requestAnimationFrame(() => {
+            overlay.style.opacity = '1';
+            overlay.querySelector('div').style.transform = 'scale(1)';
+        });
+
+        // 3. Manejar los clics
+        const close = (result) => {
+            overlay.style.opacity = '0';
+            overlay.querySelector('div').style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                if(document.body.contains(overlay)) document.body.removeChild(overlay);
+                resolve(result);
+            }, 200);
+        };
+
+        document.getElementById('btn-cancel').onclick = () => close(false);
+        document.getElementById('btn-confirm').onclick = () => close(true);
+        // Cerrar si se da clic fuera de la tarjeta
+        overlay.onclick = (e) => { if(e.target === overlay) close(false); };
+    });
+}
+
+
 // =========================================================
 // 3. LÓGICA DE LA APLICACIÓN
 // =========================================================
@@ -690,7 +748,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     delBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg>`;
                     delBtn.onclick = async (e) => {
                         e.stopPropagation();
-                        if(confirm('¿Borrar chat?')) {
+                        const confirmado = await showCustomConfirm('Esta acción no se puede deshacer.');
+                        
+                        if(confirmado) {
                             await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${c.id}`, { method: 'DELETE', headers: h });
                             loadChatHistory();
                             if(state.currentChat.id === c.id) handleNewChat(true);
@@ -922,7 +982,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     delBtn.onclick = async (e) => {
                         e.stopPropagation();
-                        if(confirm('¿Borrar análisis?')) {
+                        const confirmado = await showCustomConfirm('Se eliminará este análisis y sus resultados.');
+                        
+                        if(confirmado) {
                             await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
                             loadAnaHistory();
                         }
