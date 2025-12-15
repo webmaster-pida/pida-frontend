@@ -428,3 +428,94 @@
         display: none !important;
     }
 }
+
+/* =========================================
+   ESTILOS DEL PRECALIFICADOR (Igual al Analizador)
+   ========================================= */
+
+#pre-analysis-result {
+    background: white; 
+    padding: 40px; 
+    border-radius: 12px; 
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); 
+    font-family: 'Inter', sans-serif;
+    color: #334155; 
+    line-height: 1.7; 
+    user-select: text!important; 
+    -webkit-user-select: text!important;
+}
+
+#pre-analysis-result h1, 
+#pre-analysis-result h2, 
+#pre-analysis-result h3 {
+    color: var(--pida-primary); 
+    margin-top: 1.5em; 
+    margin-bottom: 0.8em; 
+    font-weight: 700; 
+    line-height: 1.2;
+}
+
+#pre-analysis-result h1 { 
+    font-size: 1.8em; 
+    border-bottom: 2px solid var(--pida-accent); 
+    padding-bottom: 10px; 
+}
+
+#pre-analysis-result h2 { 
+    font-size: 1.4em; 
+}
+
+#pre-analysis-result h3 { 
+    font-size: 1.1em; 
+    color: var(--pida-accent); 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+}
+
+#pre-analysis-result p { 
+    margin-bottom: 1em; 
+}
+
+#pre-analysis-result strong { 
+    color: var(--pida-primary); 
+    font-weight: 700; 
+}
+
+#pre-analysis-result a { 
+    color: var(--pida-accent); 
+    text-decoration: underline; 
+    text-underline-offset: 2px; 
+}
+
+#pre-analysis-result ul, 
+#pre-analysis-result ol { 
+    margin-bottom: 1.5em; 
+    padding-left: 20px; 
+}
+
+#pre-analysis-result li { 
+    margin-bottom: 0.5em; 
+    padding-left: 5px; 
+}
+
+#pre-analysis-result li::marker { 
+    color: var(--pida-accent); 
+    font-weight: bold; 
+}
+
+#pre-analysis-result blockquote {
+    border-left: 4px solid var(--pida-accent); 
+    background: #f8fafc; 
+    margin: 1.5em 0; 
+    padding: 15px 20px; 
+    font-style: italic; 
+    color: #475569; 
+    border-radius: 0 8px 8px 0;
+}
+
+/* Tablas dentro del resultado (si hubieran) */
+#pre-analysis-result table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.95rem; }
+#pre-analysis-result th { background-color: var(--pida-bg-app); color: var(--pida-primary); font-weight: 700; text-align: left; padding: 12px; border-bottom: 2px solid var(--pida-border); }
+#pre-analysis-result td { padding: 12px; border-bottom: 1px solid var(--pida-border); }
+#pre-analysis-result tr:hover { background-color: #f1f5f9; }
