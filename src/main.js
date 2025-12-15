@@ -41,6 +41,7 @@ let currentCurrency = 'USD';
 const PIDA_CONFIG = {
     API_CHAT: "https://chat-v20-465781488910.us-central1.run.app",
     API_ANA: "https://analize-v20-465781488910.us-central1.run.app",
+    API_PRE: "https://precalifier-v20-465781488910.us-central1.run.app",
     FIREBASE: {
         apiKey: "AIzaSyC5nqsx4Fe4gMKkKdvnbMf8VFnI6TYL64k",
         authDomain: "pida-ai.com",
@@ -569,8 +570,10 @@ document.addEventListener('DOMContentLoaded', function () {
         const dom = {
             navInv: document.getElementById('nav-investigador'),
             navAna: document.getElementById('nav-analizador'),
+            navPre: document.getElementById('nav-precalificador'),
             viewInv: document.getElementById('view-investigador'),
             viewAna: document.getElementById('view-analizador'),
+            viewPre: document.getElementById('view-precalificador'),
             viewAcc: document.getElementById('view-account'),
             chatBox: document.getElementById('pida-chat-box'),
             input: document.getElementById('pida-input'),
@@ -588,6 +591,18 @@ document.addEventListener('DOMContentLoaded', function () {
             anaControls: document.getElementById('analyzer-download-controls'),
             anaInst: document.getElementById('user-instructions'),
             analyzerClearBtn: document.getElementById('analyzer-clear-btn'),
+            preTitle: document.getElementById('pre-input-title'),
+            preCountry: document.getElementById('pre-input-country'),
+            preFacts: document.getElementById('pre-input-facts'),
+            preBtn: document.getElementById('pre-analyze-btn'),
+            preClear: document.getElementById('pre-clear-btn'),
+            preResultsBox: document.getElementById('pre-results-section'),
+            preLoader: document.getElementById('pre-loader-container'),
+            preStatus: document.getElementById('pre-status-text'),
+            preResponseCont: document.getElementById('pre-response-container'),
+            preResultTxt: document.getElementById('pre-analysis-result'),
+            preWelcome: document.getElementById('pre-welcome'),
+            preControls: document.getElementById('pre-download-controls'),
             accUpdate: document.getElementById('acc-update-btn'),
             accBilling: document.getElementById('acc-billing-btn'),
             accReset: document.getElementById('acc-reset-btn'),
@@ -598,7 +613,7 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         // Estado
-        let state = { currentView: 'investigador', conversations: [], currentChat: { id: null, title: '', messages: [] }, anaFiles: [], anaText: "", anaHistory: [] };
+        let state = { currentView: 'investigador', conversations: [], currentChat: { id: null, title: '', messages: [] }, anaFiles: [], anaText: "", anaHistory: [], preText: "" };
 
         // HELPER PARA NOMBRES DE ARCHIVO CON FECHA
         const getTimestampedName = (prefix) => {
@@ -622,15 +637,19 @@ document.addEventListener('DOMContentLoaded', function () {
             state.currentView = view;
             if(dom.navInv) dom.navInv.classList.toggle('active', view === 'investigador');
             if(dom.navAna) dom.navAna.classList.toggle('active', view === 'analizador');
+            if(dom.navPre) dom.navPre.classList.toggle('active', view === 'precalificador');
             if(dom.viewInv) dom.viewInv.classList.toggle('hidden', view !== 'investigador');
             if(dom.viewAna) dom.viewAna.classList.toggle('hidden', view !== 'analizador');
+            if(dom.viewPre) dom.viewPre.classList.toggle('hidden', view !== 'precalificador');
             if(dom.viewAcc) dom.viewAcc.classList.toggle('hidden', view !== 'cuenta');
             
             const chatCtrls = document.getElementById('chat-controls');
             const anaCtrls = document.getElementById('analyzer-controls');
+            const preCtrls = document.getElementById('precalifier-controls');
             const accCtrls = document.getElementById('account-controls');
             if(chatCtrls) chatCtrls.classList.toggle('hidden', view !== 'investigador');
             if(anaCtrls) anaCtrls.classList.toggle('hidden', view !== 'analizador');
+            if(preCtrls) preCtrls.classList.toggle('hidden', view !== 'precalificador');
             if(accCtrls) accCtrls.classList.toggle('hidden', view !== 'cuenta');
 
             if (view === 'investigador') loadChatHistory();
@@ -639,6 +658,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if(dom.navInv) dom.navInv.onclick = () => setView('investigador');
         if(dom.navAna) dom.navAna.onclick = () => setView('analizador');
+        if(dom.navPre) dom.navPre.onclick = () => setView('precalificador');
         if(dom.pAvatar) dom.pAvatar.onclick = () => setView('cuenta');
         const userInfoBtn = document.getElementById('sidebar-user-info-click');
         if(userInfoBtn) userInfoBtn.onclick = () => setView('cuenta');
@@ -1086,6 +1106,149 @@ document.addEventListener('DOMContentLoaded', function () {
             if(!state.anaText) return alert("No hay análisis para descargar.");
             const name = getTimestampedName("Analizador-PIDA");
             Exporter.downloadDOCX(name, "Reporte Análisis Documental", state.anaText);
+        };
+
+// =========================================================
+        // LÓGICA PRECALIFICADOR DE CASOS
+        // =========================================================
+        
+        function resetPrecalifier() {
+            if(dom.preTitle) dom.preTitle.value = '';
+            if(dom.preFacts) dom.preFacts.value = '';
+            if(dom.preCountry) dom.preCountry.value = '';
+            
+            dom.preWelcome.style.display = 'block';
+            dom.preResultsBox.style.display = 'none';
+            dom.preResponseCont.style.display = 'none';
+            dom.preLoader.style.display = 'none';
+            dom.preControls.style.display = 'none';
+            dom.preResultTxt.innerHTML = '';
+            state.preText = "";
+        }
+
+        if (dom.preClear) dom.preClear.onclick = resetPrecalifier;
+
+        if (dom.preBtn) {
+            dom.preBtn.onclick = async () => {
+                const title = dom.preTitle.value.trim();
+                const facts = dom.preFacts.value.trim();
+                const country = dom.preCountry.value || null;
+
+                if (!title || !facts) {
+                    alert("Por favor, ingresa al menos un Título y el Relato de los hechos.");
+                    return;
+                }
+
+                // UI Reset para carga
+                dom.preWelcome.style.display = 'none';
+                dom.preResultsBox.style.display = 'block';
+                dom.preLoader.style.display = 'block';
+                dom.preStatus.textContent = "Iniciando análisis...";
+                dom.preResponseCont.style.display = 'none';
+                dom.preResultTxt.innerHTML = '';
+                dom.preControls.style.display = 'none';
+                state.preText = "";
+
+                // Deshabilitar botón para evitar doble click
+                dom.preBtn.disabled = true;
+                dom.preBtn.textContent = "Procesando...";
+
+                try {
+                    const token = await user.getIdToken();
+                    
+                    const response = await fetch(`${PIDA_CONFIG.API_PRE}/analyze`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            title: title,
+                            facts: facts,
+                            country_code: country
+                        })
+                    });
+
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let fullText = "";
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split("\n\n");
+                        
+                        for (const line of lines) {
+                            if (line.startsWith("data: ")) {
+                                const jsonStr = line.replace("data: ", "").trim();
+                                if (!jsonStr) continue;
+
+                                try {
+                                    const data = JSON.parse(jsonStr);
+                                    
+                                    if (data.event === "status") {
+                                        // Actualizar mensaje de carga
+                                        dom.preStatus.textContent = data.message || "Procesando...";
+                                    
+                                    } else if (data.text) {
+                                        // Si es el primer trozo de texto, ocultar loader y mostrar contenedor
+                                        if (dom.preLoader.style.display !== 'none' && fullText === "") {
+                                            dom.preLoader.style.display = 'none';
+                                            dom.preResponseCont.style.display = 'block';
+                                        }
+                                        
+                                        fullText += data.text;
+                                        dom.preResultTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
+                                        
+                                        // Auto-scroll
+                                        const scrollContainer = dom.viewPre.querySelector('.pida-view-content');
+                                        if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+
+                                    } else if (data.event === "done") {
+                                        console.log("Precalificación finalizada");
+                                        state.preText = fullText;
+                                        dom.preControls.style.display = 'flex';
+                                    } else if (data.error) {
+                                        console.error("Error Backend:", data.error);
+                                        dom.preResultTxt.innerHTML += `<br><br><span style="color:red; font-weight:bold;">Error: ${data.error}</span>`;
+                                    }
+
+                                } catch (e) {
+                                    console.error("Error parsing JSON stream", e);
+                                }
+                            }
+                        }
+                    }
+
+                } catch (error) {
+                    console.error("Fetch Error:", error);
+                    dom.preLoader.style.display = 'none';
+                    dom.preResponseCont.style.display = 'block';
+                    dom.preResultTxt.innerHTML = `<span style='color:red'>Error de conexión: ${error.message}</span>`;
+                } finally {
+                    dom.preBtn.disabled = false;
+                    dom.preBtn.textContent = "Precalificar";
+                }
+            };
+        }
+
+        // Descargas del Precalificador
+        document.getElementById('pre-download-txt-btn').onclick = () => {
+            if(!state.preText) return alert("No hay resultado para descargar.");
+            const name = getTimestampedName("Precalificador-PIDA");
+            Exporter.downloadTXT(name, "Precalificación de Caso", state.preText);
+        };
+        document.getElementById('pre-download-pdf-btn').onclick = () => {
+            if(!state.preText) return alert("No hay resultado para descargar.");
+            const name = getTimestampedName("Precalificador-PIDA");
+            Exporter.downloadPDF(name, "Precalificación de Caso", state.preText);
+        };
+        document.getElementById('pre-download-docx-btn').onclick = () => {
+            if(!state.preText) return alert("No hay resultado para descargar.");
+            const name = getTimestampedName("Precalificador-PIDA");
+            Exporter.downloadDOCX(name, "Precalificación de Caso", state.preText);
         };
 
         // --- CUENTA ---
