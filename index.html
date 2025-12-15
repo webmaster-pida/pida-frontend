@@ -431,69 +431,20 @@
                             </div>
                         </div>
                     </div>
-                    <div id="view-precalificador" class="pida-view hidden">
-                        <div class="pida-view-content">
-                            <!-- Resultados -->
-                            <div id="pre-results-section" style="display: none;">
-                                <div id="pre-loader-container" style="text-align: center; margin-top: 40px;">
-                                    <div class="loader"></div>
-                                    <p id="pre-status-text" style="color: var(--pida-text-muted); margin-top: 10px;">Analizando relato...</p>
-                                </div>
-                                <div id="pre-response-container" style="display:none;">
-                                    <div id="pre-analysis-result" style="background:white; padding:30px; border-radius:8px; border:1px solid var(--pida-border);"></div>
-                                </div>
-                            </div>
-                            <!-- Bienvenida / Instrucciones Vacías -->
-                            <div id="pre-welcome" style="padding: 20px; text-align: center; color: #666;">
-                                <div class="pida-bubble pida-message-bubble" style="max-width: 700px; margin: 0 auto; text-align: left;">
-                                    <h3>⚖️ Precalificador de Casos</h3>
-                                    <p>Ingresa los hechos de tu caso para obtener un análisis de viabilidad preliminar basado en estándares internacionales.</p>
-                                </div>
-                            </div>
+                    <div class="pida-view-form">
+                        <div id="active-files-area" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;"></div>
+                        <div id="analyzer-download-controls" class="pida-download-controls" style="display: none; justify-content:flex-end; gap:5px; margin-bottom:5px;">
+                            <button type="button" id="analyzer-download-txt-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">TXT</button>
+                            <button type="button" id="analyzer-download-docx-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">DOCX</button>
+                            <button type="button" id="analyzer-download-pdf-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">PDF</button>
                         </div>
-    
-                        <!-- Formulario de Entrada -->
-                        <div class="pida-view-form">
-                            <div id="pre-download-controls" class="pida-download-controls" style="display: none; justify-content:flex-end; gap:5px; margin-bottom:5px;">
-                                <button type="button" id="pre-download-txt-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">TXT</button>
-                                <button type="button" id="pre-download-docx-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">DOCX</button>
-                                <button type="button" id="pre-download-pdf-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">PDF</button>
-                            </div>
-
-                            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px;">
-                                <input id="pre-input-title" type="text" class="pida-textarea" style="padding: 10px; height: 40px; resize: none;" placeholder="Título del Caso (Ej: Comunidad vs Minera)" />
-                                <select id="pre-input-country" class="pida-textarea" style="padding: 0 10px; height: 42px;">
-                                    <option value="" disabled selected>País (Opcional)</option>
-                                    <option value="AR">Argentina</option>
-                                    <option value="BO">Bolivia</option>
-                                    <option value="CL">Chile</option>
-                                    <option value="CO">Colombia</option>
-                                    <option value="CR">Costa Rica</option>
-                                    <option value="CU">Cuba</option>
-                                    <option value="EC">Ecuador</option>
-                                    <option value="SV">El Salvador</option>
-                                    <option value="GT">Guatemala</option>
-                                    <option value="HN">Honduras</option>
-                                    <option value="MX">México</option>
-                                    <option value="NI">Nicaragua</option>
-                                    <option value="PA">Panamá</option>
-                                    <option value="PY">Paraguay</option>
-                                    <option value="PE">Perú</option>
-                                    <option value="DO">República Dominicana</option>
-                                    <option value="UY">Uruguay</option>
-                                    <option value="VE">Venezuela</option>
-                                    <option value="">Otro / Internacional</option>
-                                </select>
-                            </div>
-
-                            <textarea id="pre-input-facts" rows="3" class="pida-textarea" placeholder="Relato completo de los hechos..."></textarea>
-        
-                            <div class="pida-form-actions">
-                                <button id="pre-clear-btn" type="button" class="pida-button-secondary">Limpiar</button>
-                                <button id="pre-analyze-btn" type="button" class="pida-button-primary">Precalificar</button>
-                            </div>
+                        <textarea id="user-instructions" rows="2" class="pida-textarea" placeholder="Instrucciones para el análisis..."></textarea>
+                        <div class="pida-form-actions">
+                            <button id="analyzer-clear-btn" type="button" class="pida-button-secondary">Limpiar</button>
+                            <button id="analyze-btn" type="button" class="pida-button-primary">Analizar</button>
                         </div>
                     </div>
+                </div>
 
                 <div id="view-account" class="pida-view hidden">
                     <div class="pida-view-content">
