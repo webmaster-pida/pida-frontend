@@ -452,52 +452,40 @@
                         <div id="pre-results-section" style="display: none;">
                             <div id="pre-loader-container" style="text-align: center; margin-top: 40px;">
                                 <div class="loader"></div>
-                                <p id="pre-status-text" style="color: var(--pida-text-muted); margin-top: 10px;">Analizando relato...</p>
+                                <p id="pre-status-text" style="color: var(--pida-text-muted);">Analizando relato...</p>
                             </div>
-                            <div id="pre-response-container" style="display:none;">
-                                <div id="pre-analysis-result" style="background:white; padding:30px; border-radius:8px; border:1px solid var(--pida-border);"></div>
+                            <div id="pre-response-container">
+                                <div id="pre-analysis-result"></div>
                             </div>
                         </div>
-                        <!-- Bienvenida / Instrucciones Vacías -->
-                        <div id="pre-welcome" style="padding: 20px; text-align: left; color: #666;">
-                            <div class="pida-bubble pida-message-bubble" style="max-width: 700px; margin: 0 auto; text-align: left;">
-                                <h3>⚖️ Precalificador de delitos y violaciones a derechos humanos.</h3>
-                                <p>Ingresa los hechos de tu caso para obtener una precalificación de delitos y de violaciones de derechos humanos conforme a estándares internacionales.</p>
+
+                        <!-- Bienvenida (Limpio, sin estilos en línea) -->
+                        <div id="pre-welcome">
+                            <div class="pida-bubble pida-message-bubble pre-welcome-card">
+                                <h3 style="margin-top: 0; display: flex; align-items: center; gap: 8px;">
+                                    ⚖️ Precalificador de delitos y violaciones a derechos humanos.
+                                </h3>
+                                <p style="margin-bottom: 0;">
+                                    Ingresa los hechos de tu caso para obtener una precalificación de delitos y de violaciones de derechos humanos conforme a estándares internacionales.
+                                </p>
                             </div>
                         </div>
                     </div>
     
-                    <!-- Formulario de Entrada -->
+                    <!-- Formulario (Igual que antes) -->
                     <div class="pida-view-form">
+                        <!-- ... (resto del formulario igual) ... -->
                         <div id="pre-download-controls" class="pida-download-controls" style="display: none; justify-content:flex-end; gap:5px; margin-bottom:5px;">
                             <button type="button" id="pre-download-txt-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">TXT</button>
                             <button type="button" id="pre-download-docx-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">DOCX</button>
                             <button type="button" id="pre-download-pdf-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">PDF</button>
                         </div>
 
-                        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px; margin-bottom: 10px;">
-                            <input id="pre-input-title" type="text" class="pida-textarea" style="padding: 10px; height: 40px; resize: none;" placeholder="Título del Caso (Ej: Comunidad vs Minera)" />
-                            <select id="pre-input-country" class="pida-textarea" style="padding: 0 10px; height: 42px;">
-                                <option value="" disabled selected>País (Opcional)</option>
-                                <option value="AR">Argentina</option>
-                                <option value="BO">Bolivia</option>
-                                <option value="CL">Chile</option>
-                                <option value="CO">Colombia</option>
-                                <option value="CR">Costa Rica</option>
-                                <option value="CU">Cuba</option>
-                                <option value="EC">Ecuador</option>
-                                <option value="SV">El Salvador</option>
-                                <option value="GT">Guatemala</option>
-                                <option value="HN">Honduras</option>
-                                <option value="MX">México</option>
-                                <option value="NI">Nicaragua</option>
-                                <option value="PA">Panamá</option>
-                                <option value="PY">Paraguay</option>
-                                <option value="PE">Perú</option>
-                                <option value="DO">República Dominicana</option>
-                                <option value="UY">Uruguay</option>
-                                <option value="VE">Venezuela</option>
-                                <option value="">Otro / Internacional</option>
+                        <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                            <input id="pre-input-title" type="text" class="pida-textarea" style="padding: 10px; height: 38px; flex: 2;" placeholder="Título del Caso" />
+                            <select id="pre-input-country" class="pida-textarea" style="padding: 0 10px; height: 40px; flex: 1;">
+                                <option value="" disabled selected>País</option>
+                                <option value="AR">Argentina</option> <option value="BO">Bolivia</option> <option value="CL">Chile</option> <option value="CO">Colombia</option> <option value="CR">Costa Rica</option> <option value="CU">Cuba</option> <option value="EC">Ecuador</option> <option value="SV">El Salvador</option> <option value="GT">Guatemala</option> <option value="HN">Honduras</option> <option value="MX">México</option> <option value="NI">Nicaragua</option> <option value="PA">Panamá</option> <option value="PY">Paraguay</option> <option value="PE">Perú</option> <option value="DO">Rep. Dominicana</option> <option value="UY">Uruguay</option> <option value="VE">Venezuela</option> <option value="">Otro</option>
                             </select>
                         </div>
 

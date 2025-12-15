@@ -430,9 +430,21 @@
 }
 
 /* =========================================
-   ESTILOS DEL PRECALIFICADOR (Igual al Analizador)
+   ESTILOS PRECALIFICADOR
    ========================================= */
 
+/* Alineación de la Bienvenida a la IZQUIERDA */
+#pre-welcome {
+    display: flex;
+    justify-content: flex-start; /* Esto alinea a la izquierda */
+    margin-top: 20px;
+}
+
+.pre-welcome-card {
+    max-width: 650px; /* Limita el ancho para que no se vea estirado */
+}
+
+/* Estilos del Resultado (Copia exacta del Analizador) */
 #pre-analysis-result {
     background: white; 
     padding: 40px; 
@@ -462,9 +474,7 @@
     padding-bottom: 10px; 
 }
 
-#pre-analysis-result h2 { 
-    font-size: 1.4em; 
-}
+#pre-analysis-result h2 { font-size: 1.4em; }
 
 #pre-analysis-result h3 { 
     font-size: 1.1em; 
@@ -473,36 +483,14 @@
     letter-spacing: 0.5px; 
 }
 
-#pre-analysis-result p { 
-    margin-bottom: 1em; 
-}
-
-#pre-analysis-result strong { 
-    color: var(--pida-primary); 
-    font-weight: 700; 
-}
-
-#pre-analysis-result a { 
-    color: var(--pida-accent); 
-    text-decoration: underline; 
-    text-underline-offset: 2px; 
-}
+#pre-analysis-result p { margin-bottom: 1em; }
+#pre-analysis-result strong { color: var(--pida-primary); font-weight: 700; }
+#pre-analysis-result a { color: var(--pida-accent); text-decoration: underline; text-underline-offset: 2px; }
 
 #pre-analysis-result ul, 
-#pre-analysis-result ol { 
-    margin-bottom: 1.5em; 
-    padding-left: 20px; 
-}
-
-#pre-analysis-result li { 
-    margin-bottom: 0.5em; 
-    padding-left: 5px; 
-}
-
-#pre-analysis-result li::marker { 
-    color: var(--pida-accent); 
-    font-weight: bold; 
-}
+#pre-analysis-result ol { margin-bottom: 1.5em; padding-left: 20px; }
+#pre-analysis-result li { margin-bottom: 0.5em; padding-left: 5px; }
+#pre-analysis-result li::marker { color: var(--pida-accent); font-weight: bold; }
 
 #pre-analysis-result blockquote {
     border-left: 4px solid var(--pida-accent); 
@@ -513,9 +501,3 @@
     color: #475569; 
     border-radius: 0 8px 8px 0;
 }
-
-/* Tablas dentro del resultado (si hubieran) */
-#pre-analysis-result table { width: 100%; border-collapse: collapse; margin: 20px 0; font-size: 0.95rem; }
-#pre-analysis-result th { background-color: var(--pida-bg-app); color: var(--pida-primary); font-weight: 700; text-align: left; padding: 12px; border-bottom: 2px solid var(--pida-border); }
-#pre-analysis-result td { padding: 12px; border-bottom: 1px solid var(--pida-border); }
-#pre-analysis-result tr:hover { background-color: #f1f5f9; }
