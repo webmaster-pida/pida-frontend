@@ -336,6 +336,21 @@ document.addEventListener('DOMContentLoaded', function () {
     // --- UTILIDADES INTERNAS ---
     const Utils = {
         sanitize(html) { return DOMPurify.sanitize(html); },
+
+        // NUEVA FUNCIÓN: Prepara el texto para que las tablas se rendericen bien
+        prepareMarkdown(text) {
+            if (!text) return "";
+            
+            // 1. Detección y corrección de tablas pegadas al texto
+            // Si encuentra texto seguido inmediatamente de una barra vertical "|", fuerza doble enter.
+            let fixedText = text.replace(/([^\n])\s*(\|.*\|)/g, '$1\n\n$2');
+
+            // 2. Formato de "Fuente:" (lo centralizamos aquí para usarlo en todos lados)
+            fixedText = fixedText.replace(/(?:[\n\r\s]*)(?:\*\*|__)?(Fuente:)(?:\*\*|__)?/g, '\n\n<hr>\n\n<strong>$1</strong>');
+
+            return fixedText;
+        },
+
         async getHeaders(user) { 
             try { 
                 const t = await user.getIdToken(); 
@@ -766,8 +781,11 @@ document.addEventListener('DOMContentLoaded', function () {
         function renderChat(msg) {
             const d = document.createElement('div');
             d.className = `pida-bubble ${msg.role === 'user' ? 'user-message-bubble' : 'pida-message-bubble'}`;
-            let safeContent = msg.content;
-            if (msg.role === 'model') safeContent = safeContent.replace(/(?:[\n\r\s]*)(?:\*\*|__)?(Fuente:)(?:\*\*|__)?/g, '\n\n<hr>\n\n<strong>$1</strong>');
+
+            // CAMBIO: Usamos Utils.prepareMarkdown en lugar del replace manual
+            // Solo procesamos markdown complejo si es el modelo (PIDA), si es usuario va directo
+            let safeContent = msg.role === 'model' ? Utils.prepareMarkdown(msg.content) : msg.content;
+
             d.innerHTML = Utils.sanitize(marked.parse(safeContent));
             dom.chatBox.appendChild(d);
             if (msg.role === 'model') renderFollowUpQuestions(d);
@@ -905,7 +923,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                 if (d.text) {
                                     if (fullText === "") botBubble.innerHTML = '';
                                     fullText += d.text;
-                                    let safeContent = fullText.replace(/(?:[\n\r\s]*)(?:\*\*|__)?(Fuente:)(?:\*\*|__)?/g, '\n\n<hr>\n\n<strong>$1</strong>');
+                                    // CAMBIO: Preparar markdown antes de parsear
+                                    let safeContent = Utils.prepareMarkdown(fullText);
                                     botBubble.innerHTML = Utils.sanitize(marked.parse(safeContent));
                                     dom.chatBox.parentElement.scrollTop = dom.chatBox.parentElement.scrollHeight;
                                 }
