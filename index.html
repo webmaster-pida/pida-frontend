@@ -452,52 +452,52 @@
                         <div id="pre-results-section" style="display: none;">
                             <div id="pre-loader-container" style="text-align: center; margin-top: 40px;">
                                 <div class="loader"></div>
-                                <p id="pre-status-text" style="color: var(--pida-text-muted);">Analizando relato...</p>
+                                <p id="pre-status-text" style="color: var(--pida-text-muted);">
+                                    Analizando delitos y violaciones a DDHH...
+                                </p>
                             </div>
                             <div id="pre-response-container">
                                 <div id="pre-analysis-result"></div>
                             </div>
                         </div>
 
-                        <!-- Bienvenida (Limpio, sin estilos en línea) -->
+                        <!-- Bienvenida -->
                         <div id="pre-welcome">
                             <div class="pida-bubble pida-message-bubble pre-welcome-card">
                                 <h3 style="margin-top: 0; display: flex; align-items: center; gap: 8px;">
-                                    ⚖️ Precalificador de delitos y violaciones a derechos humanos.
+                                    ⚖️ Precalificador Penal y de Derechos Humanos
                                 </h3>
                                 <p style="margin-bottom: 0;">
-                                    Ingresa los hechos de tu caso para obtener una precalificación de delitos y de violaciones de derechos humanos conforme a estándares internacionales.
+                                    Ingresa los hechos de tu caso. PIDA realizará un análisis preliminar para identificar <strong>posibles delitos penales</strong> y <strong>violaciones a derechos humanos</strong> conforme a estándares nacionales e internacionales.
                                 </p>
                             </div>
                         </div>
                     </div>
     
-                    <!-- Formulario (Igual que antes) -->
+                    <!-- Formulario -->
                     <div class="pida-view-form">
-                        <!-- ... (resto del formulario igual) ... -->
                         <div id="pre-download-controls" class="pida-download-controls" style="display: none; justify-content:flex-end; gap:5px; margin-bottom:5px;">
                             <button type="button" id="pre-download-txt-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">TXT</button>
                             <button type="button" id="pre-download-docx-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">DOCX</button>
                             <button type="button" id="pre-download-pdf-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">PDF</button>
                         </div>
 
-                        <div style="display: flex; gap: 5px; margin-bottom: 5px;">
-                            <input id="pre-input-title" type="text" class="pida-textarea" style="padding: 10px; height: 38px; flex: 2;" placeholder="Título del Caso" />
-                            <select id="pre-input-country" class="pida-textarea" style="padding: 0 10px; height: 40px; flex: 1;">
-                                <option value="" disabled selected>País</option>
-                                <option value="AR">Argentina</option> <option value="BO">Bolivia</option> <option value="CL">Chile</option> <option value="CO">Colombia</option> <option value="CR">Costa Rica</option> <option value="CU">Cuba</option> <option value="EC">Ecuador</option> <option value="SV">El Salvador</option> <option value="GT">Guatemala</option> <option value="HN">Honduras</option> <option value="MX">México</option> <option value="NI">Nicaragua</option> <option value="PA">Panamá</option> <option value="PY">Paraguay</option> <option value="PE">Perú</option> <option value="DO">Rep. Dominicana</option> <option value="UY">Uruguay</option> <option value="VE">Venezuela</option> <option value="">Otro</option>
+                        <!-- Solo Selector de País (Ancho completo) -->
+                        <div style="margin-bottom: 10px;">
+                            <select id="pre-input-country" class="pida-textarea" style="padding: 0 10px; height: 45px; width: 100%;">
+                                <option value="" disabled selected>Seleccionar País (Opcional - Recomendado para Código Penal)</option>
+                                <option value="AR">Argentina</option> <option value="BO">Bolivia</option> <option value="CL">Chile</option> <option value="CO">Colombia</option> <option value="CR">Costa Rica</option> <option value="CU">Cuba</option> <option value="EC">Ecuador</option> <option value="SV">El Salvador</option> <option value="GT">Guatemala</option> <option value="HN">Honduras</option> <option value="MX">México</option> <option value="NI">Nicaragua</option> <option value="PA">Panamá</option> <option value="PY">Paraguay</option> <option value="PE">Perú</option> <option value="DO">Rep. Dominicana</option> <option value="UY">Uruguay</option> <option value="VE">Venezuela</option> <option value="">Otro / Internacional</option>
                             </select>
                         </div>
 
-                        <textarea id="pre-input-facts" rows="3" class="pida-textarea" placeholder="Relato completo de los hechos..."></textarea>
+                        <textarea id="pre-input-facts" rows="4" class="pida-textarea" placeholder="Narra los hechos detalladamente para identificar posibles delitos y violaciones..."></textarea>
         
                         <div class="pida-form-actions">
                             <button id="pre-clear-btn" type="button" class="pida-button-secondary">Limpiar</button>
-                            <button id="pre-analyze-btn" type="button" class="pida-button-primary">Precalificar</button>
+                            <button id="pre-analyze-btn" type="button" class="pida-button-primary">Precalificar Caso</button>
                         </div>
                     </div>
                 </div>
-
                 <div id="view-account" class="pida-view hidden">
                     <div class="pida-view-content">
                         <div class="account-container" style="max-width:600px;margin:0 auto;background:white;border-radius:12px;border:1px solid var(--pida-border);padding:40px;">

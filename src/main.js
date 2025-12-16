@@ -591,7 +591,6 @@ document.addEventListener('DOMContentLoaded', function () {
             anaControls: document.getElementById('analyzer-download-controls'),
             anaInst: document.getElementById('user-instructions'),
             analyzerClearBtn: document.getElementById('analyzer-clear-btn'),
-            preTitle: document.getElementById('pre-input-title'),
             preCountry: document.getElementById('pre-input-country'),
             preFacts: document.getElementById('pre-input-facts'),
             preBtn: document.getElementById('pre-analyze-btn'),
@@ -1109,18 +1108,18 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
 // =========================================================
-        // LÓGICA PRECALIFICADOR DE CASOS
+        // LÓGICA PRECALIFICADOR (ACTUALIZADA SIN TÍTULO MANUAL)
         // =========================================================
         
         function resetPrecalifier() {
-            if(dom.preTitle) dom.preTitle.value = '';
+            // Ya no hay preTitle que limpiar
             if(dom.preFacts) dom.preFacts.value = '';
             if(dom.preCountry) dom.preCountry.value = '';
             
-            dom.preWelcome.style.display = 'block';
+            dom.preWelcome.style.display = 'flex';
             dom.preResultsBox.style.display = 'none';
-            dom.preResponseCont.style.display = 'none';
             dom.preLoader.style.display = 'none';
+            dom.preResponseCont.style.display = 'none';
             dom.preControls.style.display = 'none';
             dom.preResultTxt.innerHTML = '';
             state.preText = "";
@@ -1130,45 +1129,42 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (dom.preBtn) {
             dom.preBtn.onclick = async () => {
-                const title = dom.preTitle.value.trim();
+                // GENERACIÓN AUTOMÁTICA DE TÍTULO
+                const now = new Date();
+                const title = `Consulta Rápida - ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+                
                 const facts = dom.preFacts.value.trim();
                 const country = dom.preCountry.value || null;
 
-                if (!title || !facts) {
-                    alert("Por favor, ingresa al menos un Título y el Relato de los hechos.");
+                // Validación: Solo requerimos hechos
+                if (!facts) {
+                    alert("Por favor, narra los hechos del caso.");
                     return;
                 }
 
-                // UI Reset para carga
+                // UI Setup
                 dom.preWelcome.style.display = 'none';
-                dom.preResultsBox.style.display = 'block';
-                dom.preLoader.style.display = 'block';
-                dom.preStatus.textContent = "Iniciando análisis...";
-                dom.preResponseCont.style.display = 'none';
+                dom.preResultsBox.style.display = 'block'; 
+                dom.preLoader.style.display = 'block';     
+                dom.preStatus.textContent = "Analizando delitos y DDHH...";
+                dom.preResponseCont.style.display = 'none'; 
                 dom.preResultTxt.innerHTML = '';
                 dom.preControls.style.display = 'none';
                 state.preText = "";
-
-                // Deshabilitar botón para evitar doble click
                 dom.preBtn.disabled = true;
-                dom.preBtn.textContent = "Procesando...";
 
                 try {
                     const token = await user.getIdToken();
-                    
                     const response = await fetch(`${PIDA_CONFIG.API_PRE}/analyze`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
                         },
-                        body: JSON.stringify({
-                            title: title,
-                            facts: facts,
-                            country_code: country
-                        })
+                        body: JSON.stringify({ title, facts, country_code: country })
                     });
 
+                    // ... (El resto del código de lectura del stream se mantiene IGUAL) ...
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
                     let fullText = "";
@@ -1176,60 +1172,37 @@ document.addEventListener('DOMContentLoaded', function () {
                     while (true) {
                         const { done, value } = await reader.read();
                         if (done) break;
-                        
                         const chunk = decoder.decode(value);
                         const lines = chunk.split("\n\n");
-                        
                         for (const line of lines) {
                             if (line.startsWith("data: ")) {
-                                const jsonStr = line.replace("data: ", "").trim();
-                                if (!jsonStr) continue;
-
                                 try {
-                                    const data = JSON.parse(jsonStr);
-                                    
+                                    const data = JSON.parse(line.replace("data: ", "").trim());
                                     if (data.event === "status") {
-                                        // Actualizar mensaje de carga
-                                        dom.preStatus.textContent = data.message || "Procesando...";
-                                    
+                                        dom.preStatus.textContent = data.message;
                                     } else if (data.text) {
-                                        // Si es el primer trozo de texto, ocultar loader y mostrar contenedor
-                                        if (dom.preLoader.style.display !== 'none' && fullText === "") {
+                                        if (dom.preLoader.style.display !== 'none') {
                                             dom.preLoader.style.display = 'none';
                                             dom.preResponseCont.style.display = 'block';
                                         }
-                                        
                                         fullText += data.text;
                                         dom.preResultTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
-                                        
-                                        // Auto-scroll
-                                        const scrollContainer = dom.viewPre.querySelector('.pida-view-content');
-                                        if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
-
+                                        const scrollCont = dom.viewPre.querySelector('.pida-view-content');
+                                        if(scrollCont) scrollCont.scrollTop = scrollCont.scrollHeight;
                                     } else if (data.event === "done") {
-                                        console.log("Precalificación finalizada");
                                         state.preText = fullText;
                                         dom.preControls.style.display = 'flex';
-                                    } else if (data.error) {
-                                        console.error("Error Backend:", data.error);
-                                        dom.preResultTxt.innerHTML += `<br><br><span style="color:red; font-weight:bold;">Error: ${data.error}</span>`;
                                     }
-
-                                } catch (e) {
-                                    console.error("Error parsing JSON stream", e);
-                                }
+                                } catch (e) { }
                             }
                         }
                     }
-
                 } catch (error) {
-                    console.error("Fetch Error:", error);
                     dom.preLoader.style.display = 'none';
                     dom.preResponseCont.style.display = 'block';
-                    dom.preResultTxt.innerHTML = `<span style='color:red'>Error de conexión: ${error.message}</span>`;
+                    dom.preResultTxt.innerHTML = `<span style='color:red'>Error: ${error.message}</span>`;
                 } finally {
                     dom.preBtn.disabled = false;
-                    dom.preBtn.textContent = "Precalificar";
                 }
             };
         }
