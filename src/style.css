@@ -501,3 +501,59 @@
     color: #475569; 
     border-radius: 0 8px 8px 0;
 }
+
+/* =========================================
+   ESTILOS PARA TABLAS EN EL CHAT (Markdown)
+   ========================================= */
+
+/* Permite scroll horizontal si la tabla es muy ancha en móviles */
+.pida-bubble {
+    overflow-x: auto;
+}
+
+/* Diseño base de la tabla dentro del chat */
+.pida-bubble table {
+    width: 100%;
+    border-collapse: separate; /* Necesario para el border-radius */
+    border-spacing: 0;
+    margin: 20px 0;
+    font-size: 0.9rem;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px; /* Bordes redondeados */
+    overflow: hidden;
+}
+
+/* Celdas y Encabezados */
+.pida-bubble th, 
+.pida-bubble td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+    line-height: 1.5;
+    vertical-align: top;
+}
+
+/* Estilo específico del Encabezado */
+.pida-bubble th {
+    background-color: #f1f5f9; /* Gris claro */
+    color: var(--pida-primary); /* Azul PIDA */
+    font-weight: 700;
+    border-bottom: 2px solid #cbd5e1;
+    white-space: nowrap; /* Intenta mantener encabezados en una línea si es posible */
+}
+
+/* Filas alternas para mejor lectura (Zebra striping) */
+.pida-bubble tr:nth-child(even) {
+    background-color: #f8fafc;
+}
+
+/* Quitar borde inferior de la última fila para respetar el borde redondeado */
+.pida-bubble tr:last-child td {
+    border-bottom: none;
+}
+
+/* Ajuste para enlaces dentro de tablas */
+.pida-bubble td a {
+    word-break: break-all;
+}
