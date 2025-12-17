@@ -360,25 +360,50 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
 // ==========================================
-    // LÓGICA DEL CARRUSEL DE TESTIMONIOS
+    // LÓGICA DEL CARRUSEL DE TESTIMONIOS (AUTO-PLAY)
     // ==========================================
     const track = document.getElementById('carouselTrack');
     const dots = document.querySelectorAll('.dot-btn');
-
+    
     if (track && dots.length > 0) {
+        let currentIndex = 0;
+        let slideInterval;
+
+        // Función para mover el carrusel a una posición específica
+        const goToSlide = (index) => {
+            currentIndex = index;
+            // Mover el track
+            track.style.transform = `translateX(-${currentIndex * 100}%)`;
+            
+            // Actualizar puntos
+            dots.forEach(d => d.classList.remove('active'));
+            if(dots[currentIndex]) dots[currentIndex].classList.add('active');
+        };
+
+        // Función para avanzar automáticamente
+        const startAutoSlide = () => {
+            // Limpiar intervalo previo si existe para evitar duplicados
+            if (slideInterval) clearInterval(slideInterval);
+            
+            slideInterval = setInterval(() => {
+                let nextIndex = currentIndex + 1;
+                if (nextIndex >= dots.length) {
+                    nextIndex = 0; // Volver al inicio
+                }
+                goToSlide(nextIndex);
+            }, 7000); // Cambia cada 7000ms (7 segundos)
+        };
+
+        // Configurar los botones manuales
         dots.forEach((dot, index) => {
             dot.addEventListener('click', () => {
-                // 1. Quitar la clase 'active' de todos los puntos
-                dots.forEach(d => d.classList.remove('active'));
-                
-                // 2. Añadir la clase 'active' al punto clickeado
-                dot.classList.add('active');
-                
-                // 3. Mover el track
-                // Asume que cada slide ocupa el 100% del ancho
-                track.style.transform = `translateX(-${index * 100}%)`;
+                goToSlide(index);
+                startAutoSlide(); // Reiniciar el temporizador al hacer click manual
             });
         });
+
+        // Iniciar el movimiento automático al cargar
+        startAutoSlide();
     }
 
     // --- INTERACTIVIDAD BÁSICA ---
