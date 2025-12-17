@@ -2,7 +2,7 @@ name: Deploy a Canal de Prueba
 on:
   push:
     branches:
-      - test-migration
+      - development
 
 jobs:
   build_and_preview:
