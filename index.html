@@ -476,26 +476,34 @@
     
                     <!-- Formulario -->
                     <div class="pida-view-form">
-                        <!-- NUEVO CÓDIGO: Fila Flex para Selector y Botones -->
-                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px;">
-    
-                        <!-- Lado Izquierdo: Selector de País (flex-grow: 1 hace que ocupe el espacio disponible) -->
-                            <div style="flex-grow: 1;">
-                                <select id="pre-input-country" class="pida-textarea" style="padding: 0 10px; height: 45px; width: 100%;">
-                                    <option value="" disabled selected>Seleccionar País (Opcional - Recomendado para Código Penal)</option>
-                                    <option value="AR">Argentina</option> <option value="BO">Bolivia</option> <option value="CL">Chile</option> <option value="CO">Colombia</option> <option value="CR">Costa Rica</option> <option value="CU">Cuba</option> <option value="EC">Ecuador</option> <option value="SV">El Salvador</option> <option value="GT">Guatemala</option> <option value="HN">Honduras</option> <option value="MX">México</option> <option value="NI">Nicaragua</option> <option value="PA">Panamá</option> <option value="PY">Paraguay</option> <option value="PE">Perú</option> <option value="DO">Rep. Dominicana</option> <option value="UY">Uruguay</option> <option value="VE">Venezuela</option> <option value="">Otro / Internacional</option>
-                                </select>
-                            </div>
-
-                            <!-- Lado Derecho: Botones de Descarga -->
-                            <!-- Mantenemos el ID "pre-download-controls" para que el JS siga funcionando igual -->
-                            <div id="pre-download-controls" class="pida-download-controls" style="display: none; gap: 5px; margin: 0;">
-                                <button type="button" id="pre-download-txt-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">TXT</button>
-                                <button type="button" id="pre-download-docx-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">DOCX</button>
-                                <button type="button" id="pre-download-pdf-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">PDF</button>
-                            </div>
-
+                        <!-- 1. Botones de Descarga (ARRIBA, alineados a la derecha) -->
+                        <div id="pre-download-controls" class="pida-download-controls" style="display: none; justify-content: flex-end; gap: 5px; margin-bottom: 10px;">
+                            <button type="button" id="pre-download-txt-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">TXT</button>
+                            <button type="button" id="pre-download-docx-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">DOCX</button>
+                            <button type="button" id="pre-download-pdf-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">PDF</button>
                         </div>
+
+                        <!-- 2. Fila: Título (Izquierda) + País (Derecha) -->
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <!-- Campo de Título recuperado -->
+                            <input type="text" id="pre-input-title" class="pida-textarea" placeholder="Título del caso (Opcional)" style="flex: 1; height: 45px; margin-bottom: 0; padding: 0 10px;">
+                            
+                            <!-- Selector de País -->
+                            <select id="pre-input-country" class="pida-textarea" style="flex: 1; height: 45px; padding: 0 10px; width: auto;">
+                                <option value="" disabled selected>País (Código Penal)</option>
+                                <option value="AR">Argentina</option> <option value="BO">Bolivia</option> <option value="CL">Chile</option> <option value="CO">Colombia</option> <option value="CR">Costa Rica</option> <option value="CU">Cuba</option> <option value="EC">Ecuador</option> <option value="SV">El Salvador</option> <option value="GT">Guatemala</option> <option value="HN">Honduras</option> <option value="MX">México</option> <option value="NI">Nicaragua</option> <option value="PA">Panamá</option> <option value="PY">Paraguay</option> <option value="PE">Perú</option> <option value="DO">Rep. Dominicana</option> <option value="UY">Uruguay</option> <option value="VE">Venezuela</option> <option value="">Otro / Internacional</option>
+                            </select>
+                        </div>
+
+                        <!-- 3. Área de Hechos -->
+                        <textarea id="pre-input-facts" rows="4" class="pida-textarea" placeholder="Narra los hechos detalladamente para identificar posibles delitos y violaciones..."></textarea>
+
+                        <!-- 4. Botones de Acción -->
+                        <div class="pida-form-actions">
+                            <button id="pre-clear-btn" type="button" class="pida-button-secondary">Limpiar</button>
+                            <button id="pre-analyze-btn" type="button" class="pida-button-primary">Precalificar Caso</button>
+                        </div>
+                    </div>
 
                         <textarea id="pre-input-facts" rows="4" class="pida-textarea" placeholder="Narra los hechos detalladamente para identificar posibles delitos y violaciones..."></textarea>
         
