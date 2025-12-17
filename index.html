@@ -27,16 +27,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     
-    <!-- Firebase SDKs -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-remote-config-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-functions-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-analytics-compat.js"></script>
-
-    <!-- CONEXIÓN CSS -->
-    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
 
@@ -361,6 +351,7 @@
                 <nav class="pida-main-nav">
                     <button id="nav-investigador" type="button" class="app-nav-link active"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M18.031 16.6168L22.3137 20.8995L20.8995 22.3137L16.6168 18.031C15.0769 19.263 13.124 20 11 20C6.032 20 2 15.968 2 11C2 6.032 6.032 2 11 2C15.968 2 20 6.032 20 11C20 13.124 19.263 15.0769 18.031 16.6168ZM11 18C14.866 18 18 14.866 18 11C18 7.13401 14.866 4 11 4C7.13401 4 4 7.13401 4 11C4 14.866 7.13401 18 11 18Z"></path></svg><span>Experto en DDHH</span></button>
                     <button id="nav-analizador" type="button" class="app-nav-link"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M15 4H5V20H19V8H15V4ZM3 2.9918C3 2.44405 3.44749 2 3.99826 2H16L21 7V20.9925C21 21.5489 20.5551 22 20.0066 22H3.9934C3.44476 22 3 21.556 3 21.0082V2.9918ZM13 12H7V14H13V12ZM13 16H7V18H13V16Z"></path></svg><span>Analizador Docs</span></button>
+                    <button id="nav-precalificador" type="button" class="app-nav-link"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg><span>Precalificador</span></button>
                     <button id="nav-mobile-menu-btn" type="button" class="app-nav-link mobile-menu-toggle"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M3 4H21V6H3V4ZM3 11H21V13H3V11ZM3 18H21V20H3V18Z"></path></svg><span>Menú</span></button>
                 </nav>
                 <div class="pida-sidebar-user">
@@ -400,6 +391,18 @@
                                 <div id="analyzer-history-dropdown-content" class="pida-dropdown-content"><div id="analyzer-history-list"></div></div>
                             </div>
                         </div>
+                        <div id="precalifier-controls" class="context-group hidden">
+                        <!-- Botón Nueva Precalificación -->
+                        <button id="pre-new-btn" class="pida-header-btn primary">+ Nueva Precalificación</button>
+                        
+                        <!-- Dropdown de Historial -->
+                        <div class="pida-dropdown">
+                            <button id="pre-history-dropdown-btn" class="pida-header-btn">📜 Historial <span style="font-size: 0.7rem;">▼</span></button>
+                            <div id="pre-history-dropdown-content" class="pida-dropdown-content">
+                                <div id="pre-history-list"></div>
+                            </div>
+                        </div>
+                    </div>
                         <div id="account-controls" class="context-group hidden">
                             <h2 style="margin:0; font-size: 1.2rem; color: var(--pida-primary);">Gestión de Cuenta</h2>
                         </div>
@@ -430,7 +433,6 @@
                                 <div class="loader"></div><p style="color: var(--pida-text-muted);">Analizando documentos...</p>
                             </div>
                             <div id="analyzer-response-container">
-                                <h2 style="text-align: center; color: var(--pida-primary); margin-bottom:30px; margin-top: 20px;">Resultado del Análisis</h2>
                                 <div id="analyzer-analysis-result" style="background:white;padding:30px;border-radius:8px;border:1px solid var(--pida-border);"></div>
                             </div>
                         </div>
@@ -450,6 +452,66 @@
                     </div>
                 </div>
 
+                <div id="view-precalificador" class="pida-view hidden">
+                    <div class="pida-view-content">
+                        <!-- Resultados -->
+                        <div id="pre-results-section" style="display: none;">
+                            <div id="pre-loader-container" style="text-align: center; margin-top: 40px;">
+                                <div class="loader"></div>
+                                <p id="pre-status-text" style="color: var(--pida-text-muted);">
+                                    Analizando delitos y violaciones a DDHH...
+                                </p>
+                            </div>
+                            <div id="pre-response-container">
+                                <div id="pre-analysis-result"></div>
+                            </div>
+                        </div>
+
+                        <!-- Bienvenida -->
+                        <div id="pre-welcome">
+                            <div class="pida-bubble pida-message-bubble pre-welcome-card">
+                                <h3 style="margin-top: 0; display: flex; align-items: center; gap: 8px;">
+                                    ⚖️ Precalificador Penal y de Derechos Humanos
+                                </h3>
+                                <p style="margin-bottom: 0;">
+                                    Ingresa los hechos de tu caso. PIDA realizará un análisis preliminar para identificar <strong>posibles delitos penales</strong> y <strong>violaciones a derechos humanos</strong> conforme a estándares nacionales e internacionales.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <!-- Formulario -->
+                    <div class="pida-view-form">
+                        <!-- 1. Botones de Descarga (ARRIBA, alineados a la derecha) -->
+                        <div id="pre-download-controls" class="pida-download-controls" style="display: none; justify-content: flex-end; gap: 5px; margin-bottom: 10px;">
+                            <button type="button" id="pre-download-txt-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">TXT</button>
+                            <button type="button" id="pre-download-docx-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">DOCX</button>
+                            <button type="button" id="pre-download-pdf-btn" class="pida-header-btn" style="padding:2px 8px;font-size:0.7rem;">PDF</button>
+                        </div>
+
+                        <!-- 2. Fila: Título (Izquierda) + País (Derecha) -->
+                        <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                            <!-- Campo de Título recuperado -->
+                            <input type="text" id="pre-input-title" class="pida-textarea" placeholder="Título del caso (Opcional)" style="flex: 1; height: 45px; margin-bottom: 0; padding: 0 10px;">
+                            
+                            <!-- Selector de País -->
+                            <select id="pre-input-country" class="pida-textarea" style="flex: 1; height: 45px; padding: 0 10px; width: auto;">
+                                <option value="" disabled selected>País (Código Penal)</option>
+                                <option value="AR">Argentina</option> <option value="BO">Bolivia</option> <option value="CL">Chile</option> <option value="CO">Colombia</option> <option value="CR">Costa Rica</option> <option value="CU">Cuba</option> <option value="EC">Ecuador</option> <option value="SV">El Salvador</option> <option value="GT">Guatemala</option> <option value="HN">Honduras</option> <option value="MX">México</option> <option value="NI">Nicaragua</option> <option value="PA">Panamá</option> <option value="PY">Paraguay</option> <option value="PE">Perú</option> <option value="DO">Rep. Dominicana</option> <option value="UY">Uruguay</option> <option value="VE">Venezuela</option> <option value="">Otro / Internacional</option>
+                            </select>
+                        </div>
+
+                        <!-- 3. Área de Hechos -->
+                        <textarea id="pre-input-facts" rows="4" class="pida-textarea" placeholder="Narra los hechos detalladamente para identificar posibles delitos y violaciones..."></textarea>
+
+                        <!-- 4. Botones de Acción -->
+                        <div class="pida-form-actions">
+                            <button id="pre-clear-btn" type="button" class="pida-button-secondary">Limpiar</button>
+                            <button id="pre-analyze-btn" type="button" class="pida-button-primary">Precalificar Caso</button>
+                        </div>
+                    </div>
+
+                </div>
                 <div id="view-account" class="pida-view hidden">
                     <div class="pida-view-content">
                         <div class="account-container" style="max-width:600px;margin:0 auto;background:white;border-radius:12px;border:1px solid var(--pida-border);padding:40px;">
@@ -524,12 +586,8 @@
         </form>
     </div>
 </div>
-
-    <!-- Scripts Libraries -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
     
-    <script src="js/main.js"></script>
+    <script type="module" src="/src/main.js"></script>
 
 </body>
 </html>

@@ -55,7 +55,7 @@
         body { background-color: var(--white); color: var(--navy); font-family: var(--font-body); line-height: 1.6; overflow-x: hidden; -webkit-font-smoothing: antialiased; transition: margin-top 0.3s ease; }
         h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; line-height: 1.1; letter-spacing: -0.03em; }
         .wrapper { max-width: 1200px; margin: 0 auto; padding: 0 24px; position: relative; }
-        .text-gradient { background: linear-gradient(135deg, var(--navy) 0%, #b92f32 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .text-gradient { background: linear-gradient(135deg, var(--navy) 0%, #b92f32 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; color: transparent; }
         .label { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; color: var(--cyan); margin-bottom: 12px; display: inline-block; }
 
         .btn { display: inline-flex; align-items: center; justify-content: center; padding: 10px 24px; font-weight: 600; font-size: 0.95rem; border-radius: 8px; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; gap: 8px; text-decoration: none;}
@@ -427,4 +427,133 @@
     .pida-sidebar-user {
         display: none !important;
     }
+}
+
+/* =========================================
+   ESTILOS PRECALIFICADOR
+   ========================================= */
+
+/* Alineación de la Bienvenida a la IZQUIERDA */
+#pre-welcome {
+    display: flex;
+    justify-content: flex-start; /* Esto alinea a la izquierda */
+    margin-top: 20px;
+}
+
+.pre-welcome-card {
+    max-width: 650px; /* Limita el ancho para que no se vea estirado */
+}
+
+/* Estilos del Resultado (Copia exacta del Analizador) */
+#pre-analysis-result {
+    background: white; 
+    padding: 40px; 
+    border-radius: 12px; 
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); 
+    font-family: 'Inter', sans-serif;
+    color: #334155; 
+    line-height: 1.7; 
+    user-select: text!important; 
+    -webkit-user-select: text!important;
+}
+
+#pre-analysis-result h1, 
+#pre-analysis-result h2, 
+#pre-analysis-result h3 {
+    color: var(--pida-primary); 
+    margin-top: 1.5em; 
+    margin-bottom: 0.8em; 
+    font-weight: 700; 
+    line-height: 1.2;
+}
+
+#pre-analysis-result h1 { 
+    font-size: 1.8em; 
+    border-bottom: 2px solid var(--pida-accent); 
+    padding-bottom: 10px; 
+}
+
+#pre-analysis-result h2 { font-size: 1.4em; }
+
+#pre-analysis-result h3 { 
+    font-size: 1.1em; 
+    color: var(--pida-accent); 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px; 
+}
+
+#pre-analysis-result p { margin-bottom: 1em; }
+#pre-analysis-result strong { color: var(--pida-primary); font-weight: 700; }
+#pre-analysis-result a { color: var(--pida-accent); text-decoration: underline; text-underline-offset: 2px; }
+
+#pre-analysis-result ul, 
+#pre-analysis-result ol { margin-bottom: 1.5em; padding-left: 20px; }
+#pre-analysis-result li { margin-bottom: 0.5em; padding-left: 5px; }
+#pre-analysis-result li::marker { color: var(--pida-accent); font-weight: bold; }
+
+#pre-analysis-result blockquote {
+    border-left: 4px solid var(--pida-accent); 
+    background: #f8fafc; 
+    margin: 1.5em 0; 
+    padding: 15px 20px; 
+    font-style: italic; 
+    color: #475569; 
+    border-radius: 0 8px 8px 0;
+}
+
+/* =========================================
+   ESTILOS PARA TABLAS EN EL CHAT (Markdown)
+   ========================================= */
+
+/* Permite scroll horizontal si la tabla es muy ancha en móviles */
+.pida-bubble {
+    overflow-x: auto;
+}
+
+/* Diseño base de la tabla dentro del chat */
+.pida-bubble table {
+    width: 100%;
+    border-collapse: separate; /* Necesario para el border-radius */
+    border-spacing: 0;
+    margin: 20px 0;
+    font-size: 0.9rem;
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px; /* Bordes redondeados */
+    overflow: hidden;
+}
+
+/* Celdas y Encabezados */
+.pida-bubble th, 
+.pida-bubble td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e2e8f0;
+    line-height: 1.5;
+    vertical-align: top;
+}
+
+/* Estilo específico del Encabezado */
+.pida-bubble th {
+    background-color: #f1f5f9; /* Gris claro */
+    color: var(--pida-primary); /* Azul PIDA */
+    font-weight: 700;
+    border-bottom: 2px solid #cbd5e1;
+    white-space: nowrap; /* Intenta mantener encabezados en una línea si es posible */
+}
+
+/* Filas alternas para mejor lectura (Zebra striping) */
+.pida-bubble tr:nth-child(even) {
+    background-color: #f8fafc;
+}
+
+/* Quitar borde inferior de la última fila para respetar el borde redondeado */
+.pida-bubble tr:last-child td {
+    border-bottom: none;
+}
+
+/* Ajuste para enlaces dentro de tablas */
+.pida-bubble td a {
+    word-break: break-all;
 }
