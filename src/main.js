@@ -359,6 +359,28 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
+// ==========================================
+    // LÓGICA DEL CARRUSEL DE TESTIMONIOS
+    // ==========================================
+    const track = document.getElementById('carouselTrack');
+    const dots = document.querySelectorAll('.dot-btn');
+
+    if (track && dots.length > 0) {
+        dots.forEach((dot, index) => {
+            dot.addEventListener('click', () => {
+                // 1. Quitar la clase 'active' de todos los puntos
+                dots.forEach(d => d.classList.remove('active'));
+                
+                // 2. Añadir la clase 'active' al punto clickeado
+                dot.classList.add('active');
+                
+                // 3. Mover el track
+                // Asume que cada slide ocupa el 100% del ancho
+                track.style.transform = `translateX(-${index * 100}%)`;
+            });
+        });
+    }
+
     // --- INTERACTIVIDAD BÁSICA ---
     const legalBtn = document.getElementById('open-legal-btn');
     const legalModal = document.getElementById('pida-legal-modal');
