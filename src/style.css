@@ -329,7 +329,7 @@
             .app-nav-link { flex-direction: column; justify-content: center; align-items: center; width: 100%; height: 100%; padding: 5px; border-radius: 0; gap: 4px; }
             .app-nav-link span { display: block; font-size: 0.7rem; line-height: 1; }
             .app-nav-link svg { width: 24px; height: 24px; margin: 0; }
-            #pida-main-content { padding-bottom: 65px; height: 100%; }
+            #pida-main-content { padding-bottom: calc(130px + env(safe-area-inset-bottom)); height: 100%; }
             .pida-top-header { padding: 0 15px; height: 60px; }
             .pida-header-mascot { height: 40px; }
             .pida-view-form { padding: 15px; position: relative; z-index: 20; background: var(--pida-bg-white); }
