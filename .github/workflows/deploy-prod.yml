@@ -1,0 +1,30 @@
+name: Deploy a Producción (LIVE)
+
+on:
+  push:
+    branches:
+      - main  # <--- Esto hace que se active al subir a main
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Construir proyecto
+        run: npm run build
+
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PIDA_AI_V20 }}'
+          projectId: pida-ai-v20
+          channelId: live  # <--- ESTO es lo que actualiza la web oficial
