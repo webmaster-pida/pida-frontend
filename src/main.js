@@ -607,6 +607,7 @@ document.addEventListener('DOMContentLoaded', function () {
             anaInst: document.getElementById('user-instructions'),
             analyzerClearBtn: document.getElementById('analyzer-clear-btn'),
             preCountry: document.getElementById('pre-input-country'),
+            preTitle: document.getElementById('pre-input-title'),
             preFacts: document.getElementById('pre-input-facts'),
             preBtn: document.getElementById('pre-analyze-btn'),
             preClear: document.getElementById('pre-clear-btn'),
@@ -1129,11 +1130,90 @@ document.addEventListener('DOMContentLoaded', function () {
 // =========================================================
         // LÓGICA PRECALIFICADOR (ACTUALIZADA SIN TÍTULO MANUAL)
         // =========================================================
+
+    // 1. Cargar historial usando los campos de tu imagen
+        async function loadPreHistory() {
+            if (!dom.preHistList) return;
+            try {
+                dom.preHistList.innerHTML = '<div style="padding:15px; text-align:center; color:#666;">Cargando...</div>';
+                
+                const snapshot = await db.collection('users')
+                                         .doc(user.uid)
+                                         .collection('prequalifications')
+                                         .orderBy('created_at', 'desc') // <--- CAMBIO: created_at (snake_case)
+                                         .limit(20)
+                                         .get();
+
+                dom.preHistList.innerHTML = '';
+                if (snapshot.empty) {
+                    dom.preHistList.innerHTML = '<div style="padding:15px; text-align:center; color:#999; font-size:0.9em;">Sin historial.</div>';
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    // Usamos el campo title directo de la BD
+                    const displayTitle = data.title || "Sin título"; 
+                    
+                    const item = document.createElement('div');
+                    item.className = 'pida-history-item';
+                    
+                    const titleSpan = document.createElement('span');
+                    titleSpan.textContent = displayTitle;
+                    titleSpan.style.flex = "1";
+                    titleSpan.style.cursor = "pointer";
+                    
+                    titleSpan.onclick = (e) => {
+                        e.stopPropagation();
+                        loadPreItem(data); // Pasamos todo el objeto data
+                        dom.preHistContent.classList.remove('show');
+                    };
+                    
+                    // Botón eliminar
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'delete-icon-btn';
+                    delBtn.style.color = '#EF4444'; 
+                    delBtn.innerHTML = `✕`;
+                    delBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        if(await showCustomConfirm('¿Eliminar registro?')) {
+                            await doc.ref.delete();
+                            loadPreHistory();
+                        }
+                    };
+
+                    item.appendChild(titleSpan);
+                    item.appendChild(delBtn);
+                    dom.preHistList.appendChild(item);
+                });
+            } catch (error) { console.error(error); }
+        }
+
+        // 2. Cargar ítem y restaurar inputs (Título, País, Hechos)
+        function loadPreItem(data) {
+            if (!data || !data.analysis) return;
+
+            // Restaurar los inputs para que el usuario vea qué generó esto
+            if(dom.preTitle) dom.preTitle.value = data.title || "";
+            if(dom.preCountry) dom.preCountry.value = data.country_code || "";
+            if(dom.preFacts) dom.preFacts.value = data.facts || "";
+
+            // Mostrar UI de resultados
+            dom.preWelcome.style.display = 'none';
+            dom.preResultsBox.style.display = 'block';
+            dom.preLoader.style.display = 'none';
+            dom.preResponseCont.style.display = 'block';
+            dom.preControls.style.display = 'flex';
+            
+            state.preText = data.analysis;
+            dom.preResultTxt.innerHTML = Utils.sanitize(marked.parse(data.analysis));
+        }
         
         function resetPrecalifier() {
             // Ya no hay preTitle que limpiar
             if(dom.preFacts) dom.preFacts.value = '';
             if(dom.preCountry) dom.preCountry.value = '';
+            if(dom.preTitle) dom.preTitle.value = '';
             
             dom.preWelcome.style.display = 'flex';
             dom.preResultsBox.style.display = 'none';
@@ -1148,14 +1228,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (dom.preBtn) {
             dom.preBtn.onclick = async () => {
-                // GENERACIÓN AUTOMÁTICA DE TÍTULO
+                // TÍTULO: Usar el del input o generar uno con fecha si está vacío
                 const now = new Date();
-                const title = `Consulta Rápida - ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+                let title = dom.preTitle.value.trim(); 
+                if (!title) {
+                    title = `Caso ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+                }
                 
                 const facts = dom.preFacts.value.trim();
                 const country = dom.preCountry.value || null;
 
-                // Validación: Solo requerimos hechos
+                // Validación
                 if (!facts) {
                     alert("Por favor, narra los hechos del caso.");
                     return;
@@ -1180,6 +1263,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
                         },
+                        // Enviamos el título manual
                         body: JSON.stringify({ title, facts, country_code: country })
                     });
 
