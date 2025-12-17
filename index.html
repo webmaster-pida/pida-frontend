@@ -392,10 +392,16 @@
                             </div>
                         </div>
                         <div id="precalifier-controls" class="context-group hidden">
-                            <h2 style="margin:0; font-size: 1.1rem; color: var(--pida-primary); display: flex; align-items: center; gap: 8px;">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"></path></svg>
-                                Precalificador de Casos
-                            </h2>
+                        <!-- Botón Nueva Precalificación -->
+                        <button id="pre-new-btn" class="pida-header-btn primary">+ Nueva Precalificación</button>
+                        
+                        <!-- Dropdown de Historial -->
+                        <div class="pida-dropdown">
+                            <button id="pre-history-dropdown-btn" class="pida-header-btn">📜 Historial <span style="font-size: 0.7rem;">▼</span></button>
+                            <div id="pre-history-dropdown-content" class="pida-dropdown-content">
+                                <div id="pre-history-list"></div>
+                            </div>
+                        </div>
                     </div>
                         <div id="account-controls" class="context-group hidden">
                             <h2 style="margin:0; font-size: 1.2rem; color: var(--pida-primary);">Gestión de Cuenta</h2>

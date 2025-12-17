@@ -606,6 +606,10 @@ document.addEventListener('DOMContentLoaded', function () {
             anaControls: document.getElementById('analyzer-download-controls'),
             anaInst: document.getElementById('user-instructions'),
             analyzerClearBtn: document.getElementById('analyzer-clear-btn'),
+            preNewBtn: document.getElementById('pre-new-btn'),
+            preHistBtn: document.getElementById('pre-history-dropdown-btn'),
+            preHistContent: document.getElementById('pre-history-dropdown-content'),
+            preHistList: document.getElementById('pre-history-list'),
             preCountry: document.getElementById('pre-input-country'),
             preTitle: document.getElementById('pre-input-title'),
             preFacts: document.getElementById('pre-input-facts'),
@@ -1208,6 +1212,35 @@ document.addEventListener('DOMContentLoaded', function () {
             state.preText = data.analysis;
             dom.preResultTxt.innerHTML = Utils.sanitize(marked.parse(data.analysis));
         }
+
+        // 3. Manejadores de eventos del Historial y Botón Nuevo
+            if (dom.preNewBtn) {
+                dom.preNewBtn.onclick = () => {
+                    resetPrecalifier();
+                };
+            }
+
+            if (dom.preHistBtn) {
+                dom.preHistBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    // Cerrar otros dropdowns si están abiertos (chat o analyzer)
+                    const histContent = document.getElementById('history-dropdown-content');
+                    const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
+                    if(histContent) histContent.classList.remove('show');
+                    if(anaHistContent) anaHistContent.classList.remove('show');
+
+                    // Abrir/Cerrar el historial del precalificador
+                    if (!dom.preHistContent.classList.contains('show')) {
+                        loadPreHistory(); // Cargar datos al abrir
+                    }
+                    dom.preHistContent.classList.toggle('show');
+                };
+            }
+            
+            // Cerrar el dropdown si se hace clic fuera (esto ya lo tenías global, pero aseguramos)
+            window.addEventListener('click', () => {
+                if(dom.preHistContent) dom.preHistContent.classList.remove('show');
+            });
         
         function resetPrecalifier() {
             // Ya no hay preTitle que limpiar
