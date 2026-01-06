@@ -290,18 +290,19 @@ window.closeBanner = function() {
     const banner = document.getElementById('system-alert-banner');
     if(banner) banner.classList.add('hidden');
     
-    // Restaurar el margen del body
+    // 1. Resetear el body (Landing page)
     document.body.style.marginTop = '0px';
     
-    // Restaurar la posición del navbar
-    const nav = document.getElementById('navbar');
+    // 2. Resetear el navbar (.nav en tu CSS)
+    const nav = document.querySelector('.nav');
     if (nav) nav.style.top = '0px';
 
-    // AJUSTE CLAVE: Restaurar el contenedor de la aplicación logueada
-    const appRoot = document.getElementById('pida-app-root');
-    if (appRoot) {
-        appRoot.style.top = '0px';
-        appRoot.style.height = '100vh'; // Vuelve a ocupar el 100% de la pantalla
+    // 3. Resetear el Layout de la App (Logueado)
+    // Usamos el ID que definiste en tu CSS con position: fixed
+    const appLayout = document.getElementById('pida-app-layout');
+    if (appLayout) {
+        appLayout.style.top = '0px';
+        appLayout.style.height = '100vh'; // Vuelve al alto total
     }
 }
 
@@ -461,38 +462,35 @@ document.addEventListener('DOMContentLoaded', function () {
         db.collection('config').doc('alerts').onSnapshot((docSnap) => {
             const banner = document.getElementById('system-alert-banner');
             const bannerText = document.getElementById('system-alert-text');
-            const nav = document.getElementById('navbar');
-            const appRoot = document.getElementById('pida-app-root'); // Contenedor de la aplicación
+            const nav = document.querySelector('.nav'); // Clase .nav según tu CSS
+            const appLayout = document.getElementById('pida-app-layout'); // ID con fixed según tu CSS
 
             if (docSnap.exists && banner && bannerText) {
                 const alertData = docSnap.data();
                 
-                // Solo actuamos si NO hay un proceso de Stripe activo en la URL
+                // Evitamos sobreescribir si Stripe está mostrando un mensaje
                 if (!new URLSearchParams(window.location.search).get('payment_status')) {
                     if (alertData.active === true && alertData.message) {
                         bannerText.innerHTML = alertData.message;
-                        banner.style.backgroundColor = '#ffcc00'; 
-                        banner.style.color = '#000';
                         banner.classList.remove('hidden');
                         
-                        // 1. Calculamos la altura real que ocupa la cinta amarilla
+                        // Calculamos la altura real de la cinta
                         const h = banner.offsetHeight || 50; 
                         
-                        // 2. Desplazamos el body (para landing y login)
+                        // A. Para la Landing Page (Contenido normal)
                         document.body.style.marginTop = h + 'px';
                         
-                        // 3. Desplazamos el navbar
+                        // B. Para el Navbar de la Landing (.nav es fixed top: 0)
                         if (nav) nav.style.top = h + 'px';
                         
-                        // 4. AJUSTE CLAVE PARA LA APP: Desplazamos el contenedor raíz
-                        if (appRoot) {
-                            appRoot.style.top = h + 'px';
-                            // Restamos la altura de la cinta al alto total para que el chat 
-                            // no se salga por la parte inferior de la pantalla.
-                            appRoot.style.height = `calc(100vh - ${h}px)`;
+                        // C. PARA LA APP LOGUEADA (#pida-app-layout es fixed top: 0)
+                        if (appLayout) {
+                            // Empujamos el contenedor hacia abajo
+                            appLayout.style.top = h + 'px';
+                            // Restamos la altura para que el chat no se corte por abajo
+                            appLayout.style.height = `calc(100vh - ${h}px)`;
                         }
                     } else {
-                        // Si la alerta se apaga en Firestore, limpiamos los estilos
                         window.closeBanner();
                     }
                 }
