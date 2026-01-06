@@ -290,18 +290,18 @@ window.closeBanner = function() {
     const banner = document.getElementById('system-alert-banner');
     if(banner) banner.classList.add('hidden');
     
-    // Resetear el margen del body
+    // Restaurar el margen del body
     document.body.style.marginTop = '0px';
     
-    // Resetear el navbar
+    // Restaurar la posición del navbar
     const nav = document.getElementById('navbar');
     if (nav) nav.style.top = '0px';
 
-    // NUEVO: Resetear el contenedor de la aplicación logueada
+    // AJUSTE CLAVE: Restaurar el contenedor de la aplicación logueada
     const appRoot = document.getElementById('pida-app-root');
     if (appRoot) {
         appRoot.style.top = '0px';
-        appRoot.style.height = '100vh'; // Vuelve a ocupar toda la pantalla
+        appRoot.style.height = '100vh'; // Vuelve a ocupar el 100% de la pantalla
     }
 }
 
@@ -462,7 +462,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const banner = document.getElementById('system-alert-banner');
             const bannerText = document.getElementById('system-alert-text');
             const nav = document.getElementById('navbar');
-            const appRoot = document.getElementById('pida-app-root'); // Contenedor principal de la app
+            const appRoot = document.getElementById('pida-app-root'); // Contenedor de la aplicación
 
             if (docSnap.exists && banner && bannerText) {
                 const alertData = docSnap.data();
@@ -475,23 +475,24 @@ document.addEventListener('DOMContentLoaded', function () {
                         banner.style.color = '#000';
                         banner.classList.remove('hidden');
                         
-                        // Calculamos la altura dinámica del banner
+                        // 1. Calculamos la altura real que ocupa la cinta amarilla
                         const h = banner.offsetHeight || 50; 
                         
-                        // 1. Empuja el body (funciona para landing y login)
+                        // 2. Desplazamos el body (para landing y login)
                         document.body.style.marginTop = h + 'px';
                         
-                        // 2. Empuja el navbar
+                        // 3. Desplazamos el navbar
                         if (nav) nav.style.top = h + 'px';
                         
-                        // 3. NUEVO: Empuja la aplicación (para cuando ya estás logueado)
+                        // 4. AJUSTE CLAVE PARA LA APP: Desplazamos el contenedor raíz
                         if (appRoot) {
                             appRoot.style.top = h + 'px';
-                            // Ajustamos la altura para que no aparezca un scroll doble al final de la página
+                            // Restamos la altura de la cinta al alto total para que el chat 
+                            // no se salga por la parte inferior de la pantalla.
                             appRoot.style.height = `calc(100vh - ${h}px)`;
                         }
                     } else {
-                        // Si la alerta se desactiva en Firestore, limpiamos todo
+                        // Si la alerta se apaga en Firestore, limpiamos los estilos
                         window.closeBanner();
                     }
                 }
