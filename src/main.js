@@ -283,13 +283,26 @@ let currentUser = null;
 let pendingPlan = null; 
 let authMode = 'login';
 
+// =========================================================
 // Funciones Globales
+// =========================================================
 window.closeBanner = function() {
     const banner = document.getElementById('system-alert-banner');
     if(banner) banner.classList.add('hidden');
+    
+    // Resetear el margen del body
     document.body.style.marginTop = '0px';
+    
+    // Resetear el navbar
     const nav = document.getElementById('navbar');
     if (nav) nav.style.top = '0px';
+
+    // NUEVO: Resetear el contenedor de la aplicación logueada
+    const appRoot = document.getElementById('pida-app-root');
+    if (appRoot) {
+        appRoot.style.top = '0px';
+        appRoot.style.height = '100vh'; // Vuelve a ocupar toda la pantalla
+    }
 }
 
 window.switchAuthMode = function(mode) {
@@ -449,10 +462,12 @@ document.addEventListener('DOMContentLoaded', function () {
             const banner = document.getElementById('system-alert-banner');
             const bannerText = document.getElementById('system-alert-text');
             const nav = document.getElementById('navbar');
+            const appRoot = document.getElementById('pida-app-root'); // Contenedor principal de la app
 
             if (docSnap.exists && banner && bannerText) {
                 const alertData = docSnap.data();
-                // Solo actuamos si NO hay un proceso de Stripe activo en la URL para no sobreescribir
+                
+                // Solo actuamos si NO hay un proceso de Stripe activo en la URL
                 if (!new URLSearchParams(window.location.search).get('payment_status')) {
                     if (alertData.active === true && alertData.message) {
                         bannerText.innerHTML = alertData.message;
@@ -460,15 +475,23 @@ document.addEventListener('DOMContentLoaded', function () {
                         banner.style.color = '#000';
                         banner.classList.remove('hidden');
                         
-                        // AQUÍ ESTÁ LA CLAVE: Calculamos la altura del banner y la aplicamos como margen superior
-                        // Esto asegura que el banner "empuje" el contenido hacia abajo.
+                        // Calculamos la altura dinámica del banner
                         const h = banner.offsetHeight || 50; 
+                        
+                        // 1. Empuja el body (funciona para landing y login)
                         document.body.style.marginTop = h + 'px';
                         
-                        // Si existe una barra de navegación, también la ajustamos
+                        // 2. Empuja el navbar
                         if (nav) nav.style.top = h + 'px';
+                        
+                        // 3. NUEVO: Empuja la aplicación (para cuando ya estás logueado)
+                        if (appRoot) {
+                            appRoot.style.top = h + 'px';
+                            // Ajustamos la altura para que no aparezca un scroll doble al final de la página
+                            appRoot.style.height = `calc(100vh - ${h}px)`;
+                        }
                     } else {
-                        // Si la alerta no está activa, cerramos el banner y restauramos los márgenes a 0
+                        // Si la alerta se desactiva en Firestore, limpiamos todo
                         window.closeBanner();
                     }
                 }
