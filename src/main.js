@@ -459,10 +459,16 @@ document.addEventListener('DOMContentLoaded', function () {
                         banner.style.backgroundColor = '#ffcc00'; 
                         banner.style.color = '#000';
                         banner.classList.remove('hidden');
-                        const h = banner.offsetHeight || 50;
+                        
+                        // AQUÍ ESTÁ LA CLAVE: Calculamos la altura del banner y la aplicamos como margen superior
+                        // Esto asegura que el banner "empuje" el contenido hacia abajo.
+                        const h = banner.offsetHeight || 50; 
                         document.body.style.marginTop = h + 'px';
+                        
+                        // Si existe una barra de navegación, también la ajustamos
                         if (nav) nav.style.top = h + 'px';
                     } else {
+                        // Si la alerta no está activa, cerramos el banner y restauramos los márgenes a 0
                         window.closeBanner();
                     }
                 }
