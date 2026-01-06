@@ -444,6 +444,31 @@ document.addEventListener('DOMContentLoaded', function () {
         googleProvider = new firebase.auth.GoogleAuthProvider();
         googleProvider.setCustomParameters({ prompt: 'select_account' });
 
+        // --- ESCUCHADOR DE ALERTA GLOBAL DESDE FIRESTORE (NUEVO E INTEGRADO) ---
+        db.collection('config').doc('alerts').onSnapshot((docSnap) => {
+            const banner = document.getElementById('system-alert-banner');
+            const bannerText = document.getElementById('system-alert-text');
+            const nav = document.getElementById('navbar');
+
+            if (docSnap.exists() && banner && bannerText) {
+                const alertData = docSnap.data();
+                // Solo actuamos si NO hay un proceso de Stripe activo en la URL para no sobreescribir
+                if (!new URLSearchParams(window.location.search).get('payment_status')) {
+                    if (alertData.active === true && alertData.message) {
+                        bannerText.innerHTML = alertData.message;
+                        banner.style.backgroundColor = '#ffcc00'; 
+                        banner.style.color = '#000';
+                        banner.classList.remove('hidden');
+                        const h = banner.offsetHeight || 50;
+                        document.body.style.marginTop = h + 'px';
+                        if (nav) nav.style.top = h + 'px';
+                    } else {
+                        window.closeBanner();
+                    }
+                }
+            }
+        });
+
         // --- FORMULARIO DE CONTACTO (ENVÍO) ---
         const contactForm = document.getElementById('contact-form');
         if(contactForm) {
@@ -486,7 +511,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const btnCorp = document.getElementById('btn-corp-contact');
         const contactModal = document.getElementById('contact-modal');
         const btnCloseContact = document.getElementById('close-contact-btn');
-        // AQUÍ ESTÁ LA CORRECCIÓN:
         if(btnCorp && contactModal) {
             btnCorp.onclick = (e) => { e.preventDefault(); contactModal.classList.remove('hidden'); };
         }
@@ -1347,7 +1371,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         body: JSON.stringify({ title, facts, country_code: country })
                     });
 
-                    // ... (El resto del código de lectura del stream se mantiene IGUAL) ...
                     const reader = response.body.getReader();
                     const decoder = new TextDecoder();
                     let fullText = "";
