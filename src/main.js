@@ -450,7 +450,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const bannerText = document.getElementById('system-alert-text');
             const nav = document.getElementById('navbar');
 
-            if (docSnap.exists() && banner && bannerText) {
+            if (docSnap.exists && banner && bannerText) {
                 const alertData = docSnap.data();
                 // Solo actuamos si NO hay un proceso de Stripe activo en la URL para no sobreescribir
                 if (!new URLSearchParams(window.location.search).get('payment_status')) {
