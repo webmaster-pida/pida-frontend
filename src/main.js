@@ -1,3 +1,5 @@
+--- START OF FILE main.js ---
+
 // =========================================================
 // 1. ZONA DE IMPORTACIONES
 // =========================================================
@@ -347,12 +349,27 @@ document.addEventListener('DOMContentLoaded', function () {
     const loginScreen = document.getElementById('pida-login-screen');
     const appRoot = document.getElementById('pida-app-root');
 
+    // ==========================================
+    // INICIALIZACIÓN DE FIREBASE (MOVIDO AL INICIO)
+    // ==========================================
+    try {
+        if (!firebase.apps.length) firebase.initializeApp(PIDA_CONFIG.FIREBASE);
+        auth = firebase.auth();
+        db = firebase.firestore();
+        const remoteConfig = firebase.remoteConfig();
+        remoteConfig.defaultConfig = { 'maintenance_mode_enabled': 'false' };
+        
+        googleProvider = new firebase.auth.GoogleAuthProvider();
+        googleProvider.setCustomParameters({ prompt: 'select_account' });
+    } catch (firebaseError) { 
+        console.error("Firebase Initialization Error:", firebaseError); 
+    }
+
     // =========================================================
-    // 1. CONTROL DE VERSIÓN (CORREGIDO Y UBICADO AL INICIO)
+    // 1. CONTROL DE VERSIÓN (CON AVISO TOAST)
     // =========================================================
     const APP_VERSION = "2.1.BUILD_PLACEHOLDER"; 
 
-    // Definimos la función antes de que Firebase la use
     function checkUpdateBeforeStart() {
         const pending = localStorage.getItem('pida_pending_update');
         if (pending && pending !== APP_VERSION) {
@@ -364,7 +381,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return false;
     }
 
-    // Escuchador en segundo plano
+    // Escuchador en segundo plano para notificar nueva versión
     db.collection('config').doc('version').onSnapshot((docSnap) => {
         if (docSnap.exists) {
             const remoteVersion = docSnap.data().latest;
@@ -476,129 +493,118 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ==========================================
-    // INICIALIZACIÓN DE FIREBASE
+    // ALERTAS DEL SISTEMA (YA CON FIREBASE INICIALIZADO)
     // ==========================================
-    try {
-        if (!firebase.apps.length) firebase.initializeApp(PIDA_CONFIG.FIREBASE);
-        auth = firebase.auth();
-        db = firebase.firestore();
-        const remoteConfig = firebase.remoteConfig();
-        remoteConfig.defaultConfig = { 'maintenance_mode_enabled': 'false' };
-        
-        googleProvider = new firebase.auth.GoogleAuthProvider();
-        googleProvider.setCustomParameters({ prompt: 'select_account' });
+    // --- ESCUCHADOR DE ALERTA GLOBAL DESDE FIRESTORE (NUEVO E INTEGRADO) ---
+    db.collection('config').doc('alerts').onSnapshot((docSnap) => {
+        const banner = document.getElementById('system-alert-banner');
+        const bannerText = document.getElementById('system-alert-text');
+        const nav = document.querySelector('.nav'); // Clase .nav según tu CSS
+        const appLayout = document.getElementById('pida-app-layout'); // ID con fixed según tu CSS
 
-        // --- ESCUCHADOR DE ALERTA GLOBAL DESDE FIRESTORE (NUEVO E INTEGRADO) ---
-        db.collection('config').doc('alerts').onSnapshot((docSnap) => {
-            const banner = document.getElementById('system-alert-banner');
-            const bannerText = document.getElementById('system-alert-text');
-            const nav = document.querySelector('.nav'); // Clase .nav según tu CSS
-            const appLayout = document.getElementById('pida-app-layout'); // ID con fixed según tu CSS
-
-            if (docSnap.exists && banner && bannerText) {
-                const alertData = docSnap.data();
-                
-                // Evitamos sobreescribir si Stripe está mostrando un mensaje
-                if (!new URLSearchParams(window.location.search).get('payment_status')) {
-                    if (alertData.active === true && alertData.message) {
-                        bannerText.innerHTML = alertData.message;
-                        banner.classList.remove('hidden');
-                        
-                        // Calculamos la altura real de la cinta
-                        const h = banner.offsetHeight || 50; 
-                        
-                        // A. Para la Landing Page (Contenido normal)
-                        document.body.style.marginTop = h + 'px';
-                        
-                        // B. Para el Navbar de la Landing (.nav es fixed top: 0)
-                        if (nav) nav.style.top = h + 'px';
-                        
-                        // C. PARA LA APP LOGUEADA (#pida-app-layout es fixed top: 0)
-                        if (appLayout) {
-                            // Empujamos el contenedor hacia abajo
-                            appLayout.style.top = h + 'px';
-                            // Restamos la altura para que el chat no se corte por abajo
-                            appLayout.style.height = `calc(100vh - ${h}px)`;
-                        }
-                    } else {
-                        window.closeBanner();
+        if (docSnap.exists && banner && bannerText) {
+            const alertData = docSnap.data();
+            
+            // Evitamos sobreescribir si Stripe está mostrando un mensaje
+            if (!new URLSearchParams(window.location.search).get('payment_status')) {
+                if (alertData.active === true && alertData.message) {
+                    bannerText.innerHTML = alertData.message;
+                    banner.classList.remove('hidden');
+                    
+                    // Calculamos la altura real de la cinta
+                    const h = banner.offsetHeight || 50; 
+                    
+                    // A. Para la Landing Page (Contenido normal)
+                    document.body.style.marginTop = h + 'px';
+                    
+                    // B. Para el Navbar de la Landing (.nav es fixed top: 0)
+                    if (nav) nav.style.top = h + 'px';
+                    
+                    // C. PARA LA APP LOGUEADA (#pida-app-layout es fixed top: 0)
+                    if (appLayout) {
+                        // Empujamos el contenedor hacia abajo
+                        appLayout.style.top = h + 'px';
+                        // Restamos la altura para que el chat no se corte por abajo
+                        appLayout.style.height = `calc(100vh - ${h}px)`;
                     }
+                } else {
+                    window.closeBanner();
                 }
             }
-        });
-
-        // --- FORMULARIO DE CONTACTO (ENVÍO) ---
-        const contactForm = document.getElementById('contact-form');
-        if(contactForm) {
-            contactForm.addEventListener('submit', async function(event) {
-                event.preventDefault();
-                const btn = document.getElementById('contact-submit-btn');
-                const status = document.getElementById('contact-status');
-                const originalText = btn.textContent;
-                
-                const leadData = {
-                    name: document.getElementById('contact-name').value,
-                    company: document.getElementById('contact-company').value,
-                    email: document.getElementById('contact-email').value,
-                    phone: (document.getElementById('contact-country-code').value || '') + ' ' + document.getElementById('contact-phone').value,
-                    message: document.getElementById('contact-message').value,
-                    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-                    status: 'nuevo'
-                };
-
-                btn.textContent = 'Guardando...'; btn.disabled = true;
-                try {
-                    await db.collection('leads_corporativos').add(leadData);
-                    btn.textContent = '¡Enviado!';
-                    status.textContent = 'Datos recibidos. Te contactaremos pronto.';
-                    status.style.display = 'block'; status.style.color = '#10B981';
-                    setTimeout(() => {
-                        const modal = document.getElementById('contact-modal');
-                        if(modal) modal.classList.add('hidden');
-                        contactForm.reset();
-                        btn.textContent = originalText; btn.disabled = false; status.style.display = 'none';
-                    }, 3000);
-                } catch (error) {
-                    btn.textContent = originalText; btn.disabled = false;
-                    status.textContent = 'Error de conexión.'; status.style.display = 'block'; status.style.color = '#EF4444';
-                }
-            });
         }
+    });
 
-        // --- BOTONES MODAL CONTACTO (APERTURA/CIERRE) ---
-        const btnCorp = document.getElementById('btn-corp-contact');
-        const contactModal = document.getElementById('contact-modal');
-        const btnCloseContact = document.getElementById('close-contact-btn');
-        if(btnCorp && contactModal) {
-            btnCorp.onclick = (e) => { e.preventDefault(); contactModal.classList.remove('hidden'); };
-        }
-        if(btnCloseContact && contactModal) {
-            btnCloseContact.onclick = () => contactModal.classList.add('hidden');
-        }
+    // --- FORMULARIO DE CONTACTO (ENVÍO) ---
+    const contactForm = document.getElementById('contact-form');
+    if(contactForm) {
+        contactForm.addEventListener('submit', async function(event) {
+            event.preventDefault();
+            const btn = document.getElementById('contact-submit-btn');
+            const status = document.getElementById('contact-status');
+            const originalText = btn.textContent;
+            
+            const leadData = {
+                name: document.getElementById('contact-name').value,
+                company: document.getElementById('contact-company').value,
+                email: document.getElementById('contact-email').value,
+                phone: (document.getElementById('contact-country-code').value || '') + ' ' + document.getElementById('contact-phone').value,
+                message: document.getElementById('contact-message').value,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                status: 'nuevo'
+            };
 
-        // AUTH STATE
-        const globalLoader = document.getElementById('pida-global-loader');
-        const hideLoader = () => {
-            if(globalLoader) {
-                globalLoader.classList.add('fade-out');
-                setTimeout(() => globalLoader.style.display = 'none', 600); 
-            }
-        };
-
-        auth.onAuthStateChanged((user) => {
-            // Ahora la función ya existe y no dará error
-            if (checkUpdateBeforeStart()) return; 
-
-            if (user) {
-                runApp(user);
-            } else {
-                // hideLoader() es vital aquí para que el preloader se quite si no estás logueado
-                hideLoader(); 
-                showLogin();
+            btn.textContent = 'Guardando...'; btn.disabled = true;
+            try {
+                await db.collection('leads_corporativos').add(leadData);
+                btn.textContent = '¡Enviado!';
+                status.textContent = 'Datos recibidos. Te contactaremos pronto.';
+                status.style.display = 'block'; status.style.color = '#10B981';
+                setTimeout(() => {
+                    const modal = document.getElementById('contact-modal');
+                    if(modal) modal.classList.add('hidden');
+                    contactForm.reset();
+                    btn.textContent = originalText; btn.disabled = false; status.style.display = 'none';
+                }, 3000);
+            } catch (error) {
+                btn.textContent = originalText; btn.disabled = false;
+                status.textContent = 'Error de conexión.'; status.style.display = 'block'; status.style.color = '#EF4444';
             }
         });
+    }
 
-    } catch (firebaseError) { console.error("Firebase Error:", firebaseError); }
+    // --- BOTONES MODAL CONTACTO (APERTURA/CIERRE) ---
+    const btnCorp = document.getElementById('btn-corp-contact');
+    const contactModal = document.getElementById('contact-modal');
+    const btnCloseContact = document.getElementById('close-contact-btn');
+    if(btnCorp && contactModal) {
+        btnCorp.onclick = (e) => { e.preventDefault(); contactModal.classList.remove('hidden'); };
+    }
+    if(btnCloseContact && contactModal) {
+        btnCloseContact.onclick = () => contactModal.classList.add('hidden');
+    }
+
+    // AUTH STATE
+    const globalLoader = document.getElementById('pida-global-loader');
+    const hideLoader = () => {
+        if(globalLoader) {
+            globalLoader.classList.add('fade-out');
+            setTimeout(() => globalLoader.style.display = 'none', 600); 
+        }
+    };
+
+    auth.onAuthStateChanged((user) => {
+        // 1. Verificar actualización antes de cualquier cosa
+        if (checkUpdateBeforeStart()) return; 
+
+        // 2. Asegurar que el preloader se vaya SIEMPRE
+        hideLoader();
+
+        if (user) {
+            runApp(user);
+        } else {
+            showLogin();
+        }
+    });
 
     async function checkAccessAuthorization(user) {
         const headers = await Utils.getHeaders(user);
