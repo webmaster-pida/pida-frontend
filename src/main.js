@@ -384,17 +384,17 @@ document.addEventListener('DOMContentLoaded', function () {
         if (toast) toast.classList.remove('hidden');
     }
 
-    // Escuchador en segundo plano
+    // Escuchador en segundo plano para notificar nueva versión
     db.collection('config').doc('version').onSnapshot((docSnap) => {
         if (docSnap.exists) {
             const remoteVersion = docSnap.data().latest;
             if (remoteVersion && remoteVersion !== APP_VERSION) {
-                // Guardamos que hay una pendiente
                 localStorage.setItem('pida_pending_update', remoteVersion);
                 
-                // CONDICIÓN: Solo mostrar si el usuario ya está autenticado en este momento
+                // CORRECCIÓN: Solo mostrar si el usuario está logueado actualmente
                 if (firebase.auth().currentUser) {
-                    showUpdateToast();
+                    const toast = document.getElementById('update-toast');
+                    if (toast) toast.classList.remove('hidden');
                 }
             }
         }
@@ -602,21 +602,21 @@ document.addEventListener('DOMContentLoaded', function () {
         // 1. Verificar actualización crítica y recargar si es necesario
         if (checkUpdateBeforeStart()) return; 
 
+        // 2. Asegurar que el preloader se vaya SIEMPRE
         hideLoader();
 
+        const toast = document.getElementById('update-toast');
+
         if (user) {
-            // AQUI AGREGAMOS LA VERIFICACIÓN VISUAL:
-            // Si hay una actualización pendiente guardada, mostrar el aviso ahora que sabemos que está logueado
+            // AL ENTRAR: Si había un update pendiente detectado mientras estabas fuera, muéstralo ahora
             const pending = localStorage.getItem('pida_pending_update');
             if (pending && pending !== APP_VERSION) {
-                const toast = document.getElementById('update-toast');
-                if (toast) toast.classList.remove('hidden');
+                 if (toast) toast.classList.remove('hidden');
             }
 
             runApp(user);
         } else {
-            // Si no hay usuario, aseguramos que el toast esté oculto
-            const toast = document.getElementById('update-toast');
+            // AL SALIR: Ocultar el aviso de actualización si estaba visible
             if (toast) toast.classList.add('hidden');
             
             showLogin();
