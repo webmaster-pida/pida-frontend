@@ -364,14 +364,13 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // =========================================================
-    // 1. CONTROL DE VERSIÓN (CON AVISO TOAST)
+    // 1. CONTROL DE VERSIÓN (SOLO LOGUEADOS)
     // =========================================================
     const APP_VERSION = "2.1.BUILD_PLACEHOLDER"; 
 
     function checkUpdateBeforeStart() {
         const pending = localStorage.getItem('pida_pending_update');
         if (pending && pending !== APP_VERSION) {
-            console.log("Aplicando actualización pendiente...");
             localStorage.removeItem('pida_pending_update');
             window.location.reload(true);
             return true; 
@@ -379,15 +378,24 @@ document.addEventListener('DOMContentLoaded', function () {
         return false;
     }
 
-    // Escuchador en segundo plano para notificar nueva versión
+    // Función auxiliar para mostrar el toast
+    function showUpdateToast() {
+        const toast = document.getElementById('update-toast');
+        if (toast) toast.classList.remove('hidden');
+    }
+
+    // Escuchador en segundo plano
     db.collection('config').doc('version').onSnapshot((docSnap) => {
         if (docSnap.exists) {
             const remoteVersion = docSnap.data().latest;
             if (remoteVersion && remoteVersion !== APP_VERSION) {
+                // Guardamos que hay una pendiente
                 localStorage.setItem('pida_pending_update', remoteVersion);
-                const toast = document.getElementById('update-toast');
-                if (toast) toast.classList.remove('hidden');
-                console.log("Aviso de actualización mostrado: " + remoteVersion);
+                
+                // CONDICIÓN: Solo mostrar si el usuario ya está autenticado en este momento
+                if (firebase.auth().currentUser) {
+                    showUpdateToast();
+                }
             }
         }
     });
@@ -591,15 +599,26 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     auth.onAuthStateChanged((user) => {
-        // 1. Verificar actualización antes de cualquier cosa
+        // 1. Verificar actualización crítica y recargar si es necesario
         if (checkUpdateBeforeStart()) return; 
 
-        // 2. Asegurar que el preloader se vaya SIEMPRE
         hideLoader();
 
         if (user) {
+            // AQUI AGREGAMOS LA VERIFICACIÓN VISUAL:
+            // Si hay una actualización pendiente guardada, mostrar el aviso ahora que sabemos que está logueado
+            const pending = localStorage.getItem('pida_pending_update');
+            if (pending && pending !== APP_VERSION) {
+                const toast = document.getElementById('update-toast');
+                if (toast) toast.classList.remove('hidden');
+            }
+
             runApp(user);
         } else {
+            // Si no hay usuario, aseguramos que el toast esté oculto
+            const toast = document.getElementById('update-toast');
+            if (toast) toast.classList.add('hidden');
+            
             showLogin();
         }
     });

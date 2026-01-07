@@ -558,37 +558,60 @@
     word-break: break-all;
 }
 
-.update-toast {
+/* =========================================
+   ESTILOS DEL TOAST DE ACTUALIZACIÓN (CRISTAL)
+   ========================================= */
+#update-toast {
+    /* POSICIONAMIENTO */
     position: fixed;
-    bottom: 80px; /* Arriba de la barra móvil si es necesario */
-    right: 20px;
-    background: #1d3557;
-    color: white;
-    padding: 12px 20px;
+    top: 20px;            /* Separado del techo */
+    right: 20px;          /* Separado de la derecha */
+    z-index: 1000000;     /* Por encima de todo */
+    
+    /* APARIENCIA CRISTAL (Glassmorphism) */
+    background-color: rgba(29, 53, 87, 0.85); /* Azul PIDA con 85% opacidad */
+    backdrop-filter: blur(8px);               /* Efecto borroso detrás */
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25); /* Sombra suave */
+    border: 1px solid rgba(255, 255, 255, 0.1); /* Borde sutil */
+    
+    /* DIMENSIONES Y TEXTO */
     border-radius: 12px;
+    padding: 12px 20px;
     display: flex;
     align-items: center;
     gap: 15px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    z-index: 1000000;
+    color: white;
     font-family: 'Inter', sans-serif;
-    animation: slideInUp 0.5s ease-out;
+    font-size: 0.95rem;
+    
+    /* ANIMACIÓN */
+    transition: all 0.3s ease;
+    animation: slideInDown 0.5s ease-out;
 }
 
-.update-toast button {
-    background: #00c3ff;
+#update-toast button {
+    background: #00c3ff; /* Azul cyan PIDA */
     border: none;
-    color: #1d3557;
-    padding: 6px 12px;
+    color: #1d3557;      /* Texto oscuro */
+    padding: 6px 14px;
     border-radius: 6px;
     font-weight: 700;
     cursor: pointer;
     font-size: 0.85rem;
+    transition: background 0.2s;
 }
 
-.update-toast.hidden { display: none; }
+#update-toast button:hover {
+    background: white;
+}
 
-@keyframes slideInUp {
-    from { transform: translateY(100px); opacity: 0; }
+/* Oculto por defecto */
+#update-toast.hidden {
+    display: none !important;
+}
+
+/* Animación de entrada desde arriba */
+@keyframes slideInDown {
+    from { transform: translateY(-50px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
