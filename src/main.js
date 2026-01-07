@@ -1520,22 +1520,31 @@ document.addEventListener('DOMContentLoaded', function () {
         loadChatHistory();
     }
 
+    // CONTROL DE VERSIÓN EN TIEMPO REAL (VERSION SEGURA)
     // =========================================================
-    // CONTROL DE VERSIÓN EN TIEMPO REAL
-    // =========================================================
-    const APP_VERSION = "1.0.1"; // Incrementa esto cada vez que hagas un cambio grande
+    const APP_VERSION = "1.0.1"; 
 
     db.collection('config').doc('version').onSnapshot((docSnap) => {
         if (docSnap.exists) {
             const remoteData = docSnap.data();
-            // Si la versión en Firestore es mayor a la local, recargamos
-            if (remoteData.latest && remoteData.latest !== APP_VERSION) {
-                console.log("Nueva versión detectada. Actualizando aplicación...");
-                
-                // Opcional: Avisar al usuario antes de recargar
-                // alert("PIDA se ha actualizado. La página se recargará para aplicar los cambios.");
-                
-                window.location.reload(true); // El 'true' fuerza la carga desde el servidor
+            const latestVersion = remoteData.latest;
+
+            // SOLO recargamos si:
+            // 1. La versión remota existe.
+            // 2. Es diferente a la local.
+            // 3. NO hemos intentado cargar esta versión ya (evita loops)
+            if (latestVersion && latestVersion !== APP_VERSION) {
+                if (localStorage.getItem('last_reload_version') !== latestVersion) {
+                    console.log("Nueva versión detectada. Actualizando...");
+                    
+                    // Guardamos en el navegador que ya intentamos cargar esta versión
+                    localStorage.setItem('last_reload_version', latestVersion);
+                    
+                    // Forzamos la recarga limpiando caché
+                    window.location.reload(true);
+                } else {
+                    console.warn("Se detectó una versión nueva pero la caché sigue entregando la anterior. Deteniendo loop.");
+                }
             }
         }
     });
