@@ -1522,7 +1522,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // CONTROL DE VERSIÓN EN TIEMPO REAL (VERSION SEGURA)
     // =========================================================
-    const APP_VERSION = "1.0.1"; 
+    const APP_VERSION = "2.1.1"; 
 
     db.collection('config').doc('version').onSnapshot((docSnap) => {
         if (docSnap.exists) {
