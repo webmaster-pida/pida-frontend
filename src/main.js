@@ -667,39 +667,62 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ==========================================
-    // LOGIN CON GOOGLE (MEJORADO)
+    // LOGIN CON GOOGLE (VERSIÓN ROBUSTA & DEBUG)
     // ==========================================
     const googleBtn = document.getElementById('google-login-btn');
     if (googleBtn) {
         googleBtn.addEventListener('click', async () => {
+            console.log("🔵 Botón Google presionado"); // DEBUG
+            
             const errMsg = document.getElementById('login-message');
-            if (errMsg) errMsg.style.display = 'none'; // Limpiar errores previos
+            const btnText = document.getElementById('google-text');
+            
+            // 1. Limpiar mensajes previos
+            if (errMsg) errMsg.style.display = 'none';
+            
+            // 2. Feedback visual de carga
+            const originalText = btnText ? btnText.textContent : "Entrar con Google";
+            if (btnText) btnText.textContent = "Conectando...";
+            googleBtn.disabled = true;
 
             try {
-                await auth.signInWithPopup(googleProvider);
-                // Si tiene éxito, el onAuthStateChanged se encargará del resto
-            } catch (error) {
-                console.error("Error Google Auth:", error);
-                
-                let friendlyMessage = "Ocurrió un error al intentar ingresar con Google.";
+                // 3. Verificar que auth esté inicializado
+                if (!auth) throw new Error("Firebase Auth no está inicializado.");
 
-                // Manejo específico de errores comunes
+                console.log("🔵 Abriendo Popup..."); // DEBUG
+                await auth.signInWithPopup(googleProvider);
+                
+                console.log("🟢 Login Exitoso. Esperando a onAuthStateChanged..."); // DEBUG
+                // No hacemos nada más aquí, auth.onAuthStateChanged manejará la redirección.
+
+            } catch (error) {
+                console.error("🔴 Error Google Auth:", error); // Muestra el error real en consola
+                
+                // Restaurar botón
+                if (btnText) btnText.textContent = originalText;
+                googleBtn.disabled = false;
+
+                // Mensajes amigables para el usuario
+                let friendlyMessage = "Error de conexión con Google.";
+
                 if (error.code === 'auth/popup-closed-by-user') {
-                    friendlyMessage = "El proceso de inicio de sesión fue cancelado o la ventana se cerró inesperadamente. Si estás en modo incógnito, intenta en una ventana normal.";
+                    friendlyMessage = "Cancelaste el inicio de sesión o cerraste la ventana.";
                 } else if (error.code === 'auth/popup-blocked') {
-                    friendlyMessage = "El navegador bloqueó la ventana emergente. Por favor, permite los pop-ups para este sitio.";
+                    friendlyMessage = "El navegador bloqueó la ventana. Permite los pop-ups (ícono en la barra de direcciones).";
                 } else if (error.code === 'auth/cancelled-popup-request') {
-                    friendlyMessage = "Ya hay una solicitud de inicio de sesión abierta.";
+                    friendlyMessage = "Ya hay una ventana de Google abierta. Ciérrala e intenta de nuevo.";
+                } else if (error.code === 'auth/unauthorized-domain') {
+                    friendlyMessage = "Error de configuración: Dominio no autorizado en Firebase.";
                 } else if (error.message) {
-                    friendlyMessage = error.message; // Fallback al mensaje original si es otro error
+                    friendlyMessage = error.message;
                 }
 
-                // Mostrar el error en la cajita roja del diseño, no en un alert()
+                // Mostrar error en la caja roja
                 if (errMsg) {
                     errMsg.textContent = friendlyMessage;
                     errMsg.style.display = 'block';
                 } else {
-                    alert(friendlyMessage); // Último recurso
+                    alert(friendlyMessage);
                 }
             }
         });
