@@ -384,17 +384,21 @@ document.addEventListener('DOMContentLoaded', function () {
         if (toast) toast.classList.remove('hidden');
     }
 
-    // Escuchador en segundo plano para notificar nueva versión
+    // Escuchador de versiones (Estricto)
     db.collection('config').doc('version').onSnapshot((docSnap) => {
         if (docSnap.exists) {
             const remoteVersion = docSnap.data().latest;
             if (remoteVersion && remoteVersion !== APP_VERSION) {
                 localStorage.setItem('pida_pending_update', remoteVersion);
                 
-                // CORRECCIÓN: Solo mostrar si el usuario está logueado actualmente
-                if (firebase.auth().currentUser) {
-                    const toast = document.getElementById('update-toast');
-                    if (toast) toast.classList.remove('hidden');
+                // CORRECCIÓN: Verificar explícitamente currentUser antes de mostrar nada
+                const user = firebase.auth().currentUser;
+                const toast = document.getElementById('update-toast');
+                
+                if (user && toast) {
+                    toast.classList.remove('hidden');
+                } else if (toast) {
+                    toast.classList.add('hidden');
                 }
             }
         }
@@ -598,28 +602,51 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
+    // ==========================================
+    // OBSERVADOR DE ESTADO (CAMBIO DE PANTALLAS)
+    // ==========================================
     auth.onAuthStateChanged((user) => {
-        // 1. Verificar actualización crítica y recargar si es necesario
+        // 1. Verificar actualización crítica
         if (checkUpdateBeforeStart()) return; 
 
-        // 2. Asegurar que el preloader se vaya SIEMPRE
-        hideLoader();
+        hideLoader(); // Quitar cargando global
 
+        const landingRoot = document.getElementById('landing-page-root');
+        const appRoot = document.getElementById('pida-app-root');
+        const loginScreen = document.getElementById('pida-login-screen');
         const toast = document.getElementById('update-toast');
 
         if (user) {
-            // AL ENTRAR: Si había un update pendiente detectado mientras estabas fuera, muéstralo ahora
+            console.log("✅ Usuario detectado. Cambiando a vista de App...");
+            
+            // A. CAMBIO DE PANTALLA
+            if(landingRoot) landingRoot.style.display = 'none'; // Adiós Landing
+            if(loginScreen) loginScreen.style.display = 'none'; // Adiós Login Modal
+            if(appRoot) appRoot.style.display = 'block';        // Hola App
+            
+            // B. GESTIÓN DEL TOAST (Solo si hay usuario)
             const pending = localStorage.getItem('pida_pending_update');
             if (pending && pending !== APP_VERSION) {
                  if (toast) toast.classList.remove('hidden');
+            } else {
+                 if (toast) toast.classList.add('hidden');
             }
 
+            // C. INICIAR LÓGICA
             runApp(user);
+
         } else {
-            // AL SALIR: Ocultar el aviso de actualización si estaba visible
+            console.log("⛔ Sin usuario. Mostrando Landing.");
+
+            // A. CAMBIO DE PANTALLA
+            if(appRoot) appRoot.style.display = 'none';         // Adiós App
+            if(landingRoot) landingRoot.style.display = 'block';// Hola Landing
+            
+            // B. OCULTAR TOAST SIEMPRE
             if (toast) toast.classList.add('hidden');
             
-            showLogin();
+            // C. Limpiar UI
+            window.closeBanner();
         }
     });
 
