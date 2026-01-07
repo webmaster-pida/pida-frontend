@@ -557,3 +557,38 @@
 .pida-bubble td a {
     word-break: break-all;
 }
+
+.update-toast {
+    position: fixed;
+    bottom: 80px; /* Arriba de la barra móvil si es necesario */
+    right: 20px;
+    background: #1d3557;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    z-index: 1000000;
+    font-family: 'Inter', sans-serif;
+    animation: slideInUp 0.5s ease-out;
+}
+
+.update-toast button {
+    background: #00c3ff;
+    border: none;
+    color: #1d3557;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.update-toast.hidden { display: none; }
+
+@keyframes slideInUp {
+    from { transform: translateY(100px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}

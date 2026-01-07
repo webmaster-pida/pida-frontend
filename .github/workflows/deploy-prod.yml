@@ -3,7 +3,7 @@ name: Deploy a Producción (LIVE)
 on:
   push:
     branches:
-      - main  # <--- Esto hace que se active al subir a main
+      - main
 
 jobs:
   build_and_deploy:
@@ -19,6 +19,13 @@ jobs:
       - name: Instalar dependencias
         run: npm install
 
+      # INYECTAR VERSIÓN: Reemplaza el texto en main.js antes de compilar
+      - name: Inyectar Versión Automática
+        run: |
+          FULL_VERSION="2.1.${{ github.run_number }}"
+          sed -i "s/2.1.BUILD_PLACEHOLDER/$FULL_VERSION/g" src/main.js
+          echo "VERSION_DEPLOYED=$FULL_VERSION" >> $GITHUB_ENV
+
       - name: Construir proyecto
         run: npm run build
 
@@ -27,4 +34,12 @@ jobs:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PIDA_AI_V20 }}'
           projectId: pida-ai-v20
-          channelId: live  # <--- ESTO es lo que actualiza la web oficial
+          channelId: live
+
+      # ACTUALIZAR FIRESTORE: Solo si el despliegue web fue exitoso
+      - name: Actualizar Versión en Firestore
+        run: |
+          npm install -g firebase-tools
+          firebase firestore:documents:set config/version "{\"latest\": \"${{ env.VERSION_DEPLOYED }}\"}" --project pida-ai-v20
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_PIDA_AI_V20 }}

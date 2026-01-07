@@ -555,32 +555,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         };
 
-        auth.onAuthStateChanged(async function (user) {
-            currentUser = user;
-            if (user) {
-                if(loginScreen) loginScreen.style.display = 'none';
-                const accessGranted = await checkAccessAuthorization(user);
+        auth.onAuthStateChanged((user) => {
+            // Si hay una actualización pendiente, recargamos ANTES de mostrar nada
+            if (checkUpdateBeforeStart()) return; 
 
-                if (accessGranted) {
-                    if(landingRoot) landingRoot.style.display = 'none';
-                    if(appRoot) appRoot.style.display = 'block';
-                    runApp(user); 
-                    requestAnimationFrame(() => hideLoader());
-                } else {
-                    if(landingRoot) landingRoot.style.display = 'block';
-                    if(appRoot) appRoot.style.display = 'none';
-                    if (pendingPlan) {
-                        startCheckout(STRIPE_PRICES[pendingPlan][currentCurrency].id);
-                        pendingPlan = null; 
-                    } else {
-                        window.location.hash = 'planes';
-                    }
-                    hideLoader();
-                }
+            if (user) {
+                runApp(user);
             } else {
-                if(landingRoot) landingRoot.style.display = 'block';
-                if(appRoot) appRoot.style.display = 'none';
-                hideLoader();
+                showLogin();
             }
         });
 
@@ -1520,31 +1502,25 @@ document.addEventListener('DOMContentLoaded', function () {
         loadChatHistory();
     }
 
-    // CONTROL DE VERSIÓN EN TIEMPO REAL (VERSION SEGURA)
     // =========================================================
-    const APP_VERSION = "2.1.1"; 
+    // CONTROL DE VERSIÓN PROFESIONAL CON AVISO
+    // =========================================================
+    const APP_VERSION = "2.1.BUILD_PLACEHOLDER"; 
 
     db.collection('config').doc('version').onSnapshot((docSnap) => {
         if (docSnap.exists) {
-            const remoteData = docSnap.data();
-            const latestVersion = remoteData.latest;
+            const remoteVersion = docSnap.data().latest;
 
-            // SOLO recargamos si:
-            // 1. La versión remota existe.
-            // 2. Es diferente a la local.
-            // 3. NO hemos intentado cargar esta versión ya (evita loops)
-            if (latestVersion && latestVersion !== APP_VERSION) {
-                if (localStorage.getItem('last_reload_version') !== latestVersion) {
-                    console.log("Nueva versión detectada. Actualizando...");
-                    
-                    // Guardamos en el navegador que ya intentamos cargar esta versión
-                    localStorage.setItem('last_reload_version', latestVersion);
-                    
-                    // Forzamos la recarga limpiando caché
-                    window.location.reload(true);
-                } else {
-                    console.warn("Se detectó una versión nueva pero la caché sigue entregando la anterior. Deteniendo loop.");
+            if (remoteVersion && remoteVersion !== APP_VERSION) {
+                // 1. Guardamos la versión pendiente en el sistema
+                localStorage.setItem('pida_pending_update', remoteVersion);
+                
+                // 2. Mostramos el aviso al usuario
+                const toast = document.getElementById('update-toast');
+                if (toast) {
+                    toast.classList.remove('hidden');
                 }
+                console.log("Aviso de actualización mostrado: " + remoteVersion);
             }
         }
     });

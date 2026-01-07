@@ -15,10 +15,16 @@ jobs:
           node-version: 20
           cache: 'npm'
       
-      # CORREGIDO: Usamos npm install para evitar errores de lockfile
       - name: Instalar dependencias
         run: npm install
-      
+
+      # INYECTAR VERSIÓN: Sustituye el placeholder por un número de build de prueba
+      - name: Inyectar Versión de Prueba
+        run: |
+          FULL_VERSION="2.1.dev-${{ github.run_number }}"
+          sed -i "s/2.1.BUILD_PLACEHOLDER/$FULL_VERSION/g" src/main.js
+          echo "Version inyectada en main.js: $FULL_VERSION"
+
       - name: Construir proyecto
         run: npm run build
       
