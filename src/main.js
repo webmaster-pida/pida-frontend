@@ -352,6 +352,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
     try {
         if (!firebase.apps.length) firebase.initializeApp(PIDA_CONFIG.FIREBASE);
+        firebase.analytics();
         auth = firebase.auth();
         db = firebase.firestore();
         const remoteConfig = firebase.remoteConfig();
