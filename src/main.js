@@ -364,11 +364,14 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // =========================================================
-    // 1. CONTROL DE VERSIÓN (SOLO LOGUEADOS)
+    // 1. CONTROL DE VERSIÓN (INTELIGENTE)
     // =========================================================
     const APP_VERSION = "2.1.BUILD_PLACEHOLDER"; 
 
     function checkUpdateBeforeStart() {
+        // Ignorar si estamos en desarrollo/local (evita bucles molestos)
+        if (APP_VERSION.includes('PLACEHOLDER') || APP_VERSION.includes('dev')) return false;
+
         const pending = localStorage.getItem('pida_pending_update');
         if (pending && pending !== APP_VERSION) {
             localStorage.removeItem('pida_pending_update');
@@ -378,27 +381,20 @@ document.addEventListener('DOMContentLoaded', function () {
         return false;
     }
 
-    // Función auxiliar para mostrar el toast
-    function showUpdateToast() {
-        const toast = document.getElementById('update-toast');
-        if (toast) toast.classList.remove('hidden');
-    }
-
-    // Escuchador de versiones (Estricto)
+    // Escuchador en segundo plano para notificar nueva versión
     db.collection('config').doc('version').onSnapshot((docSnap) => {
+        // Ignorar si estamos en desarrollo/local (evita Toast fantasma)
+        if (APP_VERSION.includes('PLACEHOLDER') || APP_VERSION.includes('dev')) return;
+
         if (docSnap.exists) {
             const remoteVersion = docSnap.data().latest;
             if (remoteVersion && remoteVersion !== APP_VERSION) {
                 localStorage.setItem('pida_pending_update', remoteVersion);
                 
-                // CORRECCIÓN: Verificar explícitamente currentUser antes de mostrar nada
-                const user = firebase.auth().currentUser;
-                const toast = document.getElementById('update-toast');
-                
-                if (user && toast) {
-                    toast.classList.remove('hidden');
-                } else if (toast) {
-                    toast.classList.add('hidden');
+                // Solo mostrar si el usuario está logueado actualmente
+                if (firebase.auth().currentUser) {
+                    const toast = document.getElementById('update-toast');
+                    if (toast) toast.classList.remove('hidden');
                 }
             }
         }
@@ -606,14 +602,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // OBSERVADOR DE ESTADO (CAMBIO DE PANTALLAS)
     // ==========================================
     auth.onAuthStateChanged((user) => {
-        // 1. Verificar actualización crítica
+        // 1. Verificar actualización crítica y recargar si es necesario
         if (checkUpdateBeforeStart()) return; 
 
-        hideLoader(); // Quitar cargando global
+        // 2. Asegurar que el preloader se vaya SIEMPRE
+        hideLoader();
 
-        const landingRoot = document.getElementById('landing-page-root');
-        const appRoot = document.getElementById('pida-app-root');
-        const loginScreen = document.getElementById('pida-login-screen');
         const toast = document.getElementById('update-toast');
 
         if (user) {
@@ -624,12 +618,14 @@ document.addEventListener('DOMContentLoaded', function () {
             if(loginScreen) loginScreen.style.display = 'none'; // Adiós Login Modal
             if(appRoot) appRoot.style.display = 'block';        // Hola App
             
-            // B. GESTIÓN DEL TOAST (Solo si hay usuario)
-            const pending = localStorage.getItem('pida_pending_update');
-            if (pending && pending !== APP_VERSION) {
-                 if (toast) toast.classList.remove('hidden');
-            } else {
-                 if (toast) toast.classList.add('hidden');
+            // B. GESTIÓN DEL TOAST (Solo si hay usuario y NO es dev)
+            if (!APP_VERSION.includes('PLACEHOLDER') && !APP_VERSION.includes('dev')) {
+                const pending = localStorage.getItem('pida_pending_update');
+                if (pending && pending !== APP_VERSION) {
+                    if (toast) toast.classList.remove('hidden');
+                } else {
+                    if (toast) toast.classList.add('hidden');
+                }
             }
 
             // C. INICIAR LÓGICA
@@ -751,6 +747,30 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    async function startCheckout(priceId) {
+        if (!currentUser) {
+            if(loginScreen) loginScreen.style.display = 'flex';
+            window.switchAuthMode('register'); 
+            return;
+        }
+        try {
+            const baseUrl = window.location.origin + window.location.pathname;
+            const docRef = await db.collection('customers').doc(currentUser.uid).collection('checkout_sessions').add({
+                price: priceId,
+                trial_period_days: 5,
+                success_url: `${baseUrl}?payment_status=success`,
+                cancel_url: `${baseUrl}?payment_status=canceled`,
+                allow_promotion_codes: true,
+                metadata: { source: 'web_app_v7' }
+            });
+            docRef.onSnapshot((snap) => {
+                const { error, url } = snap.data();
+                if (error) alert(`Error: ${error.message}`);
+                if (url) window.location.assign(url);
+            });
+        } catch (error) { console.error("Checkout Error:", error); }
+    }
+
     document.querySelectorAll('.plan-cta').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -773,6 +793,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
     function runApp(user) {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
+        currentUser = user;
 
         const dom = {
             navInv: document.getElementById('nav-investigador'),
