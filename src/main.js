@@ -747,6 +747,43 @@ document.addEventListener('DOMContentLoaded', function () {
         if(dom.pAvatar) dom.pAvatar.src = user.photoURL || 'img/PIDA_logo-P3-80.png';
         
         const doLogout = () => auth.signOut().then(() => window.location.reload());
+
+// =========================================================
+        // CONTROL DE INACTIVIDAD (AUTO-LOGOUT)
+        // =========================================================
+        function setupInactivityTimer() {
+            let inactivityTimer;
+            // Configuración: 3 horas (3 * 60 * 60 * 1000 ms)
+            const INACTIVITY_LIMIT = 3 * 60 * 60 * 1000; 
+
+            const resetTimer = () => {
+                console.log("Actividad detectada. Temporizador reiniciado."); // Solo para debug
+                clearTimeout(inactivityTimer);
+                inactivityTimer = setTimeout(() => {
+                    console.warn("Cerrando sesión por inactividad prolongada.");
+                    alert("Tu sesión ha expirado por inactividad. Por seguridad, debes ingresar nuevamente.");
+                    doLogout(); // Llama a tu función de salida existente
+                }, INACTIVITY_LIMIT);
+            };
+
+            // Eventos que reinician el temporizador (actividad del usuario)
+            const activityEvents = [
+                'mousedown', 'mousemove', 'keydown', 
+                'scroll', 'touchstart', 'click'
+            ];
+
+            // Añadir escuchadores de eventos al objeto window
+            activityEvents.forEach(eventName => {
+                window.addEventListener(eventName, resetTimer, true);
+            });
+
+            // Iniciar el temporizador al cargar la App
+            resetTimer();
+        }
+
+        // Inicializamos el temporizador de inactividad
+        setupInactivityTimer();
+
         if(dom.pLogout) dom.pLogout.onclick = doLogout;
         if(dom.mobileMenuLogout) dom.mobileMenuLogout.onclick = doLogout;
 
