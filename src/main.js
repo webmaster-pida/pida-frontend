@@ -757,7 +757,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const INACTIVITY_LIMIT = 3 * 60 * 60 * 1000; 
 
             const resetTimer = () => {
-                console.log("Actividad detectada. Temporizador reiniciado."); // Solo para debug
+                // console.log("Actividad detectada. Temporizador reiniciado."); // Solo para debug
                 clearTimeout(inactivityTimer);
                 inactivityTimer = setTimeout(() => {
                     console.warn("Cerrando sesión por inactividad prolongada.");
@@ -1519,4 +1519,25 @@ document.addEventListener('DOMContentLoaded', function () {
         handleNewChat(true); 
         loadChatHistory();
     }
+
+    // =========================================================
+    // CONTROL DE VERSIÓN EN TIEMPO REAL
+    // =========================================================
+    const APP_VERSION = "1.0.1"; // Incrementa esto cada vez que hagas un cambio grande
+
+    db.collection('config').doc('version').onSnapshot((docSnap) => {
+        if (docSnap.exists) {
+            const remoteData = docSnap.data();
+            // Si la versión en Firestore es mayor a la local, recargamos
+            if (remoteData.latest && remoteData.latest !== APP_VERSION) {
+                console.log("Nueva versión detectada. Actualizando aplicación...");
+                
+                // Opcional: Avisar al usuario antes de recargar
+                // alert("PIDA se ha actualizado. La página se recargará para aplicar los cambios.");
+                
+                window.location.reload(true); // El 'true' fuerza la carga desde el servidor
+            }
+        }
+    });
+
 });
