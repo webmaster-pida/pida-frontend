@@ -36,15 +36,35 @@ jobs:
           projectId: pida-ai-v20
           channelId: live
 
-      # ACTUALIZAR FIRESTORE: Corregido para usar archivo de credenciales
+      # ACTUALIZAR FIRESTORE: Usando script nativo de Node.js (Infalible)
       - name: Actualizar Versión en Firestore
         run: |
-          # 1. Volcar el secreto en un archivo json
+          # 1. Crear archivo de credenciales desde el secreto
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PIDA_AI_V20 }}' > service-account.json
-          
-          # 2. Decirle a Google dónde está el archivo
-          export GOOGLE_APPLICATION_CREDENTIALS=$(pwd)/service-account.json
-          
-          # 3. Ejecutar comando
-          npm install -g firebase-tools
-          firebase firestore:documents:set config/version "{\"latest\": \"${{ env.VERSION_DEPLOYED }}\"}" --project pida-ai-v20
+
+          # 2. Instalar la librería oficial de administración (rápido)
+          npm install firebase-admin
+
+          # 3. Ejecutar script inline de Node para escribir en la base de datos
+          node -e "
+            const admin = require('firebase-admin');
+            const serviceAccount = require('./service-account.json');
+            
+            admin.initializeApp({
+              credential: admin.credential.cert(serviceAccount)
+            });
+            
+            const db = admin.firestore();
+            
+            console.log('Escribiendo versión ${{ env.VERSION_DEPLOYED }} en Firestore...');
+            
+            db.collection('config').doc('version').set({ latest: '${{ env.VERSION_DEPLOYED }}' })
+              .then(() => { 
+                console.log('✅ ¡Éxito! Versión actualizada.'); 
+                process.exit(0); 
+              })
+              .catch((error) => { 
+                console.error('❌ Error fatal:', error); 
+                process.exit(1); 
+              });
+          "
