@@ -347,6 +347,36 @@ document.addEventListener('DOMContentLoaded', function () {
     const loginScreen = document.getElementById('pida-login-screen');
     const appRoot = document.getElementById('pida-app-root');
 
+    // =========================================================
+    // 1. CONTROL DE VERSIÓN (CORREGIDO Y UBICADO AL INICIO)
+    // =========================================================
+    const APP_VERSION = "2.1.BUILD_PLACEHOLDER"; 
+
+    // Definimos la función antes de que Firebase la use
+    function checkUpdateBeforeStart() {
+        const pending = localStorage.getItem('pida_pending_update');
+        if (pending && pending !== APP_VERSION) {
+            console.log("Aplicando actualización pendiente...");
+            localStorage.removeItem('pida_pending_update');
+            window.location.reload(true);
+            return true; 
+        }
+        return false;
+    }
+
+    // Escuchador en segundo plano
+    db.collection('config').doc('version').onSnapshot((docSnap) => {
+        if (docSnap.exists) {
+            const remoteVersion = docSnap.data().latest;
+            if (remoteVersion && remoteVersion !== APP_VERSION) {
+                localStorage.setItem('pida_pending_update', remoteVersion);
+                const toast = document.getElementById('update-toast');
+                if (toast) toast.classList.remove('hidden');
+                console.log("Aviso de actualización mostrado: " + remoteVersion);
+            }
+        }
+    });
+
     // --- UTILIDADES INTERNAS ---
     const Utils = {
         sanitize(html) { return DOMPurify.sanitize(html); },
@@ -556,12 +586,14 @@ document.addEventListener('DOMContentLoaded', function () {
         };
 
         auth.onAuthStateChanged((user) => {
-            // Si hay una actualización pendiente, recargamos ANTES de mostrar nada
+            // Ahora la función ya existe y no dará error
             if (checkUpdateBeforeStart()) return; 
 
             if (user) {
                 runApp(user);
             } else {
+                // hideLoader() es vital aquí para que el preloader se quite si no estás logueado
+                hideLoader(); 
                 showLogin();
             }
         });
@@ -1501,28 +1533,5 @@ document.addEventListener('DOMContentLoaded', function () {
         handleNewChat(true); 
         loadChatHistory();
     }
-
-    // =========================================================
-    // CONTROL DE VERSIÓN PROFESIONAL CON AVISO
-    // =========================================================
-    const APP_VERSION = "2.1.BUILD_PLACEHOLDER"; 
-
-    db.collection('config').doc('version').onSnapshot((docSnap) => {
-        if (docSnap.exists) {
-            const remoteVersion = docSnap.data().latest;
-
-            if (remoteVersion && remoteVersion !== APP_VERSION) {
-                // 1. Guardamos la versión pendiente en el sistema
-                localStorage.setItem('pida_pending_update', remoteVersion);
-                
-                // 2. Mostramos el aviso al usuario
-                const toast = document.getElementById('update-toast');
-                if (toast) {
-                    toast.classList.remove('hidden');
-                }
-                console.log("Aviso de actualización mostrado: " + remoteVersion);
-            }
-        }
-    });
 
 });
