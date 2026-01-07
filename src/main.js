@@ -667,57 +667,53 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ==========================================
-    // LOGIN CON GOOGLE (VERSIÓN ROBUSTA & DEBUG)
+    // LOGIN CON GOOGLE (VERSIÓN FINAL)
     // ==========================================
     const googleBtn = document.getElementById('google-login-btn');
     if (googleBtn) {
         googleBtn.addEventListener('click', async () => {
-            console.log("🔵 Botón Google presionado"); // DEBUG
-            
             const errMsg = document.getElementById('login-message');
             const btnText = document.getElementById('google-text');
+            const loginScreen = document.getElementById('pida-login-screen');
             
-            // 1. Limpiar mensajes previos
+            // 1. Limpiar UI
             if (errMsg) errMsg.style.display = 'none';
-            
-            // 2. Feedback visual de carga
             const originalText = btnText ? btnText.textContent : "Entrar con Google";
             if (btnText) btnText.textContent = "Conectando...";
             googleBtn.disabled = true;
 
             try {
-                // 3. Verificar que auth esté inicializado
-                if (!auth) throw new Error("Firebase Auth no está inicializado.");
-
-                console.log("🔵 Abriendo Popup..."); // DEBUG
+                // 2. Intentar Login
                 await auth.signInWithPopup(googleProvider);
                 
-                console.log("🟢 Login Exitoso. Esperando a onAuthStateChanged..."); // DEBUG
-                // No hacemos nada más aquí, auth.onAuthStateChanged manejará la redirección.
+                // 3. ÉXITO: Forzar cierre inmediato del modal
+                if (loginScreen) loginScreen.style.display = 'none';
+                
+                // Restaurar botón (por si acaso se vuelve a usar)
+                if (btnText) btnText.textContent = originalText;
+                googleBtn.disabled = false;
 
+                // El onAuthStateChanged se encargará de cargar los chats, 
+                // pero ya quitamos el bloqueo visual.
+                
             } catch (error) {
-                console.error("🔴 Error Google Auth:", error); // Muestra el error real en consola
+                console.error("Error Google Auth:", error);
                 
                 // Restaurar botón
                 if (btnText) btnText.textContent = originalText;
                 googleBtn.disabled = false;
 
-                // Mensajes amigables para el usuario
-                let friendlyMessage = "Error de conexión con Google.";
+                let friendlyMessage = "No se pudo iniciar sesión con Google.";
 
+                // Manejo de errores comunes
                 if (error.code === 'auth/popup-closed-by-user') {
-                    friendlyMessage = "Cancelaste el inicio de sesión o cerraste la ventana.";
+                    friendlyMessage = "Se cerró la ventana antes de terminar.";
                 } else if (error.code === 'auth/popup-blocked') {
-                    friendlyMessage = "El navegador bloqueó la ventana. Permite los pop-ups (ícono en la barra de direcciones).";
+                    friendlyMessage = "El navegador bloqueó la ventana emergente.";
                 } else if (error.code === 'auth/cancelled-popup-request') {
-                    friendlyMessage = "Ya hay una ventana de Google abierta. Ciérrala e intenta de nuevo.";
-                } else if (error.code === 'auth/unauthorized-domain') {
-                    friendlyMessage = "Error de configuración: Dominio no autorizado en Firebase.";
-                } else if (error.message) {
-                    friendlyMessage = error.message;
+                    friendlyMessage = "Intento cancelado. Prueba de nuevo.";
                 }
 
-                // Mostrar error en la caja roja
                 if (errMsg) {
                     errMsg.textContent = friendlyMessage;
                     errMsg.style.display = 'block';
