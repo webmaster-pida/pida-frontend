@@ -666,33 +666,43 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // ==========================================
+    // LOGIN CON GOOGLE (MEJORADO)
+    // ==========================================
     const googleBtn = document.getElementById('google-login-btn');
-    if(googleBtn) googleBtn.addEventListener('click', async () => {
-        try { await auth.signInWithPopup(googleProvider); } catch (error) { alert(error.message); }
-    });
+    if (googleBtn) {
+        googleBtn.addEventListener('click', async () => {
+            const errMsg = document.getElementById('login-message');
+            if (errMsg) errMsg.style.display = 'none'; // Limpiar errores previos
 
-    async function startCheckout(priceId) {
-        if (!currentUser) {
-            if(loginScreen) loginScreen.style.display = 'flex';
-            window.switchAuthMode('register'); 
-            return;
-        }
-        try {
-            const baseUrl = window.location.origin + window.location.pathname;
-            const docRef = await db.collection('customers').doc(currentUser.uid).collection('checkout_sessions').add({
-                price: priceId,
-                trial_period_days: 5,
-                success_url: `${baseUrl}?payment_status=success`,
-                cancel_url: `${baseUrl}?payment_status=canceled`,
-                allow_promotion_codes: true,
-                metadata: { source: 'web_app_v7' }
-            });
-            docRef.onSnapshot((snap) => {
-                const { error, url } = snap.data();
-                if (error) alert(`Error: ${error.message}`);
-                if (url) window.location.assign(url);
-            });
-        } catch (error) { console.error("Checkout Error:", error); }
+            try {
+                await auth.signInWithPopup(googleProvider);
+                // Si tiene éxito, el onAuthStateChanged se encargará del resto
+            } catch (error) {
+                console.error("Error Google Auth:", error);
+                
+                let friendlyMessage = "Ocurrió un error al intentar ingresar con Google.";
+
+                // Manejo específico de errores comunes
+                if (error.code === 'auth/popup-closed-by-user') {
+                    friendlyMessage = "El proceso de inicio de sesión fue cancelado o la ventana se cerró inesperadamente. Si estás en modo incógnito, intenta en una ventana normal.";
+                } else if (error.code === 'auth/popup-blocked') {
+                    friendlyMessage = "El navegador bloqueó la ventana emergente. Por favor, permite los pop-ups para este sitio.";
+                } else if (error.code === 'auth/cancelled-popup-request') {
+                    friendlyMessage = "Ya hay una solicitud de inicio de sesión abierta.";
+                } else if (error.message) {
+                    friendlyMessage = error.message; // Fallback al mensaje original si es otro error
+                }
+
+                // Mostrar el error en la cajita roja del diseño, no en un alert()
+                if (errMsg) {
+                    errMsg.textContent = friendlyMessage;
+                    errMsg.style.display = 'block';
+                } else {
+                    alert(friendlyMessage); // Último recurso
+                }
+            }
+        });
     }
 
     document.querySelectorAll('.plan-cta').forEach(btn => {
