@@ -357,6 +357,15 @@ document.addEventListener('DOMContentLoaded', function () {
         db = firebase.firestore();
         const remoteConfig = firebase.remoteConfig();
         remoteConfig.defaultConfig = { 'maintenance_mode_enabled': 'false' };
+
+        // Activar la escucha de configuración remota
+        remoteConfig.fetchAndActivate().then(() => {
+            const isMaintenance = remoteConfig.getBoolean('maintenance_mode_enabled');
+            const maintenanceDiv = document.getElementById('maintenance-message');
+            if (isMaintenance && maintenanceDiv) {
+                maintenanceDiv.style.display = 'block'; // Muestra el aviso amarillo en el login
+            }
+        });
         
         googleProvider = new firebase.auth.GoogleAuthProvider();
         googleProvider.setCustomParameters({ prompt: 'select_account' });
@@ -1412,7 +1421,10 @@ document.addEventListener('DOMContentLoaded', function () {
         async function loadPreHistory() {
             if (!dom.preHistList) return;
             try {
-                dom.preHistList.innerHTML = '<div style="padding:15px; text-align:center; color:#666;">Cargando...</div>';
+                // Solo ponemos "Cargando" si la lista está totalmente vacía (primera vez)
+                if (dom.preHistList.innerHTML === "") {
+                    dom.preHistList.innerHTML = '<div style="padding:15px; text-align:center; color:#666;">Cargando...</div>';
+                }
                 
                 const snapshot = await db.collection('users')
                                          .doc(user.uid)
