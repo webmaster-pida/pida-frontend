@@ -344,6 +344,9 @@ DOMPurify.addHook('afterSanitizeAttributes', function (node) {
 // --- UTILIDAD DE ACTUALIZACIÓN DE PRECIOS ---
 function updatePricingUI(currency) {
     currentCurrency = currency;
+    // Guardamos la preferencia para velocidad inmediata en futuras cargas (evita cobro en USD por error de carga)
+    localStorage.setItem('pida_currency', currency);
+
     const monthlyPriceEl = document.getElementById('price-val-monthly');
     const annualPriceEl = document.getElementById('price-val-annual');
     // IDs para el selector manual (si lo agregas en el HTML)
@@ -365,19 +368,32 @@ function updatePricingUI(currency) {
 
 // Función crucial para cumplimiento legal en México
 async function detectLocation() {
+    // 1. Prioridad: Revisar caché local primero. 
+    // Esto asegura que si el usuario recarga página al registrarse, el precio no "parpadee" a USD.
+    const cached = localStorage.getItem('pida_currency');
+    if (cached) updatePricingUI(cached);
+
     try {
+        // 2. Intentar detección precisa por IP
         const response = await fetch('https://ipapi.co/json/');
         const data = await response.json();
-        if (data.country_code === 'MX') {
-            updatePricingUI('MXN');
-        } else {
-            updatePricingUI('USD');
+        
+        // Confirmamos la moneda real basada en IP actual
+        const detectedCurrency = (data.country_code === 'MX') ? 'MXN' : 'USD';
+        
+        // Solo actualizamos si es diferente para evitar repintados innecesarios
+        if (detectedCurrency !== currentCurrency) {
+            updatePricingUI(detectedCurrency);
         }
     } catch (e) {
-        // Respaldo por zona horaria si la API falla
-        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        if (userTimeZone.includes('Mexico')) updatePricingUI('MXN');
-        else updatePricingUI('USD');
+        // 3. Respaldo ROBUSTO por zona horaria si la API falla o está bloqueada por adblockers
+        // Solo entramos aquí si no obtuvimos respuesta de la API.
+        if (!cached) {
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            // Regex mejorado: Cubre CDMX ("Mexico"), pero también Tijuana, Cancún, Mérida, etc.
+            const isMexico = /Mexico|Merida|Monterrey|Chihuahua|Hermosillo|Tijuana|Cancun|Mazatlan|Bahia_Banderas/i.test(tz);
+            updatePricingUI(isMexico ? 'MXN' : 'USD');
+        }
     }
 }
 
