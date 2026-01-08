@@ -815,32 +815,31 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
 
-        // --- VALIDACIÓN DE ACCESO Y AUTO-CHECKOUT (CONVERSIÓN) ---
-        // Llamamos a la función que verifica si es VIP o tiene suscripción
+        // 1. Revisamos si hay un plan guardado en la memoria del navegador
+        const savedPlan = sessionStorage.getItem('pida_pending_plan');
         const hasAccess = await checkAccessAuthorization(user); 
         const overlay = document.getElementById('pida-subscription-overlay');
 
-        // Si NO tiene acceso y venía de hacer clic en un plan (Punto 1)
-        if (!hasAccess && pendingPlan) {
-            const planToExecute = pendingPlan;
-            pendingPlan = null; // Limpiamos la intención para evitar bucles
+        // 2. Lógica de Conversión Directa: Si no tiene acceso pero quería un plan
+        if (!hasAccess && savedPlan) {
+            // Borramos de la memoria para que no se repita el bucle
+            sessionStorage.removeItem('pida_pending_plan'); 
             
-            const priceId = STRIPE_PRICES[planToExecute]?.['USD']?.id;
+            const priceId = STRIPE_PRICES[savedPlan]?.['USD']?.id;
             if (priceId) {
-                console.log("💳 Redirigiendo automáticamente a Stripe para:", planToExecute);
-                startCheckout(priceId); // Ejecuta la función de la línea 480
-                return; // Detenemos la carga de la App, el usuario se va a pagar
+                console.log("💳 Conversión detectada. Saltando interfaz directo a Stripe...");
+                startCheckout(priceId); // Línea 480
+                return; // IMPORTANTE: Detenemos todo aquí para que no vea la interfaz
             }
         }
 
-        // Control visual del bloqueo
+        // 3. Si no hay plan pendiente, procedemos con la vista normal
         if (!hasAccess) {
-            if (overlay) overlay.classList.remove('hidden'); // Muestra "Acceso Restringido"
+            if (overlay) overlay.classList.remove('hidden');
         } else {
-            if (overlay) overlay.classList.add('hidden'); // Oculta el bloqueo
-            pendingPlan = null; // Si ya tiene acceso, olvidamos planes pendientes
+            if (overlay) overlay.classList.add('hidden');
+            sessionStorage.removeItem('pida_pending_plan');
         }
-        // ---------------------------------------------------------
 
         const dom = {
             navInv: document.getElementById('nav-investigador'),

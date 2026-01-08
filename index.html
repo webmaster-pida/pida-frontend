@@ -337,12 +337,20 @@
     <!-- APP DASHBOARD -->
     <div id="pida-app-root">
         <div id="pida-subscription-overlay" class="pida-overlay hidden">
-            <div class="pida-overlay-content">
-                <h2 style="color: var(--pida-primary);">Acceso Restringido</h2>
-                <p style="color: var(--pida-text-muted);">No tienes una suscripción activa.</p>
-                <a href="#planes" class="pida-overlay-btn" onclick="document.getElementById('pida-app-root').style.display='none'; document.getElementById('landing-page-root').style.display='block'; window.location.hash='planes';">Ver Planes</a>
-            </div>
-        </div>
+    <div class="pida-overlay-content" style="max-width: 480px; padding: 40px; border-radius: 20px;">
+        <div style="font-size: 3.5rem; margin-bottom: 15px;">✨</div>
+        <h2 style="color: var(--pida-primary); margin-bottom: 15px; font-weight: 800;">¡Estás a un paso!</h2>
+        <p style="color: var(--pida-text-muted); font-size: 1.1rem; line-height: 1.6; margin-bottom: 30px;">
+            Para desbloquear el poder de <strong>PIDA</strong>, solo necesitas activar tu suscripción. 
+            <br><br>
+            ¡Recuerda que tienes <strong>5 días de prueba gratis</strong> para explorar todas las herramientas sin compromiso!
+        </p>
+        <a href="#planes" class="pida-overlay-btn" style="background: var(--pida-accent); font-weight: 700; padding: 15px 35px; border-radius: 10px; text-transform: uppercase; letter-spacing: 1px;" 
+           onclick="document.getElementById('pida-app-root').style.display='none'; document.getElementById('landing-page-root').style.display='block'; window.location.hash='planes';">
+           Ver Planes y Comenzar Prueba Gratis
+        </a>
+    </div>
+</div>
         <div id="pida-app-layout">
             <aside id="pida-sidebar">
                 <div class="pida-logo-container">
