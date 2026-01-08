@@ -346,32 +346,37 @@ function updatePricingUI(currency) {
     currentCurrency = currency;
     const monthlyPriceEl = document.getElementById('price-val-monthly');
     const annualPriceEl = document.getElementById('price-val-annual');
+    // IDs para el selector manual (si lo agregas en el HTML)
     const btnUSD = document.getElementById('btn-usd');
     const btnMXN = document.getElementById('btn-mxn');
 
     if (monthlyPriceEl && annualPriceEl) {
+        // Usamos los datos de STRIPE_PRICES definidos arriba
         monthlyPriceEl.textContent = STRIPE_PRICES.basic[currency].text;
         annualPriceEl.textContent = STRIPE_PRICES.pro[currency].text;
-        
-        // Estilo visual de los botones del selector (si los agregaste)
+
         if (btnUSD && btnMXN) {
             btnUSD.style.background = (currency === 'USD') ? 'white' : 'transparent';
             btnMXN.style.background = (currency === 'MXN') ? 'white' : 'transparent';
         }
-        console.log(`💰 Precios actualizados a: ${currency}`);
+        console.log(`💰 Moneda establecida: ${currency}`);
     }
 }
 
-// NUEVA FUNCIÓN: Detección por IP para cumplimiento legal en México
+// Función crucial para cumplimiento legal en México
 async function detectLocation() {
     try {
         const response = await fetch('https://ipapi.co/json/');
         const data = await response.json();
-        if (data.country_code === 'MX') updatePricingUI('MXN');
-        else updatePricingUI('USD');
+        if (data.country_code === 'MX') {
+            updatePricingUI('MXN');
+        } else {
+            updatePricingUI('USD');
+        }
     } catch (e) {
-        // Respaldo por zona horaria
-        if (Intl.DateTimeFormat().resolvedOptions().timeZone.includes('Mexico')) updatePricingUI('MXN');
+        // Respaldo por zona horaria si la API falla
+        const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        if (userTimeZone.includes('Mexico')) updatePricingUI('MXN');
         else updatePricingUI('USD');
     }
 }
@@ -399,20 +404,8 @@ document.addEventListener('DOMContentLoaded', function () {
             if (isMaintenance && maintenanceDiv) maintenanceDiv.style.display = 'block';
         });
 
-        // 2. Ejecutar detección de ubicación legal
+        // 2. Ejecutar detección de ubicación (Cumplimiento legal MXN)
         detectLocation();
-
-// 1. Activar Mantenimiento Real
-remoteConfig.fetchAndActivate().then(() => {
-    const isMaintenance = remoteConfig.getBoolean('maintenance_mode_enabled');
-    const maintenanceDiv = document.getElementById('maintenance-message');
-    if (isMaintenance && maintenanceDiv) maintenanceDiv.style.display = 'block';
-});
-
-// 2. Detección automática de moneda (México)
-const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-if (userTimeZone.includes('Mexico')) updatePricingUI('MXN');
-else updatePricingUI('USD');
         
         googleProvider = new firebase.auth.GoogleAuthProvider();
         googleProvider.setCustomParameters({ prompt: 'select_account' });
@@ -658,11 +651,11 @@ else updatePricingUI('USD');
     // ==========================================
     // OBSERVADOR DE ESTADO (CAMBIO DE PANTALLAS)
     // ==========================================
-    auth.onAuthStateChanged((user) => {
+        auth.onAuthStateChanged((user) => {
         if (checkUpdateBeforeStart()) return; 
 
         if (user) {
-            // Ocultamos landing y login, pero NO mostramos la App todavía para evitar parpadeos
+            // Ocultamos landing y login, pero NO mostramos la App todavía
             if(landingRoot) landingRoot.style.display = 'none'; 
             if(loginScreen) loginScreen.style.display = 'none'; 
             runApp(user); // runApp decidirá si va a Stripe o muestra la App
@@ -816,15 +809,15 @@ else updatePricingUI('USD');
             e.preventDefault();
             if (btn.disabled) return;
             const planKey = btn.getAttribute('data-plan');
-            
-            // Detectamos el precio según la moneda actual (USD o MXN)
+
+            // USAMOS LA MONEDA DETECTADA DINÁMICAMENTE
             const priceId = STRIPE_PRICES[planKey]?.[currentCurrency]?.id;
-            
+
             if (currentUser && priceId) {
                 btn.textContent = "Procesando...";
                 startCheckout(priceId);
             } else {
-                // Guardamos en sessionStorage para que persista tras el login/registro
+                // Guardamos en memoria para el Punto 1
                 sessionStorage.setItem('pida_pending_plan', planKey);
                 if (loginScreen) { loginScreen.style.display = 'flex'; window.switchAuthMode('register'); }
             }
