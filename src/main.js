@@ -791,23 +791,38 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ==========================================
     // APLICACIÓN PRINCIPAL (RUNAPP)
-    // ==========================================
+    // 1. Agregamos 'async' para poder usar 'await' dentro
     async function runApp(user) {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
 
-        // --- NUEVA VALIDACIÓN DE ACCESO EN EL FRONTEND ---
-        const hasAccess = await checkAccessAuthorization(user);
+        // --- VALIDACIÓN DE ACCESO Y AUTO-CHECKOUT (CONVERSIÓN) ---
+        // Llamamos a la función que verifica si es VIP o tiene suscripción
+        const hasAccess = await checkAccessAuthorization(user); 
         const overlay = document.getElementById('pida-subscription-overlay');
-        
-        if (!hasAccess) {
-            // Si no tiene acceso, quitamos la clase 'hidden' para mostrar el bloqueo
-            if (overlay) overlay.classList.remove('hidden'); 
-        } else {
-            // Si tiene acceso, nos aseguramos de que el bloqueo esté oculto
-            if (overlay) overlay.classList.add('hidden'); 
+
+        // Si NO tiene acceso y venía de hacer clic en un plan (Punto 1)
+        if (!hasAccess && pendingPlan) {
+            const planToExecute = pendingPlan;
+            pendingPlan = null; // Limpiamos la intención para evitar bucles
+            
+            const priceId = STRIPE_PRICES[planToExecute]?.['USD']?.id;
+            if (priceId) {
+                console.log("💳 Redirigiendo automáticamente a Stripe para:", planToExecute);
+                startCheckout(priceId); // Ejecuta la función de la línea 480
+                return; // Detenemos la carga de la App, el usuario se va a pagar
+            }
         }
-        // ------------------------------------------------
+
+        // Control visual del bloqueo
+        if (!hasAccess) {
+            if (overlay) overlay.classList.remove('hidden'); // Muestra "Acceso Restringido"
+        } else {
+            if (overlay) overlay.classList.add('hidden'); // Oculta el bloqueo
+            pendingPlan = null; // Si ya tiene acceso, olvidamos planes pendientes
+        }
+        // ---------------------------------------------------------
+
         const dom = {
             navInv: document.getElementById('nav-investigador'),
             navAna: document.getElementById('nav-analizador'),
@@ -936,6 +951,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if (view === 'investigador') loadChatHistory();
             if (view === 'analizador') loadAnaHistory();
+            if (view === 'precalificador') loadPreHistory();
         }
 
         if(dom.navInv) dom.navInv.onclick = () => setView('investigador');
