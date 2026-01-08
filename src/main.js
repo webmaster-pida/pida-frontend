@@ -603,46 +603,17 @@ document.addEventListener('DOMContentLoaded', function () {
     // OBSERVADOR DE ESTADO (CAMBIO DE PANTALLAS)
     // ==========================================
     auth.onAuthStateChanged((user) => {
-        // 1. Verificar actualización crítica y recargar si es necesario
         if (checkUpdateBeforeStart()) return; 
 
-        // 2. Asegurar que el preloader se vaya SIEMPRE
-        hideLoader();
-
-        const toast = document.getElementById('update-toast');
-
         if (user) {
-            console.log("✅ Usuario detectado. Cambiando a vista de App...");
-            
-            // A. CAMBIO DE PANTALLA
-            if(landingRoot) landingRoot.style.display = 'none'; // Adiós Landing
-            if(loginScreen) loginScreen.style.display = 'none'; // Adiós Login Modal
-            if(appRoot) appRoot.style.display = 'block';        // Hola App
-            
-            // B. GESTIÓN DEL TOAST (Solo si hay usuario y NO es dev)
-            if (!APP_VERSION.includes('PLACEHOLDER') && !APP_VERSION.includes('dev')) {
-                const pending = localStorage.getItem('pida_pending_update');
-                if (pending && pending !== APP_VERSION) {
-                    if (toast) toast.classList.remove('hidden');
-                } else {
-                    if (toast) toast.classList.add('hidden');
-                }
-            }
-
-            // C. INICIAR LÓGICA
-            runApp(user);
-
+            // Ocultamos landing y login, pero NO mostramos la App todavía
+            if(landingRoot) landingRoot.style.display = 'none'; 
+            if(loginScreen) loginScreen.style.display = 'none'; 
+            runApp(user); // runApp decidirá si muestra la App o va a Stripe
         } else {
-            console.log("⛔ Sin usuario. Mostrando Landing.");
-
-            // A. CAMBIO DE PANTALLA
-            if(appRoot) appRoot.style.display = 'none';         // Adiós App
-            if(landingRoot) landingRoot.style.display = 'block';// Hola Landing
-            
-            // B. OCULTAR TOAST SIEMPRE
-            if (toast) toast.classList.add('hidden');
-            
-            // C. Limpiar UI
+            hideLoader(); 
+            if(appRoot) appRoot.style.display = 'none';
+            if(landingRoot) landingRoot.style.display = 'block';
             window.closeBanner();
         }
     });
@@ -801,10 +772,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 btn.textContent = "Procesando...";
                 startCheckout(priceId);
             } else {
-            // Guardamos el plan en la memoria del navegador para que no se pierda
+            // Guardamos el plan en la memoria del navegador de forma segura
             sessionStorage.setItem('pida_pending_plan', planKey); 
             if (loginScreen) { loginScreen.style.display = 'flex'; window.switchAuthMode('register'); }
-        }
+            }
         });
     });
 
@@ -815,25 +786,30 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
 
-        // 1. Revisamos si hay un plan guardado en la memoria del navegador
+        // 1. Leemos el plan que el usuario quería contratar
         const savedPlan = sessionStorage.getItem('pida_pending_plan');
-        const hasAccess = await checkAccessAuthorization(user); 
+        
+        // 2. Verificamos su acceso (VIP o Suscripción existente)
+        const hasAccess = await checkAccessAuthorization(user);
         const overlay = document.getElementById('pida-subscription-overlay');
 
-        // 2. Lógica de Conversión Directa: Si no tiene acceso pero quería un plan
+        // 3. FLUJO DE VENTA DIRECTA: Si no tiene acceso y eligió un plan antes
         if (!hasAccess && savedPlan) {
-            // Borramos de la memoria para que no se repita el bucle
-            sessionStorage.removeItem('pida_pending_plan'); 
-            
+            sessionStorage.removeItem('pida_pending_plan'); // Limpiamos para evitar bucles
             const priceId = STRIPE_PRICES[savedPlan]?.['USD']?.id;
+            
             if (priceId) {
-                console.log("💳 Conversión detectada. Saltando interfaz directo a Stripe...");
-                startCheckout(priceId); // Línea 480
-                return; // IMPORTANTE: Detenemos todo aquí para que no vea la interfaz
+                console.log("💳 Conversión detectada. Redirigiendo directo a Stripe...");
+                startCheckout(priceId); // Ejecuta la función de Stripe
+                return; // IMPORTANTE: Detenemos todo aquí. El usuario NO verá la interfaz.
             }
         }
 
-        // 3. Si no hay plan pendiente, procedemos con la vista normal
+        // 4. Si llegamos aquí, es porque NO va a Stripe. Mostramos la App.
+        if(appRoot) appRoot.style.display = 'block'; 
+        hideLoader(); // Quitamos el preloader solo cuando la App es visible
+
+        // 5. Manejamos la visibilidad del overlay (ahora con mensaje suave)
         if (!hasAccess) {
             if (overlay) overlay.classList.remove('hidden');
         } else {
