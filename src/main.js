@@ -684,8 +684,28 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (authMode === 'login') await auth.signInWithEmailAndPassword(email, pass);
                 else await auth.createUserWithEmailAndPassword(email, pass);
             } catch (error) {
-                btn.disabled = false; btn.textContent = "Intentar de nuevo";
-                alert(error.message);
+                btn.disabled = false; 
+                btn.textContent = "Intentar de nuevo";
+                
+                // Traducimos el error técnico a un mensaje amigable
+                let friendlyMessage = "Ocurrió un error. Por favor, intenta de nuevo.";
+                
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
+                    friendlyMessage = "El correo o la contraseña no son correctos. Verifica tus datos.";
+                } else if (error.code === 'auth/email-already-in-use') {
+                    friendlyMessage = "Este correo ya está registrado. Prueba iniciando sesión.";
+                } else if (error.code === 'auth/weak-password') {
+                    friendlyMessage = "La contraseña debe tener al menos 6 caracteres.";
+                } else if (error.code === 'auth/too-many-requests') {
+                    friendlyMessage = "Demasiados intentos. Por seguridad, espera un momento.";
+                }
+
+                // Mostramos el mensaje en el div 'login-message' que ya tienes en el HTML
+                const errMsg = document.getElementById('login-message');
+                if (errMsg) {
+                    errMsg.textContent = friendlyMessage;
+                    errMsg.style.display = 'block';
+                }
             }
         });
     }
@@ -741,8 +761,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (errMsg) {
                     errMsg.textContent = friendlyMessage;
                     errMsg.style.display = 'block';
-                } else {
-                    alert(friendlyMessage);
                 }
             }
         });
