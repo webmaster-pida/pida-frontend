@@ -380,18 +380,6 @@ remoteConfig.fetchAndActivate().then(() => {
 const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 if (userTimeZone.includes('Mexico')) updatePricingUI('MXN');
 else updatePricingUI('USD');
-
-// 1. Activar Mantenimiento Real
-remoteConfig.fetchAndActivate().then(() => {
-    const isMaintenance = remoteConfig.getBoolean('maintenance_mode_enabled');
-    const maintenanceDiv = document.getElementById('maintenance-message');
-    if (isMaintenance && maintenanceDiv) maintenanceDiv.style.display = 'block';
-});
-
-// 2. Detección automática de moneda (México)
-const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-if (userTimeZone.includes('Mexico')) updatePricingUI('MXN');
-else updatePricingUI('USD');
         
         googleProvider = new firebase.auth.GoogleAuthProvider();
         googleProvider.setCustomParameters({ prompt: 'select_account' });
