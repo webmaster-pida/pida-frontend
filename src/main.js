@@ -792,7 +792,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
     // APLICACIÓN PRINCIPAL (RUNAPP)
     // ==========================================
-    function runApp(user) {
+    async function runApp(user) {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
 
@@ -801,13 +801,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const overlay = document.getElementById('pida-subscription-overlay');
         
         if (!hasAccess) {
-            if (overlay) overlay.classList.remove('hidden'); // Muestra el bloqueo
-            // Opcional: puedes dejar que vea la interfaz pero con el candado encima
+            // Si no tiene acceso, quitamos la clase 'hidden' para mostrar el bloqueo
+            if (overlay) overlay.classList.remove('hidden'); 
         } else {
-            if (overlay) overlay.classList.add('hidden'); // Asegura que esté oculto
+            // Si tiene acceso, nos aseguramos de que el bloqueo esté oculto
+            if (overlay) overlay.classList.add('hidden'); 
         }
         // ------------------------------------------------
-
         const dom = {
             navInv: document.getElementById('nav-investigador'),
             navAna: document.getElementById('nav-analizador'),
