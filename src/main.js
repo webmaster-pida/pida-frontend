@@ -346,10 +346,33 @@ function updatePricingUI(currency) {
     currentCurrency = currency;
     const monthlyPriceEl = document.getElementById('price-val-monthly');
     const annualPriceEl = document.getElementById('price-val-annual');
+    const btnUSD = document.getElementById('btn-usd');
+    const btnMXN = document.getElementById('btn-mxn');
+
     if (monthlyPriceEl && annualPriceEl) {
         monthlyPriceEl.textContent = STRIPE_PRICES.basic[currency].text;
         annualPriceEl.textContent = STRIPE_PRICES.pro[currency].text;
+        
+        // Estilo visual de los botones del selector (si los agregaste)
+        if (btnUSD && btnMXN) {
+            btnUSD.style.background = (currency === 'USD') ? 'white' : 'transparent';
+            btnMXN.style.background = (currency === 'MXN') ? 'white' : 'transparent';
+        }
         console.log(`💰 Precios actualizados a: ${currency}`);
+    }
+}
+
+// NUEVA FUNCIÓN: Detección por IP para cumplimiento legal en México
+async function detectLocation() {
+    try {
+        const response = await fetch('https://ipapi.co/json/');
+        const data = await response.json();
+        if (data.country_code === 'MX') updatePricingUI('MXN');
+        else updatePricingUI('USD');
+    } catch (e) {
+        // Respaldo por zona horaria
+        if (Intl.DateTimeFormat().resolvedOptions().timeZone.includes('Mexico')) updatePricingUI('MXN');
+        else updatePricingUI('USD');
     }
 }
 
@@ -368,6 +391,16 @@ document.addEventListener('DOMContentLoaded', function () {
         db = firebase.firestore();
         const remoteConfig = firebase.remoteConfig();
         remoteConfig.defaultConfig = { 'maintenance_mode_enabled': 'false' };
+
+        // 1. Activar Mantenimiento Real
+        remoteConfig.fetchAndActivate().then(() => {
+            const isMaintenance = remoteConfig.getBoolean('maintenance_mode_enabled');
+            const maintenanceDiv = document.getElementById('maintenance-message');
+            if (isMaintenance && maintenanceDiv) maintenanceDiv.style.display = 'block';
+        });
+
+        // 2. Ejecutar detección de ubicación legal
+        detectLocation();
 
 // 1. Activar Mantenimiento Real
 remoteConfig.fetchAndActivate().then(() => {
@@ -629,10 +662,10 @@ else updatePricingUI('USD');
         if (checkUpdateBeforeStart()) return; 
 
         if (user) {
-            // Ocultamos landing y login, pero NO mostramos la App todavía
+            // Ocultamos landing y login, pero NO mostramos la App todavía para evitar parpadeos
             if(landingRoot) landingRoot.style.display = 'none'; 
             if(loginScreen) loginScreen.style.display = 'none'; 
-            runApp(user); // runApp decidirá si muestra la App o va a Stripe
+            runApp(user); // runApp decidirá si va a Stripe o muestra la App
         } else {
             hideLoader(); 
             if(appRoot) appRoot.style.display = 'none';
@@ -681,20 +714,14 @@ else updatePricingUI('USD');
                 btn.disabled = false; 
                 btn.textContent = "Intentar de nuevo";
                 
-                // Traducimos el error técnico a un mensaje amigable
                 let friendlyMessage = "Ocurrió un error. Por favor, intenta de nuevo.";
-                
                 if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-                    friendlyMessage = "El correo o la contraseña no son correctos. Verifica tus datos.";
+                    friendlyMessage = "El correo o la contraseña no son correctos.";
                 } else if (error.code === 'auth/email-already-in-use') {
-                    friendlyMessage = "Este correo ya está registrado. Prueba iniciando sesión.";
-                } else if (error.code === 'auth/weak-password') {
-                    friendlyMessage = "La contraseña debe tener al menos 6 caracteres.";
-                } else if (error.code === 'auth/too-many-requests') {
-                    friendlyMessage = "Demasiados intentos. Por seguridad, espera un momento.";
+                    friendlyMessage = "Este correo ya está registrado. Intenta ingresar.";
                 }
 
-                // Mostramos el mensaje en el div 'login-message' que ya tienes en el HTML
+                // Usamos el div de error que ya tienes en el HTML
                 const errMsg = document.getElementById('login-message');
                 if (errMsg) {
                     errMsg.textContent = friendlyMessage;
@@ -789,14 +816,15 @@ else updatePricingUI('USD');
             e.preventDefault();
             if (btn.disabled) return;
             const planKey = btn.getAttribute('data-plan');
-            // Usamos la moneda detectada automáticamente
+            
+            // Detectamos el precio según la moneda actual (USD o MXN)
             const priceId = STRIPE_PRICES[planKey]?.[currentCurrency]?.id;
-
+            
             if (currentUser && priceId) {
                 btn.textContent = "Procesando...";
                 startCheckout(priceId);
             } else {
-                // Guardamos en memoria sólida para que no se borre al loguearse
+                // Guardamos en sessionStorage para que persista tras el login/registro
                 sessionStorage.setItem('pida_pending_plan', planKey);
                 if (loginScreen) { loginScreen.style.display = 'flex'; window.switchAuthMode('register'); }
             }
@@ -810,30 +838,28 @@ else updatePricingUI('USD');
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
 
-        // 1. Leemos el plan que el usuario quería contratar
+        // 1. Verificar intención de compra previa grabada en el Paso 6
         const savedPlan = sessionStorage.getItem('pida_pending_plan');
         
-        // 2. Verificamos su acceso (VIP o Suscripción existente)
+        // 2. Verificar acceso real del usuario
         const hasAccess = await checkAccessAuthorization(user);
         const overlay = document.getElementById('pida-subscription-overlay');
 
-        // 3. FLUJO DE VENTA DIRECTA: Si no tiene acceso y eligió un plan antes
+        // 3. REDIRECCIÓN AUTOMÁTICA (CONVERSIÓN)
         if (!hasAccess && savedPlan) {
-            sessionStorage.removeItem('pida_pending_plan'); // Limpiamos para evitar bucles
-            const priceId = STRIPE_PRICES[savedPlan]?.['USD']?.id;
-            
+            sessionStorage.removeItem('pida_pending_plan');
+            const priceId = STRIPE_PRICES[savedPlan]?.[currentCurrency]?.id;
             if (priceId) {
-                console.log("💳 Conversión detectada. Redirigiendo directo a Stripe...");
-                startCheckout(priceId); // Ejecuta la función de Stripe
-                return; // IMPORTANTE: Detenemos todo aquí. El usuario NO verá la interfaz.
+                console.log("💳 Venta detectada. Redirigiendo a Stripe...");
+                startCheckout(priceId);
+                return; // Evitamos cargar la App si se va a pagar
             }
         }
 
-        // 4. Si llegamos aquí, es porque NO va a Stripe. Mostramos la App.
+        // 4. Mostrar App solo si no hubo redirección a Stripe
         if(appRoot) appRoot.style.display = 'block'; 
-        hideLoader(); // Quitamos el preloader solo cuando la App es visible
+        hideLoader(); 
 
-        // 5. Manejamos la visibilidad del overlay (ahora con mensaje suave)
         if (!hasAccess) {
             if (overlay) overlay.classList.remove('hidden');
         } else {
