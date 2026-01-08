@@ -801,9 +801,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 btn.textContent = "Procesando...";
                 startCheckout(priceId);
             } else {
-                pendingPlan = planKey;
-                if (loginScreen) { loginScreen.style.display = 'flex'; window.switchAuthMode('register'); }
-            }
+            // Guardamos el plan en la memoria del navegador para que no se pierda
+            sessionStorage.setItem('pida_pending_plan', planKey); 
+            if (loginScreen) { loginScreen.style.display = 'flex'; window.switchAuthMode('register'); }
+        }
         });
     });
 
