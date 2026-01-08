@@ -341,6 +341,17 @@ DOMPurify.addHook('afterSanitizeAttributes', function (node) {
     if ('target' in node) { node.setAttribute('target', '_blank'); node.setAttribute('rel', 'noopener noreferrer'); }
 });
 
+// --- UTILIDAD DE ACTUALIZACIÓN DE PRECIOS ---
+function updatePricingUI(currency) {
+    currentCurrency = currency;
+    const monthlyPriceEl = document.getElementById('price-val-monthly');
+    const annualPriceEl = document.getElementById('price-val-annual');
+    if (monthlyPriceEl && annualPriceEl) {
+        monthlyPriceEl.textContent = STRIPE_PRICES.basic[currency].text;
+        annualPriceEl.textContent = STRIPE_PRICES.pro[currency].text;
+        console.log(`💰 Precios actualizados a: ${currency}`);
+    }
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     const landingRoot = document.getElementById('landing-page-root');
@@ -357,6 +368,30 @@ document.addEventListener('DOMContentLoaded', function () {
         db = firebase.firestore();
         const remoteConfig = firebase.remoteConfig();
         remoteConfig.defaultConfig = { 'maintenance_mode_enabled': 'false' };
+
+// 1. Activar Mantenimiento Real
+remoteConfig.fetchAndActivate().then(() => {
+    const isMaintenance = remoteConfig.getBoolean('maintenance_mode_enabled');
+    const maintenanceDiv = document.getElementById('maintenance-message');
+    if (isMaintenance && maintenanceDiv) maintenanceDiv.style.display = 'block';
+});
+
+// 2. Detección automática de moneda (México)
+const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+if (userTimeZone.includes('Mexico')) updatePricingUI('MXN');
+else updatePricingUI('USD');
+
+// 1. Activar Mantenimiento Real
+remoteConfig.fetchAndActivate().then(() => {
+    const isMaintenance = remoteConfig.getBoolean('maintenance_mode_enabled');
+    const maintenanceDiv = document.getElementById('maintenance-message');
+    if (isMaintenance && maintenanceDiv) maintenanceDiv.style.display = 'block';
+});
+
+// 2. Detección automática de moneda (México)
+const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+if (userTimeZone.includes('Mexico')) updatePricingUI('MXN');
+else updatePricingUI('USD');
         
         googleProvider = new firebase.auth.GoogleAuthProvider();
         googleProvider.setCustomParameters({ prompt: 'select_account' });
@@ -766,15 +801,16 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
             if (btn.disabled) return;
             const planKey = btn.getAttribute('data-plan');
-            const priceId = STRIPE_PRICES[planKey]?.['USD']?.id; // Default USD por simplicidad
-            
+            // Usamos la moneda detectada automáticamente
+            const priceId = STRIPE_PRICES[planKey]?.[currentCurrency]?.id;
+
             if (currentUser && priceId) {
                 btn.textContent = "Procesando...";
                 startCheckout(priceId);
             } else {
-            // Guardamos el plan en la memoria del navegador de forma segura
-            sessionStorage.setItem('pida_pending_plan', planKey); 
-            if (loginScreen) { loginScreen.style.display = 'flex'; window.switchAuthMode('register'); }
+                // Guardamos en memoria sólida para que no se borre al loguearse
+                sessionStorage.setItem('pida_pending_plan', planKey);
+                if (loginScreen) { loginScreen.style.display = 'flex'; window.switchAuthMode('register'); }
             }
         });
     });
