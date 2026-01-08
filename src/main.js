@@ -796,6 +796,18 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
 
+        // --- NUEVA VALIDACIÓN DE ACCESO EN EL FRONTEND ---
+        const hasAccess = await checkAccessAuthorization(user);
+        const overlay = document.getElementById('pida-subscription-overlay');
+        
+        if (!hasAccess) {
+            if (overlay) overlay.classList.remove('hidden'); // Muestra el bloqueo
+            // Opcional: puedes dejar que vea la interfaz pero con el candado encima
+        } else {
+            if (overlay) overlay.classList.add('hidden'); // Asegura que esté oculto
+        }
+        // ------------------------------------------------
+
         const dom = {
             navInv: document.getElementById('nav-investigador'),
             navAna: document.getElementById('nav-analizador'),
