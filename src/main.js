@@ -344,56 +344,53 @@ DOMPurify.addHook('afterSanitizeAttributes', function (node) {
 // --- UTILIDAD DE ACTUALIZACIÓN DE PRECIOS ---
 function updatePricingUI(currency) {
     currentCurrency = currency;
-    // Guardamos la preferencia para velocidad inmediata en futuras cargas (evita cobro en USD por error de carga)
-    localStorage.setItem('pida_currency', currency);
+    localStorage.setItem('pida_currency', currency); // Guardar siempre la última detectada/seleccionada
 
     const monthlyPriceEl = document.getElementById('price-val-monthly');
     const annualPriceEl = document.getElementById('price-val-annual');
-    // IDs para el selector manual (si lo agregas en el HTML)
-    const btnUSD = document.getElementById('btn-usd');
-    const btnMXN = document.getElementById('btn-mxn');
 
     if (monthlyPriceEl && annualPriceEl) {
-        // Usamos los datos de STRIPE_PRICES definidos arriba
+        // Actualizar textos en la landing
         monthlyPriceEl.textContent = STRIPE_PRICES.basic[currency].text;
         annualPriceEl.textContent = STRIPE_PRICES.pro[currency].text;
-
-        if (btnUSD && btnMXN) {
-            btnUSD.style.background = (currency === 'USD') ? 'white' : 'transparent';
-            btnMXN.style.background = (currency === 'MXN') ? 'white' : 'transparent';
-        }
-        console.log(`💰 Moneda establecida: ${currency}`);
+        
+        console.log(`✅ UI de precios actualizada a: ${currency}`);
     }
 }
 
 // Función crucial para cumplimiento legal en México
 async function detectLocation() {
-    // 1. Prioridad: Revisar caché local primero. 
-    // Esto asegura que si el usuario recarga página al registrarse, el precio no "parpadee" a USD.
-    const cached = localStorage.getItem('pida_currency');
-    if (cached) updatePricingUI(cached);
-
+    // 1. Intentar detección por API (IP) con un Timeout de 2 segundos para no bloquear la carga
     try {
-        // 2. Intentar detección precisa por IP
-        const response = await fetch('https://ipapi.co/json/');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+        // Usamos una API alternativa más robusta y rápida
+        const response = await fetch('https://ipapi.co/json/', { signal: controller.signal });
         const data = await response.json();
-        
-        // Confirmamos la moneda real basada en IP actual
-        const detectedCurrency = (data.country_code === 'MX') ? 'MXN' : 'USD';
-        
-        // Solo actualizamos si es diferente para evitar repintados innecesarios
-        if (detectedCurrency !== currentCurrency) {
-            updatePricingUI(detectedCurrency);
+        clearTimeout(timeoutId);
+
+        if (data.country_code === 'MX') {
+            updatePricingUI('MXN');
+            return; // Éxito total
+        } else if (data.country_code) {
+            updatePricingUI('USD');
+            return;
         }
     } catch (e) {
-        // 3. Respaldo ROBUSTO por zona horaria si la API falla o está bloqueada por adblockers
-        // Solo entramos aquí si no obtuvimos respuesta de la API.
-        if (!cached) {
-            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-            // Regex mejorado: Cubre CDMX ("Mexico"), pero también Tijuana, Cancún, Mérida, etc.
-            const isMexico = /Mexico|Merida|Monterrey|Chihuahua|Hermosillo|Tijuana|Cancun|Mazatlan|Bahia_Banderas/i.test(tz);
-            updatePricingUI(isMexico ? 'MXN' : 'USD');
-        }
+        console.warn("Detección por IP falló o fue bloqueada, intentando fallback...");
+    }
+
+    // 2. Fallback por Zona Horaria (Inmediato y no requiere red)
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const isMexicoTZ = /Mexico|Merida|Monterrey|Chihuahua|Hermosillo|Tijuana|Cancun|Mazatlan|Bahia_Banderas/i.test(tz);
+    
+    if (isMexicoTZ) {
+        updatePricingUI('MXN');
+    } else {
+        // 3. Último recurso: Ver si había algo en caché, si no, default USD
+        const cached = localStorage.getItem('pida_currency');
+        updatePricingUI(cached || 'USD');
     }
 }
 
