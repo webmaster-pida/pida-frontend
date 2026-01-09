@@ -845,10 +845,22 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
 
-        // 1. Verificar intención de compra previa grabada en el Paso 6
+        // --- SOLUCIÓN PARA EL BOTÓN DE SALIDA EN EL OVERLAY ---
+        const btnLogoutOverlay = document.getElementById('logout-from-overlay');
+        if (btnLogoutOverlay) {
+            // Usamos addEventListener que es más confiable que .onclick
+            btnLogoutOverlay.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Cerrando sesión desde overlay...");
+                auth.signOut().then(() => {
+                    window.location.href = window.location.origin + window.location.pathname;
+                });
+            });
+        }
+        // -----------------------------------------------------
+
         const savedPlan = sessionStorage.getItem('pida_pending_plan');
-        
-        // 2. Verificar acceso real del usuario
         const hasAccess = await checkAccessAuthorization(user);
         const overlay = document.getElementById('pida-subscription-overlay');
 

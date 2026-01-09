@@ -337,7 +337,7 @@
     <!-- APP DASHBOARD -->
     <div id="pida-app-root">
         <div id="pida-subscription-overlay" class="pida-overlay hidden">
-            <div class="pida-overlay-content" style="max-width: 480px; padding: 50px; border-radius: 20px;">
+            <div class="pida-overlay-content" style="max-width: 480px; padding: 50px; border-radius: 20px; position: relative; z-index: 1000;">
                 <div style="font-size: 3.5rem; margin-bottom: 20px;">✨</div>
                 <h2 style="color: var(--pida-primary); margin-bottom: 15px; font-weight: 800;">¡Estás a un paso!</h2>
                 <p style="color: var(--pida-text-muted); font-size: 1.1rem; line-height: 1.6; margin-bottom: 30px;">
@@ -345,12 +345,14 @@
                     <br><br>
                     ¡Recuerda que tienes <strong>5 días de prueba sin costo</strong> para explorar todo el potencial de PIDA!
                 </p>
-                <a href="#planes" class="pida-overlay-btn" style="background: var(--pida-accent); font-weight: 700; padding: 15px 40px; border-radius: 10px; text-transform: uppercase; letter-spacing: 1px;" 
+                <a href="#planes" class="pida-overlay-btn" style="background: var(--pida-accent); font-weight: 700; padding: 15px 40px; border-radius: 10px; text-transform: uppercase; letter-spacing: 1px; display: block; text-decoration: none;" 
                 onclick="document.getElementById('pida-app-root').style.display='none'; document.getElementById('landing-page-root').style.display='block'; window.location.hash='planes';">
                 Ver Planes y Empezar Prueba Gratis
                 </a>
-                <button id="logout-from-overlay" style="margin-top: 20px; background: none; border: none; color: #666; text-decoration: underline; cursor: pointer; font-size: 0.9rem;">
-                Cerrar sesión e ingresar con otra cuenta
+
+                <!-- BOTÓN DE CERRAR SESIÓN (ID EXACTO) -->
+                <button id="logout-from-overlay" type="button" style="margin-top: 25px; background: none; border: none; color: #666; text-decoration: underline; cursor: pointer; font-size: 0.9rem; padding: 10px; display: inline-block;">
+                    Cerrar sesión e ingresar con otra cuenta
                 </button>
             </div>
         </div>
