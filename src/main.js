@@ -341,6 +341,59 @@ DOMPurify.addHook('afterSanitizeAttributes', function (node) {
     if ('target' in node) { node.setAttribute('target', '_blank'); node.setAttribute('rel', 'noopener noreferrer'); }
 });
 
+// --- UTILIDAD DE ACTUALIZACIÓN DE PRECIOS ---
+function updatePricingUI(currency) {
+    currentCurrency = currency;
+    localStorage.setItem('pida_currency', currency); // Guardar siempre la última detectada/seleccionada
+
+    const monthlyPriceEl = document.getElementById('price-val-monthly');
+    const annualPriceEl = document.getElementById('price-val-annual');
+
+    if (monthlyPriceEl && annualPriceEl) {
+        // Actualizar textos en la landing
+        monthlyPriceEl.textContent = STRIPE_PRICES.basic[currency].text;
+        annualPriceEl.textContent = STRIPE_PRICES.pro[currency].text;
+        
+        console.log(`✅ UI de precios actualizada a: ${currency}`);
+    }
+}
+
+// Función crucial para cumplimiento legal en México
+async function detectLocation() {
+    // 1. Prioridad 1: Detección por IP (API)
+    try {
+        // Usamos un timeout para que la web no espere eternamente a la API si falla
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+        const response = await fetch('https://ipapi.co/json/', { signal: controller.signal });
+        const data = await response.json();
+        clearTimeout(timeoutId);
+
+        if (data.country_code === 'MX') {
+            updatePricingUI('MXN');
+            return; // Detección exitosa, salimos.
+        } else if (data.country_code) {
+            updatePricingUI('USD');
+            return;
+        }
+    } catch (e) {
+        console.warn("API de IP falló o fue bloqueada por VPN/Adblock.");
+    }
+
+    // 2. Prioridad 2: Fallback por Zona Horaria (Si la API falló, esto detecta México el 99% de las veces)
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const isMexico = /Mexico|Merida|Monterrey|Chihuahua|Hermosillo|Tijuana|Cancun|Mazatlan|Bahia_Banderas/i.test(tz);
+    
+    if (isMexico) {
+        updatePricingUI('MXN');
+        return;
+    }
+
+    // 3. Prioridad 3: Si todo lo anterior falla, usamos el caché o por defecto USD
+    const cached = localStorage.getItem('pida_currency');
+    updatePricingUI(cached || 'USD');
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     const landingRoot = document.getElementById('landing-page-root');
@@ -358,14 +411,17 @@ document.addEventListener('DOMContentLoaded', function () {
         const remoteConfig = firebase.remoteConfig();
         remoteConfig.defaultConfig = { 'maintenance_mode_enabled': 'false' };
 
-        // Activar la escucha de configuración remota
-        remoteConfig.fetchAndActivate().then(() => {
-            const isMaintenance = remoteConfig.getBoolean('maintenance_mode_enabled');
-            const maintenanceDiv = document.getElementById('maintenance-message');
-            if (isMaintenance && maintenanceDiv) {
-                maintenanceDiv.style.display = 'block'; // Muestra el aviso amarillo en el login
-            }
-        });
+    // 1. Activar Mantenimiento Real
+            remoteConfig.fetchAndActivate().then(() => {
+                const isMaintenance = remoteConfig.getBoolean('maintenance_mode_enabled');
+                const maintenanceDiv = document.getElementById('maintenance-message');
+                if (isMaintenance && maintenanceDiv) {
+                    maintenanceDiv.style.display = 'block';
+                }
+            });
+
+            // 2. Ejecutar detección de ubicación (Cumplimiento legal MXN)
+            detectLocation();
         
         googleProvider = new firebase.auth.GoogleAuthProvider();
         googleProvider.setCustomParameters({ prompt: 'select_account' });
@@ -611,14 +667,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
     // OBSERVADOR DE ESTADO (CAMBIO DE PANTALLAS)
     // ==========================================
-    auth.onAuthStateChanged((user) => {
+        auth.onAuthStateChanged((user) => {
         if (checkUpdateBeforeStart()) return; 
 
         if (user) {
             // Ocultamos landing y login, pero NO mostramos la App todavía
             if(landingRoot) landingRoot.style.display = 'none'; 
             if(loginScreen) loginScreen.style.display = 'none'; 
-            runApp(user); // runApp decidirá si muestra la App o va a Stripe
+            runApp(user); // runApp decidirá si va a Stripe o muestra la App
         } else {
             hideLoader(); 
             if(appRoot) appRoot.style.display = 'none';
@@ -667,20 +723,14 @@ document.addEventListener('DOMContentLoaded', function () {
                 btn.disabled = false; 
                 btn.textContent = "Intentar de nuevo";
                 
-                // Traducimos el error técnico a un mensaje amigable
                 let friendlyMessage = "Ocurrió un error. Por favor, intenta de nuevo.";
-                
                 if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-                    friendlyMessage = "El correo o la contraseña no son correctos. Verifica tus datos.";
+                    friendlyMessage = "El correo o la contraseña no son correctos.";
                 } else if (error.code === 'auth/email-already-in-use') {
-                    friendlyMessage = "Este correo ya está registrado. Prueba iniciando sesión.";
-                } else if (error.code === 'auth/weak-password') {
-                    friendlyMessage = "La contraseña debe tener al menos 6 caracteres.";
-                } else if (error.code === 'auth/too-many-requests') {
-                    friendlyMessage = "Demasiados intentos. Por seguridad, espera un momento.";
+                    friendlyMessage = "Este correo ya está registrado. Intenta ingresar.";
                 }
 
-                // Mostramos el mensaje en el div 'login-message' que ya tienes en el HTML
+                // Usamos el div de error que ya tienes en el HTML
                 const errMsg = document.getElementById('login-message');
                 if (errMsg) {
                     errMsg.textContent = friendlyMessage;
@@ -775,15 +825,17 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
             if (btn.disabled) return;
             const planKey = btn.getAttribute('data-plan');
-            const priceId = STRIPE_PRICES[planKey]?.['USD']?.id; // Default USD por simplicidad
-            
+
+            // USAMOS LA MONEDA DETECTADA DINÁMICAMENTE
+            const priceId = STRIPE_PRICES[planKey]?.[currentCurrency]?.id;
+
             if (currentUser && priceId) {
                 btn.textContent = "Procesando...";
                 startCheckout(priceId);
             } else {
-            // Guardamos el plan en la memoria del navegador de forma segura
-            sessionStorage.setItem('pida_pending_plan', planKey); 
-            if (loginScreen) { loginScreen.style.display = 'flex'; window.switchAuthMode('register'); }
+                // Guardamos en memoria para el Punto 1
+                sessionStorage.setItem('pida_pending_plan', planKey);
+                if (loginScreen) { loginScreen.style.display = 'flex'; window.switchAuthMode('register'); }
             }
         });
     });
@@ -795,30 +847,40 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
 
-        // 1. Leemos el plan que el usuario quería contratar
+        // --- SOLUCIÓN PARA EL BOTÓN DE SALIDA EN EL OVERLAY ---
+        const btnLogoutOverlay = document.getElementById('logout-from-overlay');
+        if (btnLogoutOverlay) {
+            // Usamos addEventListener que es más confiable que .onclick
+            btnLogoutOverlay.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("Cerrando sesión desde overlay...");
+                auth.signOut().then(() => {
+                    window.location.href = window.location.origin + window.location.pathname;
+                });
+            });
+        }
+        // -----------------------------------------------------
+
         const savedPlan = sessionStorage.getItem('pida_pending_plan');
-        
-        // 2. Verificamos su acceso (VIP o Suscripción existente)
         const hasAccess = await checkAccessAuthorization(user);
         const overlay = document.getElementById('pida-subscription-overlay');
 
-        // 3. FLUJO DE VENTA DIRECTA: Si no tiene acceso y eligió un plan antes
+        // 3. REDIRECCIÓN AUTOMÁTICA (CONVERSIÓN)
         if (!hasAccess && savedPlan) {
-            sessionStorage.removeItem('pida_pending_plan'); // Limpiamos para evitar bucles
-            const priceId = STRIPE_PRICES[savedPlan]?.['USD']?.id;
-            
+            sessionStorage.removeItem('pida_pending_plan');
+            const priceId = STRIPE_PRICES[savedPlan]?.[currentCurrency]?.id;
             if (priceId) {
-                console.log("💳 Conversión detectada. Redirigiendo directo a Stripe...");
-                startCheckout(priceId); // Ejecuta la función de Stripe
-                return; // IMPORTANTE: Detenemos todo aquí. El usuario NO verá la interfaz.
+                console.log("💳 Venta detectada. Redirigiendo a Stripe...");
+                startCheckout(priceId);
+                return; // Evitamos cargar la App si se va a pagar
             }
         }
 
-        // 4. Si llegamos aquí, es porque NO va a Stripe. Mostramos la App.
+        // 4. Mostrar App solo si no hubo redirección a Stripe
         if(appRoot) appRoot.style.display = 'block'; 
-        hideLoader(); // Quitamos el preloader solo cuando la App es visible
+        hideLoader(); 
 
-        // 5. Manejamos la visibilidad del overlay (ahora con mensaje suave)
         if (!hasAccess) {
             if (overlay) overlay.classList.remove('hidden');
         } else {
@@ -869,6 +931,7 @@ document.addEventListener('DOMContentLoaded', function () {
             accUpdate: document.getElementById('acc-update-btn'),
             accBilling: document.getElementById('acc-billing-btn'),
             accReset: document.getElementById('acc-reset-btn'),
+            btnLogoutOverlay: document.getElementById('logout-from-overlay'),
             mobileMenuBtn: document.getElementById('nav-mobile-menu-btn'),
             mobileMenuOverlay: document.getElementById('mobile-menu-overlay'),
             mobileMenuProfile: document.getElementById('mobile-nav-profile'),
