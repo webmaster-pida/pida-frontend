@@ -917,6 +917,7 @@ document.addEventListener('DOMContentLoaded', function () {
             accUpdate: document.getElementById('acc-update-btn'),
             accBilling: document.getElementById('acc-billing-btn'),
             accReset: document.getElementById('acc-reset-btn'),
+            btnLogoutOverlay: document.getElementById('logout-from-overlay'),
             mobileMenuBtn: document.getElementById('nav-mobile-menu-btn'),
             mobileMenuOverlay: document.getElementById('mobile-menu-overlay'),
             mobileMenuProfile: document.getElementById('mobile-nav-profile'),
