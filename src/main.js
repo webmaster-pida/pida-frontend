@@ -360,38 +360,39 @@ function updatePricingUI(currency) {
 
 // Función crucial para cumplimiento legal en México
 async function detectLocation() {
-    // 1. Intentar detección por API (IP) con un Timeout de 2 segundos para no bloquear la carga
+    // 1. Prioridad 1: Detección por IP (API)
     try {
+        // Usamos un timeout para que la web no espere eternamente a la API si falla
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 2000);
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
 
-        // Usamos una API alternativa más robusta y rápida
         const response = await fetch('https://ipapi.co/json/', { signal: controller.signal });
         const data = await response.json();
         clearTimeout(timeoutId);
 
         if (data.country_code === 'MX') {
             updatePricingUI('MXN');
-            return; // Éxito total
+            return; // Detección exitosa, salimos.
         } else if (data.country_code) {
             updatePricingUI('USD');
             return;
         }
     } catch (e) {
-        console.warn("Detección por IP falló o fue bloqueada, intentando fallback...");
+        console.warn("API de IP falló o fue bloqueada por VPN/Adblock.");
     }
 
-    // 2. Fallback por Zona Horaria (Inmediato y no requiere red)
+    // 2. Prioridad 2: Fallback por Zona Horaria (Si la API falló, esto detecta México el 99% de las veces)
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const isMexicoTZ = /Mexico|Merida|Monterrey|Chihuahua|Hermosillo|Tijuana|Cancun|Mazatlan|Bahia_Banderas/i.test(tz);
+    const isMexico = /Mexico|Merida|Monterrey|Chihuahua|Hermosillo|Tijuana|Cancun|Mazatlan|Bahia_Banderas/i.test(tz);
     
-    if (isMexicoTZ) {
+    if (isMexico) {
         updatePricingUI('MXN');
-    } else {
-        // 3. Último recurso: Ver si había algo en caché, si no, default USD
-        const cached = localStorage.getItem('pida_currency');
-        updatePricingUI(cached || 'USD');
+        return;
     }
+
+    // 3. Prioridad 3: Si todo lo anterior falla, usamos el caché o por defecto USD
+    const cached = localStorage.getItem('pida_currency');
+    updatePricingUI(cached || 'USD');
 }
 
 document.addEventListener('DOMContentLoaded', function () {
