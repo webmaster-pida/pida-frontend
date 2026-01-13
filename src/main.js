@@ -1727,4 +1727,49 @@ document.addEventListener('DOMContentLoaded', function () {
         loadChatHistory();
     }
 
+    //
+    //HANDLE UNSUBSCRIBE
+    //
+    async function handleUnsubscribePath() {
+        const path = window.location.pathname;
+        if (!path.includes('unsubscribe')) return;
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const email = urlParams.get('email');
+        const statusEl = document.getElementById('status-msg');
+        const emailSpan = document.getElementById('user-email');
+
+        if (email) {
+            if(emailSpan) emailSpan.textContent = email;
+            try {
+                // Buscamos al usuario por su email en la colección 'customers'
+                const userQuery = await db.collection('customers').where('email', '==', email).limit(1).get();
+                
+                if (!userQuery.empty) {
+                    const userDoc = userQuery.docs[0];
+                    await userDoc.ref.update({
+                        marketing_opt_out: true,
+                        unsubscribed_at: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                    if(statusEl) {
+                        statusEl.classList.remove('loading-dots');
+                        statusEl.style.color = '#10B981';
+                        statusEl.textContent = '✓ Lista de correos actualizada con éxito.';
+                    }
+                } else {
+                    // Si el usuario no existe en 'customers', el email no es válido
+                    if(statusEl) statusEl.textContent = 'Error: No se encontró el registro.';
+                }
+            } catch (error) {
+                if(statusEl) statusEl.textContent = 'Error al procesar la solicitud.';
+                console.error("Unsubscribe error:", error);
+            }
+        } else {
+            if(statusEl) statusEl.textContent = 'Error: Falta el parámetro de correo.';
+        }
+    }
+
+    // Ejecutar al cargar
+    handleUnsubscribePath();
+
 });

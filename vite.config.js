@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import { createHtmlPlugin } from 'vite-plugin-html';
-import { resolve } from 'path'; // Importante para manejar rutas
+import { resolve } from 'path';
 
 export default defineConfig({
   plugins: [
@@ -14,6 +14,7 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         privacidad: resolve(__dirname, 'privacidad.html'),
         terminos: resolve(__dirname, 'terminos.html'),
+        unsubscribe: resolve(__dirname, 'unsubscribe.html'),
       },
     },
   },
