@@ -358,18 +358,29 @@ DOMPurify.addHook('afterSanitizeAttributes', function (node) {
 // --- UTILIDAD DE ACTUALIZACIÓN DE PRECIOS ---
 function updatePricingUI(currency) {
     currentCurrency = currency;
-    localStorage.setItem('pida_currency', currency); // Guardar siempre la última detectada/seleccionada
+    localStorage.setItem('pida_currency', currency);
 
-    const monthlyPriceEl = document.getElementById('price-val-monthly');
-    const annualPriceEl = document.getElementById('price-val-annual');
+    const container = document.getElementById('stripe-pricing-table-container');
+    if (!container) return;
 
-    if (monthlyPriceEl && annualPriceEl) {
-        // Actualizar textos en la landing
-        monthlyPriceEl.textContent = STRIPE_PRICES.basic[currency].text;
-        annualPriceEl.textContent = STRIPE_PRICES.pro[currency].text;
-        
-        console.log(`✅ UI de precios actualizada a: ${currency}`);
-    }
+    // Seleccionamos el ID de tabla según la moneda detectada
+    const tableId = (currency === 'MXN') 
+        ? 'prctbl_1SpaCgGgaloBN5L8CSpjgB39' 
+        : 'prctbl_1Spa8eGgaloBN5L8KY9RKqGE';
+
+    // Inyectamos el componente de Stripe
+    // Nota: Pasamos client-reference-id y customer-email si el usuario ya está logueado
+    container.innerHTML = `
+        <stripe-pricing-table 
+            pricing-table-id="${tableId}"
+            publishable-key="pk_live_51QriCdGgaloBN5L8XyzW4M1QePJK316USJg3kjrZGFGln3bhwEQKnpoNXf2MnLXGHylM1OQ6SvWJmNVCNqhCxg6x000l605E1B"
+            ${currentUser ? `client-reference-id="${currentUser.uid}"` : ''}
+            ${currentUser ? `customer-email="${currentUser.email}"` : ''}
+        >
+        </stripe-pricing-table>
+    `;
+    
+    console.log(`✅ Tabla de Stripe actualizada a: ${currency}`);
 }
 
 // Función crucial para cumplimiento legal en México
