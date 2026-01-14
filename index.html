@@ -327,7 +327,14 @@
             
             <form id="login-form">
                 <input type="email" id="login-email" class="login-input" placeholder="Correo electrónico" required>
-                <input type="password" id="login-password" class="login-input" placeholder="Contraseña" required>
+                
+                <div id="password-field-container">
+                    <input type="password" id="login-password" class="login-input" placeholder="Contraseña" required>
+                    <div style="text-align: right; margin-top: -10px; margin-bottom: 15px;">
+                        <a href="#" id="btn-forgot-password" style="font-size: 0.8rem; color: #666; text-decoration: none;">¿Olvidaste tu contraseña?</a>
+                    </div>
+                </div>
+
                 <button type="submit" class="login-btn" id="auth-submit-btn">Entrar</button>
             </form>
             <div id="login-message" class="login-error"></div>
