@@ -315,6 +315,7 @@ window.switchAuthMode = function(mode) {
     const submitBtn = document.getElementById('auth-submit-btn');
     const googleText = document.getElementById('google-text');
     const errMsg = document.getElementById('login-message');
+    const disclaimer = document.getElementById('register-disclaimer'); // El nuevo div del HTML
     
     if(errMsg) errMsg.style.display = 'none';
 
@@ -323,15 +324,24 @@ window.switchAuthMode = function(mode) {
         if(btnReg) btnReg.classList.remove('active');
         if(title) title.textContent = 'Bienvenido de nuevo';
         if(desc) desc.textContent = 'Accede para continuar tu investigación.';
-        if(submitBtn) submitBtn.textContent = 'Ingresar';
+        if(submitBtn) {
+            submitBtn.textContent = 'Ingresar';
+            submitBtn.style.backgroundColor = ''; // Reset al azul original
+        }
         if(googleText) googleText.textContent = 'Entrar con Google';
+        if(disclaimer) disclaimer.style.display = 'none'; // Ocultar aviso
     } else {
         if(btnLogin) btnLogin.classList.remove('active');
         if(btnReg) btnReg.classList.add('active');
         if(title) title.textContent = 'Crear una cuenta';
-        if(desc) desc.textContent = 'Únete para acceder a PIDA.';
-        if(submitBtn) submitBtn.textContent = 'Registrarse';
+        if(desc) desc.textContent = 'Únete para acceder a PIDA y sus herramientas.';
+        if(submitBtn) {
+            // CAMBIO UX: Texto persuasivo y color de "Acción"
+            submitBtn.textContent = 'Registrarme e iniciar prueba gratis';
+            submitBtn.style.backgroundColor = '#2A4B7C'; // Un azul ligeramente más profundo
+        }
         if(googleText) googleText.textContent = 'Registrarse con Google';
+        if(disclaimer) disclaimer.style.display = 'block'; // Mostrar aviso de transparencia
     }
 }
 
@@ -725,10 +735,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
                     friendlyMessage = "El correo o la contraseña no son correctos.";
                 } else if (error.code === 'auth/email-already-in-use') {
-                    friendlyMessage = "Este correo ya está registrado. Intenta ingresar.";
+                    // CAMBIO UX FUNDAMENTAL: Guía directa al usuario registrado
+                    friendlyMessage = "Ya tienes una cuenta con este correo. Por favor, ve a la pestaña 'Ingresar' para activar tus 5 días de prueba.";
+                    
+                    // Opcional: Cambiar automáticamente a la pestaña de Login después de 3 segundos
+                    setTimeout(() => window.switchAuthMode('login'), 3500);
                 }
 
-                // Usamos el div de error que ya tienes en el HTML
                 const errMsg = document.getElementById('login-message');
                 if (errMsg) {
                     errMsg.textContent = friendlyMessage;

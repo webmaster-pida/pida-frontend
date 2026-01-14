@@ -328,7 +328,13 @@
             <form id="login-form">
                 <input type="email" id="login-email" class="login-input" placeholder="Correo electrónico" required>
                 <input type="password" id="login-password" class="login-input" placeholder="Contraseña" required>
-                <button type="submit" class="login-btn" id="auth-submit-btn">Entrar</button>
+                <button type="submit" class="login-btn" id="auth-submit-btn" style="margin-top: 10px;">Entrar</button>
+                    <div id="register-disclaimer" style="display:none; margin-top: 20px; text-align: center;">
+                        <p style="color: #666; font-size: 0.85rem; line-height: 1.4; border-top: 1px solid #eee; padding-top: 15px;">
+                            🔒 Al registrarte, serás redirigido a <strong>Stripe</strong> para validar tu identidad y activar tus 5 días de prueba. <br>
+                            <span style="color: #1D3557; font-weight: 700;">No se realizará ningún cobro hoy.</span>
+                        </p>
+                    </div>
             </form>
             <div id="login-message" class="login-error"></div>
         </div>
