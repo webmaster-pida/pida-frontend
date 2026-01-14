@@ -636,34 +636,48 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    // --- FORMULARIO DE CONTACTO (ENVÍO) ---
+    // --- FORMULARIO DE CONTACTO (ENVÍO CON VERIFICACIÓN DE EMAIL) ---
     const contactForm = document.getElementById('contact-form');
-    if(contactForm) {
+    if (contactForm) {
         contactForm.addEventListener('submit', async function(event) {
             event.preventDefault();
+            
+            const email = document.getElementById('contact-email').value;
+            const confirmEmail = document.getElementById('contact-email-confirm').value;
             const btn = document.getElementById('contact-submit-btn');
             const status = document.getElementById('contact-status');
             const originalText = btn.textContent;
+
+            // VERIFICACIÓN: ¿Coinciden los correos?
+            if (email !== confirmEmail) {
+                status.textContent = '❌ Los correos electrónicos no coinciden.';
+                status.style.display = 'block';
+                status.style.color = '#EF4444';
+                document.getElementById('contact-email-confirm').focus();
+                return;
+            }
             
             const leadData = {
                 name: document.getElementById('contact-name').value,
                 company: document.getElementById('contact-company').value,
-                email: document.getElementById('contact-email').value,
+                email: email,
                 phone: (document.getElementById('contact-country-code').value || '') + ' ' + document.getElementById('contact-phone').value,
                 message: document.getElementById('contact-message').value,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+                createdAt: firebase.firestore.FieldValue.serverTimestamp(), //
                 status: 'nuevo'
             };
 
             btn.textContent = 'Guardando...'; btn.disabled = true;
+            status.style.display = 'none';
+
             try {
-                await db.collection('leads_corporativos').add(leadData);
+                await db.collection('leads_corporativos').add(leadData); //
                 btn.textContent = '¡Enviado!';
                 status.textContent = 'Datos recibidos. Te contactaremos pronto.';
                 status.style.display = 'block'; status.style.color = '#10B981';
                 setTimeout(() => {
                     const modal = document.getElementById('contact-modal');
-                    if(modal) modal.classList.add('hidden');
+                    if (modal) modal.classList.add('hidden');
                     contactForm.reset();
                     btn.textContent = originalText; btn.disabled = false; status.style.display = 'none';
                 }, 3000);
