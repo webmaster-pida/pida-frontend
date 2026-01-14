@@ -308,40 +308,44 @@ window.closeBanner = function() {
 
 window.switchAuthMode = function(mode) {
     authMode = mode;
-    const btnLogin = document.getElementById('tab-login');
-    const btnReg = document.getElementById('tab-register');
+    const passContainer = document.getElementById('password-field-container');
+    const googleBtn = document.getElementById('google-login-btn');
+    const divider = document.querySelector('.login-divider');
+    const submitBtn = document.getElementById('auth-submit-btn');
     const title = document.getElementById('auth-title');
     const desc = document.getElementById('auth-desc');
-    const submitBtn = document.getElementById('auth-submit-btn');
-    const googleText = document.getElementById('google-text');
+    const disclaimer = document.getElementById('register-disclaimer'); 
     const errMsg = document.getElementById('login-message');
-    const disclaimer = document.getElementById('register-disclaimer'); // El nuevo div del HTML
     
     if(errMsg) errMsg.style.display = 'none';
 
-    if (mode === 'login') {
-        if(btnLogin) btnLogin.classList.add('active');
-        if(btnReg) btnReg.classList.remove('active');
-        if(title) title.textContent = 'Bienvenido de nuevo';
-        if(desc) desc.textContent = 'Accede para continuar tu investigación.';
-        if(submitBtn) {
-            submitBtn.textContent = 'Ingresar';
-            submitBtn.style.backgroundColor = ''; // Reset al azul original
-        }
-        if(googleText) googleText.textContent = 'Entrar con Google';
-        if(disclaimer) disclaimer.style.display = 'none'; // Ocultar aviso
+    if (mode === 'reset') {
+        title.textContent = 'Recuperar Contraseña';
+        desc.textContent = 'Ingresa tu correo para enviarte un enlace de restauración.';
+        submitBtn.textContent = 'Enviar enlace de recuperación';
+        if(passContainer) passContainer.style.display = 'none';
+        if(googleBtn) googleBtn.style.display = 'none';
+        if(divider) divider.style.display = 'none';
+        if(disclaimer) disclaimer.style.display = 'none';
+        document.getElementById('login-password').required = false;
     } else {
-        if(btnLogin) btnLogin.classList.remove('active');
-        if(btnReg) btnReg.classList.add('active');
-        if(title) title.textContent = 'Crear una cuenta';
-        if(desc) desc.textContent = 'Únete para acceder a PIDA y sus herramientas.';
-        if(submitBtn) {
-            // CAMBIO UX: Texto persuasivo y color de "Acción"
+        // Restaurar Login o Registro
+        if(passContainer) passContainer.style.display = 'block';
+        if(googleBtn) googleBtn.style.display = 'flex';
+        if(divider) divider.style.display = 'block';
+        document.getElementById('login-password').required = true;
+
+        if (mode === 'login') {
+            title.textContent = 'Bienvenido de nuevo';
+            desc.textContent = 'Accede para continuar tu investigación.';
+            submitBtn.textContent = 'Ingresar';
+            if(disclaimer) disclaimer.style.display = 'none';
+        } else {
+            title.textContent = 'Crear una cuenta';
+            desc.textContent = 'Únete para acceder a PIDA.';
             submitBtn.textContent = 'Registrarme e iniciar prueba gratis';
-            submitBtn.style.backgroundColor = '#2A4B7C'; // Un azul ligeramente más profundo
+            if(disclaimer) disclaimer.style.display = 'block';
         }
-        if(googleText) googleText.textContent = 'Registrarse con Google';
-        if(disclaimer) disclaimer.style.display = 'block'; // Mostrar aviso de transparencia
     }
 }
 
@@ -409,6 +413,13 @@ document.addEventListener('DOMContentLoaded', function () {
     const landingRoot = document.getElementById('landing-page-root');
     const loginScreen = document.getElementById('pida-login-screen');
     const appRoot = document.getElementById('pida-app-root');
+    const forgotBtn = document.getElementById('btn-forgot-password');
+    if(forgotBtn) {
+        forgotBtn.onclick = (e) => {
+            e.preventDefault();
+            window.switchAuthMode('reset');
+        };
+    }
 
     // ==========================================
     // INICIALIZACIÓN DE FIREBASE (MOVIDO AL INICIO)
@@ -722,31 +733,44 @@ document.addEventListener('DOMContentLoaded', function () {
             const email = document.getElementById('login-email').value;
             const pass = document.getElementById('login-password').value;
             const btn = document.getElementById('auth-submit-btn');
+            const errMsg = document.getElementById('login-message');
             
             btn.disabled = true; btn.textContent = "Procesando...";
+            if(errMsg) errMsg.style.display = 'none';
+
             try {
+                if (authMode === 'reset') {
+                    // Lógica de recuperación (basada en la que ya tienes funcionando en la app)
+                    await auth.sendPasswordResetEmail(email);
+                    errMsg.innerHTML = "✅ Enlace enviado. Revisa tu correo (incluyendo spam).";
+                    errMsg.style.display = 'block';
+                    errMsg.style.color = '#10B981';
+                    btn.textContent = "Correo Enviado";
+                    return; 
+                }
+                
                 if (authMode === 'login') await auth.signInWithEmailAndPassword(email, pass);
                 else await auth.createUserWithEmailAndPassword(email, pass);
+
             } catch (error) {
-                btn.disabled = false; 
-                btn.textContent = "Intentar de nuevo";
+                btn.disabled = false;
+                let friendlyMessage = "Ocurrió un error. Intenta de nuevo.";
                 
-                let friendlyMessage = "Ocurrió un error. Por favor, intenta de nuevo.";
-                if (error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') {
-                    friendlyMessage = "El correo o la contraseña no son correctos.";
+                // UNIFICACIÓN DE GUÍA UX (Diferenciando errores de Firebase)
+                if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
+                    friendlyMessage = `Los datos son incorrectos. <br><br> <b>¿Eres nuevo?</b> <a href="#" onclick="switchAuthMode('register'); return false;" style="color:#0056B3; text-decoration:underline;">Regístrate aquí.</a> <br> <b>¿Olvidaste tu clave?</b> <a href="#" onclick="switchAuthMode('reset'); return false;" style="color:#0056B3; text-decoration:underline;">Recupérala aquí.</a>`;
                 } else if (error.code === 'auth/email-already-in-use') {
-                    // CAMBIO UX FUNDAMENTAL: Guía directa al usuario registrado
-                    friendlyMessage = "Ya tienes una cuenta con este correo. Por favor, ve a la pestaña 'Ingresar' para activar tus 5 días de prueba.";
-                    
-                    // Opcional: Cambiar automáticamente a la pestaña de Login después de 3 segundos
-                    setTimeout(() => window.switchAuthMode('login'), 3500);
+                    friendlyMessage = `Ya tienes una cuenta. <br><br> <a href="#" onclick="switchAuthMode('login'); return false;" style="color:#0056B3; text-decoration:underline;">Haz clic aquí para ingresar</a> e iniciar tus 5 días de prueba gratis.`;
+                } else if (error.code === 'auth/wrong-password') {
+                    friendlyMessage = `La contraseña es incorrecta. <br><br> <a href="#" onclick="switchAuthMode('reset'); return false;" style="color:#0056B3; text-decoration:underline;">¿Olvidaste tu contraseña? Haz clic aquí.</a>`;
                 }
 
-                const errMsg = document.getElementById('login-message');
                 if (errMsg) {
-                    errMsg.textContent = friendlyMessage;
+                    errMsg.innerHTML = friendlyMessage;
                     errMsg.style.display = 'block';
+                    errMsg.style.color = '#EF4444';
                 }
+                btn.textContent = (authMode === 'login') ? 'Ingresar' : 'Registrarme e iniciar prueba gratis';
             }
         });
     }
