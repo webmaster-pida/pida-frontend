@@ -617,52 +617,71 @@
 }
 
 /* =========================================
-   SELECTOR DE PAÍSES (BANDERAS A COLOR)
+   SELECTOR DE PAÍSES (BANDERAS A COLOR) - UNIFICADO
    ========================================= */
+
 .custom-select-wrapper {
     user-select: none;
     -webkit-user-select: none;
 }
 
-/* Lista desplegable flotante */
+/* TRIGGER (El botón que se ve antes de abrir) */
+.custom-select-trigger {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background-color: #fff;
+    min-height: 45px; /* Altura consistente */
+    /* Hereda estilos de .login-input */
+}
+
+/* LISTA DESPLEGABLE (Contenedor de opciones) */
 .custom-options {
     position: absolute;
     top: 105%;
     left: 0;
-    right: 0; /* Ancho igual al wrapper */
+    
+    /* CORRECCIÓN DE ANCHO Y SCROLL */
+    min-width: 100%;      /* Mínimo del ancho del botón */
+    width: max-content;   /* Se ensancha según el texto más largo */
+    
     background: #ffffff;
     border: 1px solid #ddd;
     border-radius: 6px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-    z-index: 200010; /* Mayor que el modal (200005) */
-    max-height: 220px;
-    overflow-y: auto;
+    z-index: 200010;      /* Encima del modal */
     
-    /* Estado oculto */
+    /* Scroll vertical solamente */
+    max-height: 250px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    
+    /* Animación de entrada */
     opacity: 0;
     visibility: hidden;
     transform: translateY(-10px);
     transition: all 0.2s ease;
 }
 
-/* Estado visible */
+/* Estado visible al abrir */
 .custom-select-wrapper.open .custom-options {
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
 }
 
-/* Opción individual */
+/* OPCIÓN INDIVIDUAL */
 .custom-option {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Espacio entre bandera, código y nombre */
     padding: 10px 12px;
     font-size: 0.9rem;
     color: #333;
     cursor: pointer;
-    transition: background 0.1s;
-    display: flex;
-    align-items: center;
-    gap: 10px;
     border-bottom: 1px solid #f4f6f9;
+    transition: background 0.1s;
 }
 
 .custom-option:last-child {
@@ -670,7 +689,7 @@
 }
 
 .custom-option:hover {
-    background-color: #f0f9ff; /* Un azul muy suave */
+    background-color: #f0f9ff; /* Azul muy suave al pasar el mouse */
 }
 
 .custom-option strong {
@@ -678,28 +697,13 @@
     font-weight: 600;
 }
 
-.custom-select-trigger {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    background-color: #fff; /* Asegura fondo blanco */
-    /* Hereda estilos de .login-input pero asegura el comportamiento flex */
-}
-
-/* Asegura que el contenedor del modal no recorte el menú desplegable */
-.login-card {
-    overflow: visible !important; 
-}
-
-/* ESTILOS NUEVOS PARA LAS BANDERAS (CDN) */
-
+/* ESTILOS DE IMÁGENES DE BANDERAS */
 .flag-img {
     width: 24px;
     height: auto;
     border-radius: 2px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    display: block; /* Evita espacios extra */
+    display: block;
 }
 
 .flag-img-sm {
@@ -709,28 +713,7 @@
     display: block;
 }
 
-/* Ajuste fino para la opción individual */
-.custom-option {
-    display: flex;
-    align-items: center;
-    gap: 10px; /* Espacio entre bandera, código y nombre */
-    padding: 10px 12px;
-    cursor: pointer;
-    border-bottom: 1px solid #f4f6f9;
-}
-
-/* Asegurar que el trigger se vea bien alineado */
-.custom-select-trigger {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: #fff;
-    min-height: 45px; /* Altura consistente */
-}
-
-/* Asegurar scroll si la lista es larga */
-.custom-options {
-    max-height: 250px;
-    overflow-y: auto;
-    z-index: 200010; /* Z-index alto para estar sobre el modal */
+/* CORRECCIÓN DE MODAL (Evita que se corte el menú) */
+.login-card {
+    overflow: visible !important; 
 }
