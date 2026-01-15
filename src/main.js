@@ -636,6 +636,81 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    // ==========================================
+    // LOGICA SELECTOR DE BANDERAS (CONTACTO)
+    // ==========================================
+    const countryWrapper = document.querySelector('.custom-select-wrapper');
+    const countryTrigger = document.querySelector('.custom-select-trigger');
+    const countryOptionsContainer = document.querySelector('.custom-options');
+    const countryHiddenInput = document.getElementById('contact-country-code'); // ID original
+    const countryDisplayText = document.getElementById('selected-flag-text');
+
+    // Lista completa de países solicitada
+    const countriesData = [
+        { code: '+54', flag: '🇦🇷', name: 'Argentina' },
+        { code: '+591', flag: '🇧🇴', name: 'Bolivia' },
+        { code: '+56', flag: '🇨🇱', name: 'Chile' },
+        { code: '+57', flag: '🇨🇴', name: 'Colombia' },
+        { code: '+506', flag: '🇨🇷', name: 'Costa Rica' },
+        { code: '+53', flag: '🇨🇺', name: 'Cuba' },
+        { code: '+593', flag: '🇪🇨', name: 'Ecuador' },
+        { code: '+503', flag: '🇸🇻', name: 'El Salvador' },
+        { code: '+1', flag: '🇺🇸', name: 'EE. UU.' },
+        { code: '+502', flag: '🇬🇹', name: 'Guatemala' },
+        { code: '+504', flag: '🇭🇳', name: 'Honduras' },
+        { code: '+52', flag: '🇲🇽', name: 'México' },
+        { code: '+505', flag: '🇳🇮', name: 'Nicaragua' },
+        { code: '+507', flag: '🇵🇦', name: 'Panamá' },
+        { code: '+595', flag: '🇵🇾', name: 'Paraguay' },
+        { code: '+51', flag: '🇵🇪', name: 'Perú' },
+        { code: '+1', flag: '🇵🇷', name: 'Puerto Rico' },
+        { code: '+1', flag: '🇩🇴', name: 'Rep. Dom.' },
+        { code: '+598', flag: '🇺🇾', name: 'Uruguay' },
+        { code: '+58', flag: '🇻🇪', name: 'Venezuela' },
+        { code: '+34', flag: '🇪🇸', name: 'España' }
+    ];
+
+    if (countryWrapper && countryOptionsContainer) {
+        // 1. Generar opciones
+        countriesData.forEach(country => {
+            const div = document.createElement('div');
+            div.className = 'custom-option';
+            // Diseño: Bandera | Código | Nombre
+            div.innerHTML = `<span style="font-size: 1.2em;">${country.flag}</span> <strong>${country.code}</strong> <span style="font-size:0.85em; color:#666;">${country.name}</span>`;
+            
+            div.addEventListener('click', () => {
+                // Actualizar lo que ve el usuario (Bandera + Código)
+                countryDisplayText.textContent = `${country.flag} ${country.code}`;
+                countryDisplayText.style.color = '#333';
+                
+                // Actualizar el valor real para el formulario
+                countryHiddenInput.value = country.code;
+                
+                // Cerrar
+                countryWrapper.classList.remove('open');
+            });
+            
+            countryOptionsContainer.appendChild(div);
+        });
+
+        // 2. Toggle Abrir/Cerrar
+        countryTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Cerrar otros dropdowns si estuvieran abiertos
+            document.querySelectorAll('.pida-dropdown-content').forEach(d => d.classList.remove('show'));
+            
+            countryWrapper.classList.toggle('open');
+        });
+
+        // 3. Cerrar al hacer clic fuera
+        window.addEventListener('click', (e) => {
+            if (!countryWrapper.contains(e.target)) {
+                countryWrapper.classList.remove('open');
+            }
+        });
+    }
+
+
     // --- FORMULARIO DE CONTACTO (ENVÍO CON VERIFICACIÓN DE EMAIL) ---
     const contactForm = document.getElementById('contact-form');
     if (contactForm) {

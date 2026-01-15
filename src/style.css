@@ -615,3 +615,65 @@
     from { transform: translateY(-50px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
 }
+
+/* =========================================
+   SELECTOR DE PAÍSES (BANDERAS A COLOR)
+   ========================================= */
+.custom-select-wrapper {
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* Lista desplegable flotante */
+.custom-options {
+    position: absolute;
+    top: 105%;
+    left: 0;
+    right: 0; /* Ancho igual al wrapper */
+    background: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    z-index: 200010; /* Mayor que el modal (200005) */
+    max-height: 220px;
+    overflow-y: auto;
+    
+    /* Estado oculto */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.2s ease;
+}
+
+/* Estado visible */
+.custom-select-wrapper.open .custom-options {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Opción individual */
+.custom-option {
+    padding: 10px 12px;
+    font-size: 0.9rem;
+    color: #333;
+    cursor: pointer;
+    transition: background 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #f4f6f9;
+}
+
+.custom-option:last-child {
+    border-bottom: none;
+}
+
+.custom-option:hover {
+    background-color: #f0f9ff; /* Un azul muy suave */
+}
+
+.custom-option strong {
+    color: var(--pida-primary);
+    font-weight: 600;
+}

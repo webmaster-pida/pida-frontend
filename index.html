@@ -74,7 +74,7 @@
 
             <section id="diferencia">
                 <div class="wrapper">
-                    <div class="section-intro"><h2>¿Cuál es la gran diferencia de PIDA?</h2><p>PIDA no improvisa buscando en el caos de internet. Su punto de partida es la biblioteca del <strong>IIRESODH</strong>, una institución referente con más de 30 años de experiencia en Litigio Estratégico Internacional.</p><p>Primero, PIDA consulta este acervo validado por expertos en Derechos Humanos para obtener el fundamento correcto. Luego, usa la IA para construir tu respuesta. Así obtienes la velocidad de la tecnología, pero con la <strong>autoridad y el rigor técnico</strong> que solo el IIRESODH puede garantizar.</p></div>
+                    <div class="section-intro"><h2>¿Cuál es la gran diferencia de PIDA?</h2><p>PIDA no improvisa buscando en el caos de internet. Su punto de partida es la biblioteca del <strong>IIRESODH</strong>, una institución referente con más de 30 años de experiencia en Litigio Estratégico Internacional.</p><p>Primero, PIDA consulta este acervo validado por personas expertas en Derechos Humanos para obtener el fundamento correcto. Luego, usa la IA para construir tu respuesta. Así obtienes la velocidad de la tecnología, pero con la <strong>autoridad y el rigor técnico</strong> que solo el IIRESODH puede garantizar.</p></div>
                     <div class="bento-grid">
                         <div class="bento-card"><div><img src="img/icono_01.png" alt="Económico"></div><div><h3 class="bento-title">Económico</h3><p>PIDA cuesta menos que la competencia</p></div></div>
                         <div class="bento-card"><div><img src="img/icono_03.png" alt="Seguro"></div><h3 class="bento-title">Seguro</h3><p>Tus datos viajan encriptados y no se comparten</p></div>
@@ -107,7 +107,7 @@
                 <div class="wrapper" style="max-width: 850px; margin: 0 auto;">
                     <h3 style="color: var(--pida-primary); font-size: 2rem; margin-bottom: 20px;">¿Necesitas PIDA para tu Organización o Institución?</h3>
                     <p style="color: var(--pida-text-muted); font-size: 1.15rem; line-height: 1.7; margin-bottom: 35px;">
-                        PIDA está diseñado para escalar con las necesidades de grandes equipos de investigación. Si representas a una firma de abogados, una organización de defensa de derechos humanos, una fiscalía o una institución académica, ofrecemos esquemas de licenciamiento por volumen. 
+                        PIDA está diseñado para escalar con las necesidades de grandes equipos de litigio que requieren de mucha investigación y redacción. Si representas a una firma legal, una organización de defensa de derechos humanos, una fiscalía o formas parte de cualquier órgano de gobierno o bien, perteneces a una institución académica, ofrecemos esquemas de licenciamiento por volumen. 
                         <br><br>
                         Nuestros planes corporativos incluyen costos unitarios preferenciales, facturación institucional centralizada y soporte técnico prioritario. Haz clic en el botón para solicitar una propuesta adaptada a tu organización.
                     </p>
@@ -123,7 +123,7 @@
                     
                     <div style="text-align: center; margin-bottom: 25px;">
                         <h2 style="color: var(--pida-primary); margin-top: 0;">Solicitud Corporativa</h2>
-                        <p style="color: #666; font-size: 0.9rem;">Déjanos tus datos y un asesor especializado te contactará.</p>
+                        <p style="color: #666; font-size: 0.9rem;">Déjanos tus datos para nuestro equipo asesor te contacte.</p>
                     </div>
 
                     <form id="contact-form">
@@ -151,12 +151,17 @@
                         <div style="margin-bottom: 15px;">
                             <label style="font-size: 0.8rem; font-weight: 600; color: var(--pida-text-muted);">Teléfono de contacto</label>
                             <div style="display: flex; gap: 8px;">
-                                <select id="contact-country-code" class="login-input" style="margin-bottom: 0; width: 130px;" required>
-                                    <option value="+503">🇸🇻 +503</option>
-                                    <option value="+52">🇲🇽 +52</option>
-                                    <option value="+1">🇺🇸 +1</option>
-                                    <option value="+34">🇪🇸 +34</option>
-                                    </select>
+                                <div class="custom-select-wrapper" style="width: 140px; position: relative;">
+                                    <input type="hidden" id="contact-country-code" value="">
+                                    
+                                    <div class="custom-select-trigger login-input" style="margin-bottom: 0; display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px 10px;">
+                                        <span id="selected-flag-text" style="color: #666; font-size: 0.9rem; white-space: nowrap; overflow: hidden;">Código</span>
+                                        <span style="font-size: 0.7rem; color: #999;">▼</span>
+                                    </div>
+                                    
+                                    <div class="custom-options">
+                                        </div>
+                                </div>
                                 <input type="tel" id="contact-phone" class="login-input" style="margin-bottom: 0; flex: 1;" placeholder="Número" required>
                             </div>
                         </div>
