@@ -637,13 +637,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ==========================================
-    // LOGICA SELECTOR DE BANDERAS (CONTACTO)
+    // LOGICA SELECTOR DE BANDERAS (CORREGIDO MULTI-INSTANCIA)
     // ==========================================
-    const countryWrapper = document.querySelector('.custom-select-wrapper');
-    const countryTrigger = document.querySelector('.custom-select-trigger');
-    const countryOptionsContainer = document.querySelector('.custom-options');
-    const countryHiddenInput = document.getElementById('contact-country-code'); // ID original
-    const countryDisplayText = document.getElementById('selected-flag-text');
+    
+    // 1. Seleccionamos TODOS los wrappers, no solo el primero
+    const allCountryWrappers = document.querySelectorAll('.custom-select-wrapper');
 
     // Lista completa de países solicitada
     const countriesData = [
@@ -670,45 +668,60 @@ document.addEventListener('DOMContentLoaded', function () {
         { code: '+34', flag: '🇪🇸', name: 'España' }
     ];
 
-    if (countryWrapper && countryOptionsContainer) {
-        // 1. Generar opciones
-        countriesData.forEach(country => {
-            const div = document.createElement('div');
-            div.className = 'custom-option';
-            // Diseño: Bandera | Código | Nombre
-            div.innerHTML = `<span style="font-size: 1.2em;">${country.flag}</span> <strong>${country.code}</strong> <span style="font-size:0.85em; color:#666;">${country.name}</span>`;
-            
-            div.addEventListener('click', () => {
-                // Actualizar lo que ve el usuario (Bandera + Código)
-                countryDisplayText.textContent = `${country.flag} ${country.code}`;
-                countryDisplayText.style.color = '#333';
+    // 2. Iteramos sobre cada selector encontrado para configurarlo independientemente
+    allCountryWrappers.forEach(wrapper => {
+        const trigger = wrapper.querySelector('.custom-select-trigger');
+        const optionsContainer = wrapper.querySelector('.custom-options');
+        // Buscamos inputs relativos al wrapper para evitar conflictos de ID
+        const hiddenInput = wrapper.querySelector('input[type="hidden"]'); 
+        const displayText = wrapper.querySelector('.custom-select-trigger span:first-child');
+
+        if (trigger && optionsContainer) {
+            // Generar opciones para este wrapper específico
+            countriesData.forEach(country => {
+                const div = document.createElement('div');
+                div.className = 'custom-option';
+                div.innerHTML = `<span style="font-size: 1.2em;">${country.flag}</span> <strong>${country.code}</strong> <span style="font-size:0.85em; color:#666;">${country.name}</span>`;
                 
-                // Actualizar el valor real para el formulario
-                countryHiddenInput.value = country.code;
+                div.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Evitar cierre inmediato
+                    // Actualizar texto visual
+                    if(displayText) {
+                        displayText.textContent = `${country.flag} ${country.code}`;
+                        displayText.style.color = '#333';
+                    }
+                    // Actualizar input oculto
+                    if(hiddenInput) {
+                        hiddenInput.value = country.code;
+                    }
+                    // Cerrar este menú
+                    wrapper.classList.remove('open');
+                });
                 
-                // Cerrar
-                countryWrapper.classList.remove('open');
+                optionsContainer.appendChild(div);
             });
-            
-            countryOptionsContainer.appendChild(div);
-        });
 
-        // 2. Toggle Abrir/Cerrar
-        countryTrigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            // Cerrar otros dropdowns si estuvieran abiertos
-            document.querySelectorAll('.pida-dropdown-content').forEach(d => d.classList.remove('show'));
-            
-            countryWrapper.classList.toggle('open');
-        });
+            // Toggle Abrir/Cerrar para este wrapper
+            trigger.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Cerrar otros dropdowns abiertos si los hubiera
+                document.querySelectorAll('.custom-select-wrapper').forEach(w => {
+                    if (w !== wrapper) w.classList.remove('open');
+                });
+                // Cerrar dropdowns de historial si existen
+                document.querySelectorAll('.pida-dropdown-content').forEach(d => d.classList.remove('show'));
+                
+                wrapper.classList.toggle('open');
+            });
+        }
+    });
 
-        // 3. Cerrar al hacer clic fuera
-        window.addEventListener('click', (e) => {
-            if (!countryWrapper.contains(e.target)) {
-                countryWrapper.classList.remove('open');
-            }
+    // 3. Cerrar al hacer clic fuera (Global)
+    window.addEventListener('click', () => {
+        document.querySelectorAll('.custom-select-wrapper').forEach(w => {
+            w.classList.remove('open');
         });
-    }
+    });
 
 
     // --- FORMULARIO DE CONTACTO (ENVÍO CON VERIFICACIÓN DE EMAIL) ---
