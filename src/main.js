@@ -422,81 +422,87 @@ async function detectLocation() {
 
 document.addEventListener('DOMContentLoaded', function () {
 
-// ==========================================
-    // LOGICA SELECTOR DE BANDERAS (CORREGIDO MULTI-INSTANCIA)
+    // ==========================================
+    // LOGICA SELECTOR DE BANDERAS (CORREGIDO CON IMÁGENES)
     // ==========================================
     
-    // 1. Seleccionamos TODOS los wrappers, no solo el primero
     const allCountryWrappers = document.querySelectorAll('.custom-select-wrapper');
 
-    // Lista completa de países solicitada
+    // 1. Datos actualizados con código ISO para las imágenes
     const countriesData = [
-        { code: '+54', flag: '🇦🇷', name: 'Argentina' },
-        { code: '+591', flag: '🇧🇴', name: 'Bolivia' },
-        { code: '+56', flag: '🇨🇱', name: 'Chile' },
-        { code: '+57', flag: '🇨🇴', name: 'Colombia' },
-        { code: '+506', flag: '🇨🇷', name: 'Costa Rica' },
-        { code: '+53', flag: '🇨🇺', name: 'Cuba' },
-        { code: '+593', flag: '🇪🇨', name: 'Ecuador' },
-        { code: '+503', flag: '🇸🇻', name: 'El Salvador' },
-        { code: '+1', flag: '🇺🇸', name: 'EE. UU.' },
-        { code: '+502', flag: '🇬🇹', name: 'Guatemala' },
-        { code: '+504', flag: '🇭🇳', name: 'Honduras' },
-        { code: '+52', flag: '🇲🇽', name: 'México' },
-        { code: '+505', flag: '🇳🇮', name: 'Nicaragua' },
-        { code: '+507', flag: '🇵🇦', name: 'Panamá' },
-        { code: '+595', flag: '🇵🇾', name: 'Paraguay' },
-        { code: '+51', flag: '🇵🇪', name: 'Perú' },
-        { code: '+1', flag: '🇵🇷', name: 'Puerto Rico' },
-        { code: '+1', flag: '🇩🇴', name: 'Rep. Dom.' },
-        { code: '+598', flag: '🇺🇾', name: 'Uruguay' },
-        { code: '+58', flag: '🇻🇪', name: 'Venezuela' },
-        { code: '+34', flag: '🇪🇸', name: 'España' }
+        { code: '+54', iso: 'ar', name: 'Argentina' },
+        { code: '+591', iso: 'bo', name: 'Bolivia' },
+        { code: '+56', iso: 'cl', name: 'Chile' },
+        { code: '+57', iso: 'co', name: 'Colombia' },
+        { code: '+506', iso: 'cr', name: 'Costa Rica' },
+        { code: '+53', iso: 'cu', name: 'Cuba' },
+        { code: '+593', iso: 'ec', name: 'Ecuador' },
+        { code: '+503', iso: 'sv', name: 'El Salvador' },
+        { code: '+1', iso: 'us', name: 'EE. UU.' },
+        { code: '+502', iso: 'gt', name: 'Guatemala' },
+        { code: '+504', iso: 'hn', name: 'Honduras' },
+        { code: '+52', iso: 'mx', name: 'México' },
+        { code: '+505', iso: 'ni', name: 'Nicaragua' },
+        { code: '+507', iso: 'pa', name: 'Panamá' },
+        { code: '+595', iso: 'py', name: 'Paraguay' },
+        { code: '+51', iso: 'pe', name: 'Perú' },
+        { code: '+1', iso: 'pr', name: 'Puerto Rico' },
+        { code: '+1', iso: 'do', name: 'Rep. Dom.' },
+        { code: '+598', iso: 'uy', name: 'Uruguay' },
+        { code: '+58', iso: 've', name: 'Venezuela' },
+        { code: '+34', iso: 'es', name: 'España' }
     ];
 
-    // 2. Iteramos sobre cada selector encontrado para configurarlo independientemente
     allCountryWrappers.forEach(wrapper => {
         const trigger = wrapper.querySelector('.custom-select-trigger');
         const optionsContainer = wrapper.querySelector('.custom-options');
-        // Buscamos inputs relativos al wrapper para evitar conflictos de ID
         const hiddenInput = wrapper.querySelector('input[type="hidden"]'); 
-        const displayText = wrapper.querySelector('.custom-select-trigger span:first-child');
+        // Seleccionamos específicamente el span que tiene el texto "Código"
+        const displayText = trigger.querySelector('#selected-flag-text'); 
 
         if (trigger && optionsContainer) {
-            // Generar opciones para este wrapper específico
+            // Limpiamos opciones previas por si acaso
+            optionsContainer.innerHTML = '';
+
             countriesData.forEach(country => {
                 const div = document.createElement('div');
                 div.className = 'custom-option';
-                div.innerHTML = `<span style="font-size: 1.2em;">${country.flag}</span> <strong>${country.code}</strong> <span style="font-size:0.85em; color:#666;">${country.name}</span>`;
+                // USAMOS IMAGEN EN LUGAR DE EMOJI
+                div.innerHTML = `
+                    <img src="https://flagcdn.com/w40/${country.iso}.png" class="flag-img" alt="${country.name}">
+                    <strong>${country.code}</strong> 
+                    <span style="font-size:0.85em; color:#666; margin-left:5px;">${country.name}</span>
+                `;
                 
                 div.addEventListener('click', (e) => {
-                    e.stopPropagation(); // Evitar cierre inmediato
-                    // Actualizar texto visual
+                    e.stopPropagation(); 
+                    
+                    // Actualizar el visual del trigger (Bandera + Código)
                     if(displayText) {
-                        displayText.textContent = `${country.flag} ${country.code}`;
+                        displayText.innerHTML = `
+                            <img src="https://flagcdn.com/w40/${country.iso}.png" class="flag-img-sm"> 
+                            ${country.code}
+                        `;
                         displayText.style.color = '#333';
+                        displayText.style.display = 'flex';
+                        displayText.style.alignItems = 'center';
+                        displayText.style.gap = '8px';
                     }
+                    
                     // Actualizar input oculto
-                    if(hiddenInput) {
-                        hiddenInput.value = country.code;
-                    }
-                    // Cerrar este menú
+                    if(hiddenInput) hiddenInput.value = country.code;
+                    
                     wrapper.classList.remove('open');
                 });
                 
                 optionsContainer.appendChild(div);
             });
 
-            // Toggle Abrir/Cerrar para este wrapper
             trigger.addEventListener('click', (e) => {
                 e.stopPropagation();
-                // Cerrar otros dropdowns abiertos si los hubiera
                 document.querySelectorAll('.custom-select-wrapper').forEach(w => {
                     if (w !== wrapper) w.classList.remove('open');
                 });
-                // Cerrar dropdowns de historial si existen
-                document.querySelectorAll('.pida-dropdown-content').forEach(d => d.classList.remove('show'));
-                
                 wrapper.classList.toggle('open');
             });
         }

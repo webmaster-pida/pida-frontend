@@ -691,3 +691,46 @@
 .login-card {
     overflow: visible !important; 
 }
+
+/* ESTILOS NUEVOS PARA LAS BANDERAS (CDN) */
+
+.flag-img {
+    width: 24px;
+    height: auto;
+    border-radius: 2px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    display: block; /* Evita espacios extra */
+}
+
+.flag-img-sm {
+    width: 20px;
+    height: auto;
+    border-radius: 2px;
+    display: block;
+}
+
+/* Ajuste fino para la opción individual */
+.custom-option {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* Espacio entre bandera, código y nombre */
+    padding: 10px 12px;
+    cursor: pointer;
+    border-bottom: 1px solid #f4f6f9;
+}
+
+/* Asegurar que el trigger se vea bien alineado */
+.custom-select-trigger {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    min-height: 45px; /* Altura consistente */
+}
+
+/* Asegurar scroll si la lista es larga */
+.custom-options {
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 200010; /* Z-index alto para estar sobre el modal */
+}
