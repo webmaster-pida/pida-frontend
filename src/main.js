@@ -1194,14 +1194,23 @@ document.addEventListener('DOMContentLoaded', function () {
         const overlay = document.getElementById('pida-subscription-overlay');
 
 
-        // 4. Mostrar App solo si no hubo redirección a Stripe
-        if(appRoot) appRoot.style.display = 'block'; 
-        hideLoader(); 
-
-        if (!hasAccess && authMode !== 'register') { 
-            if (overlay) overlay.classList.remove('hidden');
+        // 4. Lógica de acceso y protección de la App
+        if (!hasAccess) {
+            // Si no tiene acceso y NO se está registrando, mostramos el bloqueo
+            if (authMode !== 'register') {
+                if (overlay) overlay.classList.remove('hidden');
+            }
+            
+            // Si no tiene acceso, nos aseguramos de que el layout de la app NO se vea de fondo
+            if (appRoot) appRoot.style.display = 'none'; 
+            
+            // Quitamos el preloader y DETENEMOS la ejecución
+            hideLoader(); 
+            return; // <--- ESTO EVITA LOS ERRORES 403 Y EL CRASH DE JS
         } else {
+            // Si tiene acceso, ocultamos el modal, mostramos la App y limpiamos el plan
             if (overlay) overlay.classList.add('hidden');
+            if (appRoot) appRoot.style.display = 'block'; 
             sessionStorage.removeItem('pida_pending_plan');
         }
 
@@ -1486,6 +1495,15 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!h) return;
             try {
                 const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations`, { headers: h });
+                // --- NUEVA VALIDACIÓN: Si no es exitoso, salir ---
+                if (!r.ok) return; 
+
+                state.conversations = await r.json();
+                
+                // --- OTRA VALIDACIÓN: Asegurar que es un Array antes del forEach ---
+                if (!Array.isArray(state.conversations)) return;
+
+                const list = document.getElementById('pida-history-list');
                 state.conversations = await r.json();
                 const list = document.getElementById('pida-history-list');
                 if(list) {
