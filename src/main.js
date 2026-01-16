@@ -1152,17 +1152,16 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             
-            // 1. Capturar el plan del atributo data-plan
+            // OCULTAR EL MODAL DE BLOQUEO SI EXISTE
+            const overlay = document.getElementById('pida-subscription-overlay');
+            if (overlay) overlay.classList.add('hidden');
+
             const planKey = btn.getAttribute('data-plan');
-            
-            // 2. Guardar elección de plan e intervalo actual
             sessionStorage.setItem('pida_pending_plan', planKey);
             sessionStorage.setItem('pida_pending_interval', currentInterval);
 
-            // 3. Abrir el modal de REGISTRO (donde aparecerá Stripe Elements)
             if (loginScreen) {
                 loginScreen.style.display = 'flex';
-                // Cambiamos 'register' por ('register', false) para ocultar las pestañas
                 window.switchAuthMode('register', false); 
             }
         });
@@ -1199,7 +1198,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if(appRoot) appRoot.style.display = 'block'; 
         hideLoader(); 
 
-        if (!hasAccess) {
+        if (!hasAccess && authMode !== 'register') { 
             if (overlay) overlay.classList.remove('hidden');
         } else {
             if (overlay) overlay.classList.add('hidden');
