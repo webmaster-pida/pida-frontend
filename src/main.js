@@ -397,6 +397,13 @@ window.switchAuthMode = function(mode) {
                     <label style="font-weight:600; font-size:0.9rem; color:#1D3557; margin-bottom:8px; display:block;">Datos de la tarjeta</label>
                     <div id="stripe-card-element" style="padding:12px; border:1px solid #ccc; border-radius:8px; background:white;"></div>
                     <div id="card-errors" style="color:#EF4444; font-size:0.8rem; margin-top:5px; display:none;"></div>
+                    
+                    <div id="terms-container" style="display: flex; align-items: flex-start; gap: 10px; margin-top: 15px; text-align: left;">
+                        <input type="checkbox" id="terms-checkbox" style="width: 18px; height: 18px; margin-top: 2px; cursor: pointer;">
+                        <label for="terms-checkbox" style="font-size: 0.8rem; color: #4B5563; line-height: 1.4; cursor: pointer;">
+                            Acepto los <a href="https://pida-ai.com/terminos" target="_blank" style="color: var(--pida-accent); text-decoration: underline;">términos de uso</a> y la <a href="https://pida-ai.com/privacidad" target="_blank" style="color: var(--pida-accent); text-decoration: underline;">política de privacidad</a>.
+                        </label>
+                    </div>
                 `;
                 authForm.insertBefore(cardContainer, document.getElementById('auth-submit-btn'));
 
@@ -966,18 +973,33 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (authMode === 'login') {
                     await auth.signInWithEmailAndPassword(email, pass);
                 } else if (authMode === 'register') {
-                    // 1. Crear el usuario en Firebase
+                    // 1. Validar Checkbox de Términos
+                    const termsCheckbox = document.getElementById('terms-checkbox');
+                    if (termsCheckbox && !termsCheckbox.checked) {
+                        btn.disabled = false;
+                        btn.textContent = 'Registrarme e iniciar prueba gratis';
+                        const errMsg = document.getElementById('login-message');
+                        errMsg.textContent = "❌ Debes aceptar los términos y condiciones para continuar.";
+                        errMsg.style.display = 'block';
+                        errMsg.style.color = '#EF4444';
+                        return; // Bloquea la ejecución
+                    }
+
+                    btn.disabled = true;
+                    btn.textContent = "Creando cuenta...";
+
+                    // 2. Crear el usuario en Firebase
                     const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
                     const user = userCredential.user;
 
                     btn.textContent = "Procesando pago...";
 
-                    // 2. Obtener monto según plan e intervalo seleccionados
+                    // 3. Obtener monto según plan e intervalo seleccionados
                     const planKey = sessionStorage.getItem('pida_pending_plan') || 'basico';
                     const intervalKey = sessionStorage.getItem('pida_pending_interval') || 'monthly';
                     const planData = STRIPE_PRICES[planKey][intervalKey][currentCurrency];
 
-                    // 3. Llamar al Backend del Chat para el Client Secret
+                    // 4. Llamar al Backend del Chat para el Client Secret
                     const headers = await Utils.getHeaders(user);
                     const intentRes = await fetch(`${PIDA_CONFIG.API_CHAT}/create-payment-intent`, {
                         method: 'POST',
@@ -989,7 +1011,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
                     const { clientSecret } = await intentRes.json();
 
-                    // 4. Confirmar el pago en el navegador
+                    // 5. Confirmar el pago en el navegador
                     const result = await stripe.confirmCardPayment(clientSecret, {
                         payment_method: { card: cardElement }
                     });

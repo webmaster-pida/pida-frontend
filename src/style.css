@@ -801,3 +801,11 @@ input:checked + .slider:before { transform: translateX(24px); }
 .price-val { font-size: 2rem; font-weight: 800; color: var(--pida-primary); }
 .price-period { color: #64748b; font-weight: 500; }
 .plan-features { list-style: none; padding: 0; margin: 25px 0; flex-grow: 1; line-height: 2.2; font-size: 0.95rem; }
+
+#terms-container a:hover {
+    color: var(--pida-primary) !important;
+}
+
+#terms-checkbox {
+    accent-color: var(--pida-accent); /* Hace que el check sea azul PIDA */
+}
