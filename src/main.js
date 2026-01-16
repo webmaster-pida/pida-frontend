@@ -1027,8 +1027,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         headers: headers,
                         body: JSON.stringify({ 
                             amount: planData.amount, 
-                            currency: currentCurrency.toLowerCase() 
-                            trial_period_days: 5,
+                            currency: currentCurrency.toLowerCase(),
+                            trial_period_days: 5
                         })
                     });
                     const { clientSecret } = await intentRes.json();
