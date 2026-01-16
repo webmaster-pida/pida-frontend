@@ -334,12 +334,9 @@ window.closeBanner = function() {
 
 window.switchAuthMode = function(mode, showTabs = true) {
     authMode = mode;
-    const tabContainer = document.querySelector('.login-tabs');
-    if (tabContainer) {
-        tabContainer.style.display = showTabs ? 'flex' : 'none';
-    }
     
     // 1. Referencias a la UI
+    const tabContainer = document.querySelector('.login-tabs');
     const tabLogin = document.getElementById('tab-login');
     const tabRegister = document.getElementById('tab-register');
     const passContainer = document.getElementById('password-field-container');
@@ -349,11 +346,15 @@ window.switchAuthMode = function(mode, showTabs = true) {
     const title = document.getElementById('auth-title');
     const desc = document.getElementById('auth-desc');
     const disclaimer = document.getElementById('register-disclaimer'); 
+    const forgotLink = document.getElementById('btn-forgot-password');
     const errMsg = document.getElementById('login-message');
     
     if(errMsg) errMsg.style.display = 'none';
 
-    // 2. Gestionar subrayado de pestañas
+    // 2. Control de pestañas superiores
+    if (tabContainer) {
+        tabContainer.style.display = showTabs ? 'flex' : 'none';
+    }
     if (tabLogin && tabRegister) {
         tabLogin.classList.toggle('active', mode === 'login');
         tabRegister.classList.toggle('active', mode === 'register');
@@ -367,6 +368,7 @@ window.switchAuthMode = function(mode, showTabs = true) {
         if(googleBtn) googleBtn.style.display = 'none';
         if(divider) divider.style.display = 'none';
         if(disclaimer) disclaimer.style.display = 'none';
+        if(forgotLink) forgotLink.parentElement.style.display = 'none';
         document.getElementById('login-password').required = false;
     } else {
         if(passContainer) passContainer.style.display = 'block';
@@ -377,7 +379,7 @@ window.switchAuthMode = function(mode, showTabs = true) {
             desc.textContent = 'Accede para continuar tu investigación.';
             submitBtn.textContent = 'Ingresar';
             if(disclaimer) disclaimer.style.display = 'none';
-            if(googleBtn) googleBtn.style.display = 'flex'; // Mostrar Google en login
+            if(googleBtn) googleBtn.style.display = 'flex';
             if(divider) divider.style.display = 'block';
             if(forgotLink) forgotLink.parentElement.style.display = 'block';
         } else {
@@ -385,12 +387,12 @@ window.switchAuthMode = function(mode, showTabs = true) {
             desc.textContent = 'Únete para acceder a PIDA.';
             submitBtn.textContent = 'Registrarme e iniciar prueba gratis';
             if(disclaimer) disclaimer.style.display = 'block';
-            if(googleBtn) googleBtn.style.display = 'none'; // Ocultar Google en registro
+            if(googleBtn) googleBtn.style.display = 'none';
             if(divider) divider.style.display = 'none';
             if(forgotLink) forgotLink.parentElement.style.display = 'none';
         }
 
-        // 3. LÓGICA DE TARJETA (SIN TRASLAPE Y SIN CÓDIGO POSTAL)
+        // --- LÓGICA DE STRIPE ELEMENTS (FIJA EL PROBLEMA DE DESAPARICIÓN) ---
         const authForm = document.getElementById('login-form');
         let cardContainer = document.getElementById('card-element-container');
 
@@ -399,11 +401,11 @@ window.switchAuthMode = function(mode, showTabs = true) {
                 cardContainer = document.createElement('div');
                 cardContainer.id = 'card-element-container';
                 cardContainer.style.margin = "20px 0";
+                // Inyectamos el checkbox de términos aquí mismo para asegurar que aparezca
                 cardContainer.innerHTML = `
                     <label style="font-weight:600; font-size:0.9rem; color:#1D3557; margin-bottom:8px; display:block;">Datos de la tarjeta</label>
                     <div id="stripe-card-element" style="padding:12px; border:1px solid #ccc; border-radius:8px; background:white;"></div>
                     <div id="card-errors" style="color:#EF4444; font-size:0.8rem; margin-top:5px; display:none;"></div>
-                    
                     <div id="terms-container" style="display: flex; align-items: flex-start; gap: 10px; margin-top: 15px; text-align: left;">
                         <input type="checkbox" id="terms-checkbox" style="width: 18px; height: 18px; margin-top: 2px; cursor: pointer;">
                         <label for="terms-checkbox" style="font-size: 0.8rem; color: #4B5563; line-height: 1.4; cursor: pointer;">
@@ -415,15 +417,8 @@ window.switchAuthMode = function(mode, showTabs = true) {
 
                 const elements = stripe.elements();
                 cardElement = elements.create('card', { 
-                    hidePostalCode: true, // ELIMINA CÓDIGO POSTAL
-                    style: { 
-                        base: { 
-                            fontSize: '15px', // FUENTE MÁS PEQUEÑA PARA GANAR ESPACIO
-                            color: '#1D3557',
-                            fontFamily: '"Inter", sans-serif',
-                            '::placeholder': { color: '#aab7c4' }
-                        } 
-                    } 
+                    hidePostalCode: true, 
+                    style: { base: { fontSize: '15px', fontFamily: '"Inter", sans-serif', color: '#1D3557' } } 
                 });
                 cardElement.mount('#stripe-card-element');
             }
@@ -433,15 +428,16 @@ window.switchAuthMode = function(mode, showTabs = true) {
         }
     }
 
-    // --- LÓGICA DE ENLACES DE RETORNO (FOOTER NAV) ---
+    // --- LÓGICA DE NAVEGACIÓN INFERIOR (ELIMINA EL TEXTO SOLICITADO) ---
     const footerNav = document.getElementById('auth-footer-nav');
     if (footerNav) {
         if (mode === 'login') {
             footerNav.innerHTML = `¿No tienes cuenta? <a href="#planes" onclick="document.getElementById('pida-login-screen').style.display='none';" style="color: var(--pida-accent); text-decoration: underline; cursor: pointer;">Ver planes de suscripción</a>`;
         } else if (mode === 'register') {
             footerNav.innerHTML = `¿Ya tienes cuenta? <a href="#" onclick="window.switchAuthMode('login', false); return false;" style="color: var(--pida-accent); text-decoration: underline; cursor: pointer;">Inicia sesión aquí</a>`;
-        } else if (mode === 'reset') {
-            footerNav.innerHTML = `<a href="#" onclick="window.switchAuthMode('login', false); return false;" style="color: var(--pida-accent); text-decoration: underline; cursor: pointer;">Volver al inicio de sesión</a>`;
+        } else {
+            // Aquí se elimina la leyenda "Volver al inicio de sesión" para el modo reset u otros
+            footerNav.innerHTML = ''; 
         }
     }
 }
