@@ -1,0 +1,10 @@
+# robots.txt para pida-ai.com
+User-agent: *
+Allow: /
+
+# Evitar la indexación de páginas de utilidad o administración
+Disallow: /unsubscribe.html
+Disallow: /unsubscribe
+
+# Ubicación del Sitemap
+Sitemap: https://pida-ai.com/sitemap.xml
