@@ -8,7 +8,7 @@
     <link rel="icon" type="image/png" href="/img/favicon.png">
 
     <!-- Stripe Script -->
-    <script async src="https://js.stripe.com/v3/pricing-table.js"></script>
+    <script src="https://js.stripe.com/v3/"></script>
 
     <!-- Meta Descripción -->
     <meta name="description" content="PIDA es la plataforma líder en investigación y defensa de Derechos Humanos asistida por IA, fundamentada en el acervo jurídico de IIRESODH.">
@@ -99,9 +99,66 @@
 
             <section id="planes">
                 <div class="wrapper">
-                    <div class="section-intro"><h2>Planes Flexibles</h2></div>
-                    <div id="stripe-pricing-table-container">
-                        <div style="text-align: center; padding: 40px; color: #6B7280;">Cargando planes...</div>
+                    <div class="section-intro">
+                        <h2>Planes Flexibles</h2>
+                        <p>Selecciona el plan que mejor se adapte a tu nivel de investigación.</p>
+                    </div>
+
+                    <div class="billing-toggle-container" style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 40px;">
+                        <span id="label-monthly" style="font-weight: 700; color: var(--pida-primary); transition: 0.3s;">Mensual</span>
+                        <label class="switch">
+                            <input type="checkbox" id="billing-interval-toggle">
+                            <span class="slider round"></span>
+                        </label>
+                        <span id="label-annual" style="font-weight: 700; color: #94a3b8; transition: 0.3s;">Anual <span class="discount-badge">-16%</span></span>
+                    </div>
+
+                    <div class="pricing-grid">
+                        <div class="pricing-card">
+                            <h3>Básico</h3>
+                            <div class="price-container">
+                                <span id="price-basico" class="price-val">$9.99</span>
+                                <span class="price-period">/ mes</span>
+                            </div>
+                            <ul class="plan-features">
+                                <li>✅ 5 consultas de chat diarias</li>
+                                <li>✅ 3 análisis de documentos</li>
+                                <li>✅ 1 archivo por análisis</li>
+                                <li>❌ Sin precalificador penal</li>
+                            </ul>
+                            <button class="btn btn-primary plan-cta" data-plan="basico">Elegir Básico</button>
+                        </div>
+
+                        <div class="pricing-card featured">
+                            <div class="card-badge">Más Popular</div>
+                            <h3>Avanzado</h3>
+                            <div class="price-container">
+                                <span id="price-avanzado" class="price-val">$19.99</span>
+                                <span class="price-period">/ mes</span>
+                            </div>
+                            <ul class="plan-features">
+                                <li>✅ 20 consultas de chat diarias</li>
+                                <li>✅ 15 análisis de documentos</li>
+                                <li>✅ 3 archivos por análisis</li>
+                                <li>✅ 20 precalificaciones diarias</li>
+                            </ul>
+                            <button class="btn btn-primary plan-cta" data-plan="avanzado">Elegir Avanzado</button>
+                        </div>
+
+                        <div class="pricing-card">
+                            <h3>Premium</h3>
+                            <div class="price-container">
+                                <span id="price-premium" class="price-val">$29.99</span>
+                                <span class="price-period">/ mes</span>
+                            </div>
+                            <ul class="plan-features">
+                                <li>✅ 100 consultas de chat diarias</li>
+                                <li>✅ 25 análisis de documentos</li>
+                                <li>✅ 5 archivos por análisis</li>
+                                <li>✅ 100 precalificaciones diarias</li>
+                            </ul>
+                            <button class="btn btn-primary plan-cta" data-plan="premium">Elegir Premium</button>
+                        </div>
                     </div>
                 </div>
             </section>

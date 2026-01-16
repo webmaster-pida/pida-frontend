@@ -21,18 +21,44 @@ window.docx = docx;
 window.marked = marked;
 window.DOMPurify = DOMPurify;
 window.firebase = firebase;
+// Inicialización de Stripe con llave de prueba (Cámbiala por la tuya de Stripe Dashboard)
+const stripe = Stripe('pk_test_51RMB12GaDEQrzamxhgBfRodlN2Es6kmTYJIB5XUouHAoGNzj2Fcgcz116sIbY3UeeKRIMESrHkSy4zmb9RSwQ2Ql00mK5e53gD'); 
+let cardElement;
+let currentInterval = 'monthly';
 
 // =========================================================
 // 2. CONFIGURACIÓN
 // =========================================================
 const STRIPE_PRICES = {
-    basic: {
-        USD: { id: 'price_1ScEcgGgaloBN5L8BQVnYeFl', text: '$29.99' },
-        MXN: { id: 'price_1ScnlrGgaloBN5L8fWzCvIFp', text: '$599 MXN' }
+    basico: {
+        monthly: {
+            USD: { id: 'price_1SqFQiGgaloBN5L8U60ywohe', amount: 999, text: '$9.99' },
+            MXN: { id: 'price_1SqFSFGgaloBN5L8BMBeRPqb', amount: 19900, text: '$199 MXN' }
+        },
+        annual: {
+            USD: { id: 'price_1SqFSFGgaloBN5L8kxegWZqC', amount: 9999, text: '$99.99' },
+            MXN: { id: 'price_1SqFSyGgaloBN5L8rrwrtUau', amount: 199900, text: '$1,999 MXN' }
+        }
     },
-    pro: {
-        USD: { id: 'price_1ScEeFGgaloBN5L8psSOfigs', text: '$299.99' },
-        MXN: { id: 'price_1ScbTBGgaloBN5L8c0izUGmr', text: '$5,999 MXN' }
+    avanzado: {
+        monthly: {
+            USD: { id: 'price_1SqFUvGgaloBN5L8xOBssn6E', amount: 1999, text: '$19.99' },
+            MXN: { id: 'price_1SqFWJGgaloBN5L8roECNay2', amount: 39900, text: '$399 MXN' }
+        },
+        annual: {
+            USD: { id: 'price_1SqFWJGgaloBN5L8VKhkzLRH', amount: 19999, text: '$199.99' },
+            MXN: { id: 'price_1SqFWJGgaloBN5L8hKpEvd1v', amount: 399900, text: '$3,999 MXN' }
+        }
+    },
+    premium: {
+        monthly: {
+            USD: { id: 'price_1SqFXIGgaloBN5L8vaGyleDT', amount: 2999, text: '$29.99' },
+            MXN: { id: 'price_1SqFadGgaloBN5L8AwTUeTSd', amount: 59900, text: '$599 MXN' }
+        },
+        annual: {
+            USD: { id: 'price_1SqFadGgaloBN5L86iwNYm1c', amount: 29999, text: '$299.99' },
+            MXN: { id: 'price_1SqFadGgaloBN5L8QFHXe1i9', amount: 599900, text: '$5,999 MXN' }
+        }
     }
 };
 
@@ -346,6 +372,32 @@ window.switchAuthMode = function(mode) {
             submitBtn.textContent = 'Registrarme e iniciar prueba gratis';
             if(disclaimer) disclaimer.style.display = 'block';
         }
+
+        // --- LÓGICA STRIPE ELEMENTS ---
+        const authForm = document.getElementById('login-form');
+        let cardContainer = document.getElementById('card-element-container');
+
+        if (mode === 'register') {
+            if (!cardContainer) {
+                cardContainer = document.createElement('div');
+                cardContainer.id = 'card-element-container';
+                cardContainer.style.margin = "20px 0";
+                cardContainer.innerHTML = `
+                    <label style="font-weight:600; font-size:0.9rem; color:#1D3557; margin-bottom:8px; display:block;">Datos de la tarjeta</label>
+                    <div id="stripe-card-element" style="padding:12px; border:1px solid #ccc; border-radius:8px; background:white;"></div>
+                    <div id="card-errors" style="color:#EF4444; font-size:0.8rem; margin-top:5px; display:none;"></div>
+                `;
+                authForm.insertBefore(cardContainer, document.getElementById('auth-submit-btn'));
+
+                const elements = stripe.elements();
+                cardElement = elements.create('card', { style: { base: { fontSize: '16px', fontFamily: '"Inter", sans-serif' } } });
+                cardElement.mount('#stripe-card-element');
+            }
+            cardContainer.style.display = 'block';
+        } else {
+            if (cardContainer) cardContainer.style.display = 'none';
+        }
+
     }
 }
 
@@ -360,27 +412,23 @@ function updatePricingUI(currency) {
     currentCurrency = currency;
     localStorage.setItem('pida_currency', currency);
 
-    const container = document.getElementById('stripe-pricing-table-container');
-    if (!container) return;
+    const plans = ['basico', 'avanzado', 'premium'];
+    const periodText = currentInterval === 'monthly' ? '/ mes' : '/ año';
 
-    // Seleccionamos el ID de tabla según la moneda detectada
-    const tableId = (currency === 'MXN') 
-        ? 'prctbl_1SpaCgGgaloBN5L8CSpjgB39' 
-        : 'prctbl_1Spa8eGgaloBN5L8KY9RKqGE';
+    plans.forEach(plan => {
+        const priceEl = document.getElementById(`price-${plan}`);
+        if (priceEl && STRIPE_PRICES[plan][currentInterval][currency]) {
+            // Actualizar el monto (ej: $199.99 MXN)
+            priceEl.textContent = STRIPE_PRICES[plan][currentInterval][currency].text;
+            
+            // Actualizar el sufijo (/ mes o / año)
+            if (priceEl.nextElementSibling) {
+                priceEl.nextElementSibling.textContent = periodText;
+            }
+        }
+    });
 
-    // Inyectamos el componente de Stripe
-    // Nota: Pasamos client-reference-id y customer-email si el usuario ya está logueado
-    container.innerHTML = `
-        <stripe-pricing-table 
-            pricing-table-id="${tableId}"
-            publishable-key="pk_live_51QriCdGgaloBN5L8XyzW4M1QePJK316USJg3kjrZGFGln3bhwEQKnpoNXf2MnLXGHylM1OQ6SvWJmNVCNqhCxg6x000l605E1B"
-            ${currentUser ? `client-reference-id="${currentUser.uid}"` : ''}
-            ${currentUser ? `customer-email="${currentUser.email}"` : ''}
-        >
-        </stripe-pricing-table>
-    `;
-    
-    console.log(`✅ Tabla de Stripe actualizada a: ${currency}`);
+    console.log(`✅ UI de precios actualizada: ${currency} | ${currentInterval}`);
 }
 
 // Función crucial para cumplimiento legal en México
@@ -421,6 +469,32 @@ async function detectLocation() {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
+
+    // --- LÓGICA UNIFICADA DEL INTERRUPTOR MENSUAL/ANUAL ---
+    const intervalToggle = document.getElementById('billing-interval-toggle');
+    if (intervalToggle) {
+        intervalToggle.addEventListener('change', (e) => {
+            // 1. Actualizar estado global
+            currentInterval = e.target.checked ? 'annual' : 'monthly';
+            
+            // 2. Actualizar visualmente las etiquetas y colores
+            const labelM = document.getElementById('label-monthly');
+            const labelA = document.getElementById('label-annual');
+            if (currentInterval === 'annual') {
+                labelM.style.color = '#94a3b8';
+                labelA.style.color = 'var(--pida-primary)';
+            } else {
+                labelM.style.color = 'var(--pida-primary)';
+                labelA.style.color = '#94a3b8';
+            }
+
+            // 3. Guardar elección para el proceso de pago posterior
+            sessionStorage.setItem('pida_pending_interval', currentInterval);
+            
+            // 4. Refrescar los precios en el HTML
+            updatePricingUI(currentCurrency);
+        });
+    }
 
     // ==========================================
     // LOGICA SELECTOR DE BANDERAS (CORREGIDO CON IMÁGENES)
@@ -616,7 +690,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     };
 
-// ==========================================
+    // ==========================================
     // LÓGICA DEL CARRUSEL DE TESTIMONIOS (AUTO-PLAY)
     // ==========================================
     const track = document.getElementById('carouselTrack');
@@ -869,8 +943,43 @@ document.addEventListener('DOMContentLoaded', function () {
                     return; 
                 }
                 
-                if (authMode === 'login') await auth.signInWithEmailAndPassword(email, pass);
-                else await auth.createUserWithEmailAndPassword(email, pass);
+                if (authMode === 'login') {
+                    await auth.signInWithEmailAndPassword(email, pass);
+                } else if (authMode === 'register') {
+                    // 1. Crear el usuario en Firebase
+                    const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
+                    const user = userCredential.user;
+
+                    btn.textContent = "Procesando pago...";
+
+                    // 2. Obtener monto según plan e intervalo seleccionados
+                    const planKey = sessionStorage.getItem('pida_pending_plan') || 'basico';
+                    const intervalKey = sessionStorage.getItem('pida_pending_interval') || 'monthly';
+                    const planData = STRIPE_PRICES[planKey][intervalKey][currentCurrency];
+
+                    // 3. Llamar al Backend del Chat para el Client Secret
+                    const headers = await Utils.getHeaders(user);
+                    const intentRes = await fetch(`${PIDA_CONFIG.API_CHAT}/create-payment-intent`, {
+                        method: 'POST',
+                        headers: headers,
+                        body: JSON.stringify({ 
+                            amount: planData.amount, 
+                            currency: currentCurrency.toLowerCase() 
+                        })
+                    });
+                    const { clientSecret } = await intentRes.json();
+
+                    // 4. Confirmar el pago en el navegador
+                    const result = await stripe.confirmCardPayment(clientSecret, {
+                        payment_method: { card: cardElement }
+                    });
+
+                    if (result.error) {
+                        throw new Error(result.error.message);
+                    } else if (result.paymentIntent.status === 'succeeded') {
+                        window.location.reload(); 
+                    }
+                }
 
             } catch (error) {
                 btn.disabled = false;
@@ -975,22 +1084,22 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (error) { console.error("Checkout Error:", error); }
     }
 
+    // --- NUEVO LISTENER DE BOTONES DE PLANES (STRIPE ELEMENTS) ---
     document.querySelectorAll('.plan-cta').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
-            if (btn.disabled) return;
+            
+            // 1. Capturar el plan del atributo data-plan
             const planKey = btn.getAttribute('data-plan');
+            
+            // 2. Guardar elección de plan e intervalo actual
+            sessionStorage.setItem('pida_pending_plan', planKey);
+            sessionStorage.setItem('pida_pending_interval', currentInterval);
 
-            // USAMOS LA MONEDA DETECTADA DINÁMICAMENTE
-            const priceId = STRIPE_PRICES[planKey]?.[currentCurrency]?.id;
-
-            if (currentUser && priceId) {
-                btn.textContent = "Procesando...";
-                startCheckout(priceId);
-            } else {
-                // Guardamos en memoria para el Punto 1
-                sessionStorage.setItem('pida_pending_plan', planKey);
-                if (loginScreen) { loginScreen.style.display = 'flex'; window.switchAuthMode('register'); }
+            // 3. Abrir el modal de REGISTRO (donde aparecerá Stripe Elements)
+            if (loginScreen) {
+                loginScreen.style.display = 'flex';
+                window.switchAuthMode('register');
             }
         });
     });
@@ -1021,16 +1130,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const hasAccess = await checkAccessAuthorization(user);
         const overlay = document.getElementById('pida-subscription-overlay');
 
-        // 3. REDIRECCIÓN AUTOMÁTICA (CONVERSIÓN)
-        if (!hasAccess && savedPlan) {
-            sessionStorage.removeItem('pida_pending_plan');
-            const priceId = STRIPE_PRICES[savedPlan]?.[currentCurrency]?.id;
-            if (priceId) {
-                console.log("💳 Venta detectada. Redirigiendo a Stripe...");
-                startCheckout(priceId);
-                return; // Evitamos cargar la App si se va a pagar
-            }
-        }
 
         // 4. Mostrar App solo si no hubo redirección a Stripe
         if(appRoot) appRoot.style.display = 'block'; 

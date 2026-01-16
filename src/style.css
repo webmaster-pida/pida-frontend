@@ -717,3 +717,79 @@
 .login-card {
     overflow: visible !important; 
 }
+
+/* Contenedor del cuadro de tarjeta de Stripe */
+#card-element-container {
+    margin: 15px 0;
+    padding: 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Estilo para mensajes de error de la tarjeta */
+.stripe-error {
+    color: #EF4444;
+    font-size: 0.85rem;
+    margin-top: 8px;
+    font-weight: 500;
+    display: none; /* Se muestra solo si hay error */
+}
+
+/* Pricing Grid y Cards */
+.pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    margin-top: 20px;
+}
+.pricing-card {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+.pricing-card.featured {
+    border: 2px solid var(--pida-primary);
+    transform: scale(1.05);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    position: relative;
+}
+.pricing-card .badge {
+    position: absolute; top: -15px; left: 50%; transform: translateX(-50%);
+    background: var(--pida-primary); color: white; padding: 4px 15px;
+    border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+}
+.price-val { font-size: 2.5rem; font-weight: 800; color: var(--pida-primary); }
+.plan-features { list-style: none; padding: 0; margin: 20px 0; flex-grow: 1; font-size: 0.95rem; line-height: 2; }
+
+/* The Switch Toggle */
+.switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--pida-primary); }
+input:checked + .slider:before { transform: translateX(24px); }
+
+/* Estilos para el Switch */
+.switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--pida-primary); }
+input:checked + .slider:before { transform: translateX(24px); }
+
+.discount-badge { background: #10B981; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; margin-left: 5px; }
+
+/* Grid de Precios */
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+.pricing-card { background: white; padding: 35px; border-radius: 20px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; transition: transform 0.3s; }
+.pricing-card.featured { border: 2.5px solid var(--pida-primary); box-shadow: 0 15px 30px rgba(29, 53, 87, 0.1); position: relative; transform: scale(1.03); }
+.card-badge { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--pida-primary); color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
+.price-val { font-size: 2.8rem; font-weight: 800; color: var(--pida-primary); }
+.price-period { color: #64748b; font-weight: 500; }
+.plan-features { list-style: none; padding: 0; margin: 25px 0; flex-grow: 1; line-height: 2.2; font-size: 0.95rem; }
