@@ -334,6 +334,18 @@ window.closeBanner = function() {
 
 window.switchAuthMode = function(mode) {
     authMode = mode;
+    // 1. Obtener los botones de las pestañas
+    const tabLogin = document.getElementById('tab-login');
+    const tabRegister = document.getElementById('tab-register');
+
+    // 2. Cambiar la clase activa según el modo
+    if (mode === 'login') {
+        tabLogin.classList.add('active');
+        tabRegister.classList.remove('active');
+    } else if (mode === 'register') {
+        tabLogin.classList.remove('active');
+        tabRegister.classList.add('active');
+    }
     const passContainer = document.getElementById('password-field-container');
     const googleBtn = document.getElementById('google-login-btn');
     const divider = document.querySelector('.login-divider');

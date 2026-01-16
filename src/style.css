@@ -720,12 +720,20 @@
 
 /* Contenedor del cuadro de tarjeta de Stripe */
 #card-element-container {
-    margin: 15px 0;
+    margin: 20px 0;
     padding: 12px;
     border: 1px solid #e2e8f0;
     border-radius: 8px;
     background-color: #ffffff;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    /* Asegura que el contenedor no limite el ancho interno de Stripe */
+    width: 100%;
+    box-sizing: border-box; 
+}
+
+#stripe-card-element {
+    /* Stripe inyecta un iframe aquí, dale un ancho mínimo */
+    min-height: 20px;
+    width: 100%;
 }
 
 /* Estilo para mensajes de error de la tarjeta */
