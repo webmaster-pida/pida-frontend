@@ -334,18 +334,10 @@ window.closeBanner = function() {
 
 window.switchAuthMode = function(mode) {
     authMode = mode;
-    // 1. Obtener los botones de las pestañas
+    
+    // 1. Referencias a la UI
     const tabLogin = document.getElementById('tab-login');
     const tabRegister = document.getElementById('tab-register');
-
-    // 2. Cambiar la clase activa según el modo
-    if (mode === 'login') {
-        tabLogin.classList.add('active');
-        tabRegister.classList.remove('active');
-    } else if (mode === 'register') {
-        tabLogin.classList.remove('active');
-        tabRegister.classList.add('active');
-    }
     const passContainer = document.getElementById('password-field-container');
     const googleBtn = document.getElementById('google-login-btn');
     const divider = document.querySelector('.login-divider');
@@ -357,6 +349,12 @@ window.switchAuthMode = function(mode) {
     
     if(errMsg) errMsg.style.display = 'none';
 
+    // 2. Gestionar subrayado de pestañas
+    if (tabLogin && tabRegister) {
+        tabLogin.classList.toggle('active', mode === 'login');
+        tabRegister.classList.toggle('active', mode === 'register');
+    }
+
     if (mode === 'reset') {
         title.textContent = 'Recuperar Contraseña';
         desc.textContent = 'Ingresa tu correo para enviarte un enlace de restauración.';
@@ -367,10 +365,7 @@ window.switchAuthMode = function(mode) {
         if(disclaimer) disclaimer.style.display = 'none';
         document.getElementById('login-password').required = false;
     } else {
-        // Restaurar Login o Registro
         if(passContainer) passContainer.style.display = 'block';
-        if(googleBtn) googleBtn.style.display = 'flex';
-        if(divider) divider.style.display = 'block';
         document.getElementById('login-password').required = true;
 
         if (mode === 'login') {
@@ -378,14 +373,18 @@ window.switchAuthMode = function(mode) {
             desc.textContent = 'Accede para continuar tu investigación.';
             submitBtn.textContent = 'Ingresar';
             if(disclaimer) disclaimer.style.display = 'none';
+            if(googleBtn) googleBtn.style.display = 'flex'; // Mostrar Google en login
+            if(divider) divider.style.display = 'block';
         } else {
             title.textContent = 'Crear una cuenta';
             desc.textContent = 'Únete para acceder a PIDA.';
             submitBtn.textContent = 'Registrarme e iniciar prueba gratis';
             if(disclaimer) disclaimer.style.display = 'block';
+            if(googleBtn) googleBtn.style.display = 'none'; // Ocultar Google en registro
+            if(divider) divider.style.display = 'none';
         }
 
-        // --- LÓGICA STRIPE ELEMENTS ---
+        // 3. LÓGICA DE TARJETA (SIN TRASLAPE Y SIN CÓDIGO POSTAL)
         const authForm = document.getElementById('login-form');
         let cardContainer = document.getElementById('card-element-container');
 
@@ -402,14 +401,23 @@ window.switchAuthMode = function(mode) {
                 authForm.insertBefore(cardContainer, document.getElementById('auth-submit-btn'));
 
                 const elements = stripe.elements();
-                cardElement = elements.create('card', { style: { base: { fontSize: '16px', fontFamily: '"Inter", sans-serif' } } });
+                cardElement = elements.create('card', { 
+                    hidePostalCode: true, // ELIMINA CÓDIGO POSTAL
+                    style: { 
+                        base: { 
+                            fontSize: '15px', // FUENTE MÁS PEQUEÑA PARA GANAR ESPACIO
+                            color: '#1D3557',
+                            fontFamily: '"Inter", sans-serif',
+                            '::placeholder': { color: '#aab7c4' }
+                        } 
+                    } 
+                });
                 cardElement.mount('#stripe-card-element');
             }
             cardContainer.style.display = 'block';
         } else {
             if (cardContainer) cardContainer.style.display = 'none';
         }
-
     }
 }
 
