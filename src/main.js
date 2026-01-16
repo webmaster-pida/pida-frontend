@@ -1013,7 +1013,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
                     const user = userCredential.user;
 
-                    btn.textContent = "Procesando pago...";
+                    btn.textContent = "Iniciando tu prueba de 5 días...";
 
                     // 3. Obtener monto según plan e intervalo seleccionados
                     const planKey = sessionStorage.getItem('pida_pending_plan') || 'basico';
@@ -1028,6 +1028,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         body: JSON.stringify({ 
                             amount: planData.amount, 
                             currency: currentCurrency.toLowerCase() 
+                            trial_period_days: 5
                         })
                     });
                     const { clientSecret } = await intentRes.json();
