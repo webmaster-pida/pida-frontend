@@ -332,8 +332,12 @@ window.closeBanner = function() {
     }
 }
 
-window.switchAuthMode = function(mode) {
+window.switchAuthMode = function(mode, showTabs = true) {
     authMode = mode;
+    const tabContainer = document.querySelector('.login-tabs');
+    if (tabContainer) {
+        tabContainer.style.display = showTabs ? 'flex' : 'none';
+    }
     
     // 1. Referencias a la UI
     const tabLogin = document.getElementById('tab-login');
@@ -424,6 +428,18 @@ window.switchAuthMode = function(mode) {
             cardContainer.style.display = 'block';
         } else {
             if (cardContainer) cardContainer.style.display = 'none';
+        }
+    }
+
+    // --- LÓGICA DE ENLACES DE RETORNO (FOOTER NAV) ---
+    const footerNav = document.getElementById('auth-footer-nav');
+    if (footerNav) {
+        if (mode === 'login') {
+            footerNav.innerHTML = `¿No tienes cuenta? <a href="#planes" onclick="document.getElementById('pida-login-screen').style.display='none';" style="color: var(--pida-accent); text-decoration: underline; cursor: pointer;">Ver planes de suscripción</a>`;
+        } else if (mode === 'register') {
+            footerNav.innerHTML = `¿Ya tienes cuenta? <a href="#" onclick="window.switchAuthMode('login', false); return false;" style="color: var(--pida-accent); text-decoration: underline; cursor: pointer;">Inicia sesión aquí</a>`;
+        } else if (mode === 'reset') {
+            footerNav.innerHTML = `<a href="#" onclick="window.switchAuthMode('login', false); return false;" style="color: var(--pida-accent); text-decoration: underline; cursor: pointer;">Volver al inicio de sesión</a>`;
         }
     }
 }
@@ -940,10 +956,15 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // LOGIN & CHECKOUT
+    // --- BOTÓN HERO: SOLO ENTRAR (OCULTA OPCIÓN DE REGISTRO) ---
     document.querySelectorAll('.trigger-login').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
-            if (loginScreen) { loginScreen.style.display = 'flex'; window.switchAuthMode('login'); }
+            if (loginScreen) { 
+                loginScreen.style.display = 'flex'; 
+                // Llamamos con false para ocultar las pestañas
+                window.switchAuthMode('login', false); 
+            }
         });
     });
 
@@ -1141,7 +1162,8 @@ document.addEventListener('DOMContentLoaded', function () {
             // 3. Abrir el modal de REGISTRO (donde aparecerá Stripe Elements)
             if (loginScreen) {
                 loginScreen.style.display = 'flex';
-                window.switchAuthMode('register');
+                // Cambiamos 'register' por ('register', false) para ocultar las pestañas
+                window.switchAuthMode('register', false); 
             }
         });
     });
