@@ -556,7 +556,6 @@ document.addEventListener('DOMContentLoaded', function () {
         { code: '+53', iso: 'cu', name: 'Cuba' },
         { code: '+593', iso: 'ec', name: 'Ecuador' },
         { code: '+503', iso: 'sv', name: 'El Salvador' },
-        { code: '+1', iso: 'us', name: 'EE. UU.' },
         { code: '+502', iso: 'gt', name: 'Guatemala' },
         { code: '+504', iso: 'hn', name: 'Honduras' },
         { code: '+52', iso: 'mx', name: 'México' },
@@ -564,11 +563,9 @@ document.addEventListener('DOMContentLoaded', function () {
         { code: '+507', iso: 'pa', name: 'Panamá' },
         { code: '+595', iso: 'py', name: 'Paraguay' },
         { code: '+51', iso: 'pe', name: 'Perú' },
-        { code: '+1', iso: 'pr', name: 'Puerto Rico' },
         { code: '+1', iso: 'do', name: 'Rep. Dom.' },
         { code: '+598', iso: 'uy', name: 'Uruguay' },
         { code: '+58', iso: 've', name: 'Venezuela' },
-        { code: '+34', iso: 'es', name: 'España' }
     ];
 
     allCountryWrappers.forEach(wrapper => {
