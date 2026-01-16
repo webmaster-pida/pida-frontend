@@ -522,23 +522,24 @@ document.addEventListener('DOMContentLoaded', function () {
             // 1. Actualizar estado global
             currentInterval = e.target.checked ? 'annual' : 'monthly';
             
-            // 2. Actualizar visualmente las etiquetas y colores
+            // 2. Referencias a etiquetas y al badge de ahorro
             const labelM = document.getElementById('label-monthly');
             const labelA = document.getElementById('label-annual');
+            const discountBadge = document.querySelector('.discount-badge');
+
+            // 3. Lógica visual: Mostrar/Ocultar y cambiar colores
             if (currentInterval === 'annual') {
-                labelM.style.color = '#94a3b8';
-                labelA.style.color = 'var(--pida-primary)';
-                if (discountBadge) discountBadge.style.display = 'inline-block';
+                labelM.style.color = '#94a3b8'; // Gris
+                labelA.style.color = 'var(--pida-primary)'; // Azul
+                if (discountBadge) discountBadge.style.display = 'inline-block'; // APARECE
             } else {
-                labelM.style.color = 'var(--pida-primary)';
-                labelA.style.color = '#94a3b8';
-                if (discountBadge) discountBadge.style.display = 'none';
+                labelM.style.color = 'var(--pida-primary)'; // Azul
+                labelA.style.color = '#94a3b8'; // Gris
+                if (discountBadge) discountBadge.style.display = 'none'; // DESAPARECE
             }
 
-            // 3. Guardar elección para el proceso de pago posterior
+            // 4. Persistir y actualizar precios
             sessionStorage.setItem('pida_pending_interval', currentInterval);
-            
-            // 4. Refrescar los precios en el HTML
             updatePricingUI(currentCurrency);
         });
     }
