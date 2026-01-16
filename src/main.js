@@ -639,7 +639,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if(forgotBtn) {
         forgotBtn.onclick = (e) => {
             e.preventDefault();
-            window.switchAuthMode('reset');
+            window.switchAuthMode('reset', false);
         };
     }
 
