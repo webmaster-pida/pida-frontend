@@ -998,10 +998,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         btn.disabled = false;
                         btn.textContent = 'Registrarme e iniciar prueba gratis';
                         const errMsg = document.getElementById('login-message');
-                        errMsg.textContent = "❌ Debes aceptar los términos y condiciones para continuar.";
-                        errMsg.style.display = 'block';
-                        errMsg.style.color = '#EF4444';
-                        return; // Bloquea la ejecución
+                        if (errMsg) {
+                            errMsg.textContent = "❌ Debes aceptar los términos y condiciones para continuar.";
+                            errMsg.style.display = 'block';
+                            errMsg.style.color = '#EF4444';
+                        }
+                        return; 
                     }
 
                     btn.disabled = true;
@@ -1018,18 +1020,31 @@ document.addEventListener('DOMContentLoaded', function () {
                     const intervalKey = sessionStorage.getItem('pida_pending_interval') || 'monthly';
                     const planData = STRIPE_PRICES[planKey][intervalKey][currentCurrency];
 
+                    if (!planData || !planData.amount) {
+                        throw new Error("No se pudo identificar el plan. Selecciona uno nuevamente.");
+                    }
+
                     // 4. Llamar al Backend del Chat para el Client Secret
                     const headers = await Utils.getHeaders(user);
                     const intentRes = await fetch(`${PIDA_CONFIG.API_CHAT}/create-payment-intent`, {
                         method: 'POST',
                         headers: headers,
                         body: JSON.stringify({ 
-                            amount: planData.amount, 
+                            amount: Math.round(planData.amount), // Aseguramos entero para evitar el 400
                             currency: currentCurrency.toLowerCase(),
                             trial_period_days: 5
                         })
                     });
-                    const { clientSecret } = await intentRes.json();
+
+                    // --- ESTA ES LA PROTECCIÓN QUE EVITA LA PANTALLA EN BLANCO ---
+                    if (!intentRes.ok) {
+                        const errorData = await intentRes.json();
+                        throw new Error(errorData.detail || "Error en el servidor de pagos (400)");
+                    }
+
+                    const data = await intentRes.json();
+                    const clientSecret = data.clientSecret;
+                    // ------------------------------------------------------------
 
                     // 5. Confirmar el pago en el navegador
                     const result = await stripe.confirmCardPayment(clientSecret, {
