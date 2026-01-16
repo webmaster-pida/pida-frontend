@@ -528,9 +528,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if (currentInterval === 'annual') {
                 labelM.style.color = '#94a3b8';
                 labelA.style.color = 'var(--pida-primary)';
+                if (discountBadge) discountBadge.style.display = 'inline-block';
             } else {
                 labelM.style.color = 'var(--pida-primary)';
                 labelA.style.color = '#94a3b8';
+                if (discountBadge) discountBadge.style.display = 'none';
             }
 
             // 3. Guardar elección para el proceso de pago posterior

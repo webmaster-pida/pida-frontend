@@ -809,3 +809,15 @@ input:checked + .slider:before { transform: translateX(24px); }
 #terms-checkbox {
     accent-color: var(--pida-accent); /* Hace que el check sea azul PIDA */
 }
+
+/* El badge empieza oculto porque el plan inicial es mensual */
+.discount-badge {
+    display: none; 
+    background: #10B981;
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    margin-left: 5px;
+    vertical-align: middle;
+}
