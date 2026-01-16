@@ -379,6 +379,7 @@ window.switchAuthMode = function(mode, showTabs = true) {
             if(disclaimer) disclaimer.style.display = 'none';
             if(googleBtn) googleBtn.style.display = 'flex'; // Mostrar Google en login
             if(divider) divider.style.display = 'block';
+            if(forgotLink) forgotLink.parentElement.style.display = 'block';
         } else {
             title.textContent = 'Crear una cuenta';
             desc.textContent = 'Únete para acceder a PIDA.';
@@ -386,6 +387,7 @@ window.switchAuthMode = function(mode, showTabs = true) {
             if(disclaimer) disclaimer.style.display = 'block';
             if(googleBtn) googleBtn.style.display = 'none'; // Ocultar Google en registro
             if(divider) divider.style.display = 'none';
+            if(forgotLink) forgotLink.parentElement.style.display = 'none';
         }
 
         // 3. LÓGICA DE TARJETA (SIN TRASLAPE Y SIN CÓDIGO POSTAL)
@@ -1075,6 +1077,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (googleBtn) {
         googleBtn.addEventListener('click', async () => {
             const errMsg = document.getElementById('login-message');
+            const forgotLink = document.getElementById('btn-forgot-password');
             const btnText = document.getElementById('google-text');
             const loginScreen = document.getElementById('pida-login-screen');
             
