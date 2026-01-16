@@ -790,6 +790,6 @@ input:checked + .slider:before { transform: translateX(24px); }
 .pricing-card { background: white; padding: 35px; border-radius: 20px; border: 1px solid #e2e8f0; display: flex; flex-direction: column; transition: transform 0.3s; }
 .pricing-card.featured { border: 2.5px solid var(--pida-primary); box-shadow: 0 15px 30px rgba(29, 53, 87, 0.1); position: relative; transform: scale(1.03); }
 .card-badge { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); background: var(--pida-primary); color: white; padding: 5px 15px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; }
-.price-val { font-size: 2.8rem; font-weight: 800; color: var(--pida-primary); }
+.price-val { font-size: 2rem; font-weight: 800; color: var(--pida-primary); }
 .price-period { color: #64748b; font-weight: 500; }
 .plan-features { list-style: none; padding: 0; margin: 25px 0; flex-grow: 1; line-height: 2.2; font-size: 0.95rem; }
