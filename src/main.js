@@ -1566,10 +1566,35 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (view === 'precalificador') loadPreHistory();
             }
 
+            // ------------------------------------------------------------
+            // NUEVO: LÓGICA DEL MODAL PREMIUM (INICIO)
+            // ------------------------------------------------------------
+            const upgradeModal = document.getElementById('pida-upgrade-modal');
+            const btnUpgradeAction = document.getElementById('btn-upgrade-action');
+
+            if (btnUpgradeAction) {
+                btnUpgradeAction.onclick = () => {
+                    upgradeModal.classList.add('hidden'); 
+                    // Al dar clic en mejorar, simulamos ir al botón de facturación
+                    if (dom.accBilling) dom.accBilling.click();
+                };
+            }
+            // ------------------------------------------------------------
+
             // Listeners de Navegación
             if(dom.navInv) dom.navInv.onclick = () => setView('investigador');
             if(dom.navAna) dom.navAna.onclick = () => setView('analizador');
-            if(dom.navPre) dom.navPre.onclick = () => setView('precalificador');
+            
+            // MODIFICADO: Precalificador con bloqueo de modal
+            if(dom.navPre) dom.navPre.onclick = () => {
+                if (userPlan === 'basico') {
+                    // Si es básico, ¡ABRIMOS EL MODAL BONITO!
+                    if (upgradeModal) upgradeModal.classList.remove('hidden');
+                    return; 
+                }
+                setView('precalificador');
+            };
+
             if(dom.pAvatar) dom.pAvatar.onclick = () => setView('cuenta');
             const userInfoBtn = document.getElementById('sidebar-user-info-click');
             if(userInfoBtn) userInfoBtn.onclick = () => setView('cuenta');
