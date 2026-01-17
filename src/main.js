@@ -1371,7 +1371,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 // --- CORRECCIÓN CRÍTICA: ELIMINAR EL LOADER EN ÉXITO ---
                 hideLoader(); 
                 // -------------------------------------------------------
-            }
+            
 
             // 3. Referencias del DOM (Solo se cargan si hay acceso)
             const dom = {
