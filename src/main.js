@@ -1047,24 +1047,37 @@ document.addEventListener('DOMContentLoaded', function () {
                     const clientSecret = data.clientSecret;
                     // ------------------------------------------------------------
 
-                    // 5. Confirmar el pago en el navegador
-                    const result = await stripe.confirmCardPayment(clientSecret, {
-                        payment_method: { card: cardElement }
-                    });
+                    // 5. Confirmar el Pago (o Configuración si es Trial)
+                    let result;
+                    
+                    // Si el secreto empieza con 'seti_', es un Trial (SetupIntent)
+                    if (clientSecret.startsWith('seti_')) {
+                        result = await stripe.confirmCardSetup(clientSecret, {
+                            payment_method: { card: cardElement }
+                        });
+                    } else {
+                        // Si empieza con 'pi_', es cobro inmediato (PaymentIntent)
+                        result = await stripe.confirmCardPayment(clientSecret, {
+                            payment_method: { card: cardElement }
+                        });
+                    }
 
                     if (result.error) {
                         throw new Error(result.error.message);
-                    } else if (result.paymentIntent.status === 'succeeded') {
-                        // --- CAMBIO: ESPERA ACTIVA (POLLING) ---
-                        btn.textContent = "Pago exitoso. Activando...";
+                    } 
+                    
+                    // Verificamos éxito en cualquiera de los dos casos
+                    const intent = result.paymentIntent || result.setupIntent;
+                    
+                    if (intent.status === 'succeeded') {
+                        // --- ESPERA ACTIVA (POLLING) ---
+                        btn.textContent = "Suscripción iniciada. Activando...";
                         
                         const checkSub = async () => {
                             let attempts = 0;
-                            // Intentamos durante 20 segundos (10 intentos de 2s)
                             while (attempts < 10) { 
                                 console.log(`Esperando activación... intento ${attempts + 1}`);
                                 const subCheck = await db.collection('customers').doc(user.uid).get();
-                                // Verificamos si el campo 'status' ya es 'active'
                                 if (subCheck.exists && subCheck.data().status === 'active') {
                                     return true;
                                 }
