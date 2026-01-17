@@ -1030,9 +1030,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         method: 'POST',
                         headers: headers,
                         body: JSON.stringify({ 
-                            amount: Math.round(planData.amount), // Aseguramos entero para evitar el 400
+                            amount: Math.round(planData.amount),
                             currency: currentCurrency.toLowerCase(),
-                            trial_period_days: 5
+                            trial_period_days: 5,
+                            plan_key: planKey // <--- ENVIAMOS "basico", "avanzado", etc.
                         })
                     });
 
@@ -1352,53 +1353,35 @@ document.addEventListener('DOMContentLoaded', function () {
                 const badge = document.getElementById('user-plan-badge');
                 if(!badge) return;
 
-                // 1. Chequeo Rápido: ¿Es VIP/Admin por dominio?
-                // (Si quieres mostrar "VIP" para admins, descomenta esto)
-                /*
-                if (user.email.endsWith('@iiresodh.org') || user.email.endsWith('@urquilla.com')) {
-                    badge.textContent = "👑 Plan Corporativo";
-                    badge.classList.remove('hidden');
-                    return;
-                }
-                */
-
                 try {
-                    // 2. Buscar suscripción activa en Firestore
-                    const subRef = db.collection('customers').doc(user.uid).collection('subscriptions');
-                    const snap = await subRef.where('status', 'in', ['active', 'trialing']).limit(1).get();
-
-                    if (!snap.empty) {
-                        const subData = snap.docs[0].data();
-                        // La extensión de Stripe guarda los items en un array
-                        const priceId = subData.items?.[0]?.price?.id;
+                    // Leemos el documento principal del usuario
+                    const userDoc = await db.collection('customers').doc(user.uid).get();
+                    
+                    if (userDoc.exists) {
+                        const data = userDoc.data();
                         
-                        if (priceId) {
-                            let planName = "Suscrito"; // Default
-
-                            // Buscamos el nombre del plan comparando IDs con tu constante STRIPE_PRICES
-                            // Recorremos STRIPE_PRICES para encontrar el match
-                            for (const [key, intervals] of Object.entries(STRIPE_PRICES)) {
-                                // key es 'basico', 'avanzado', 'premium'
-                                for (const intervalData of Object.values(intervals)) {
-                                    for (const currencyData of Object.values(intervalData)) {
-                                        if (currencyData.id === priceId) {
-                                            // Capitalizamos: basico -> Básico
-                                            planName = key.charAt(0).toUpperCase() + key.slice(1);
-                                            if(planName === 'Basico') planName = 'Básico'; // Tilde manual
-                                        }
-                                    }
-                                }
+                        // Si está activo, buscamos el plan
+                        if (data.status === 'active') {
+                            const planKey = data.plan; // 'basico', 'avanzado', 'premium'
+                            
+                            let displayPlan = "Suscrito"; // Fallback por si no hay plan guardado (usuarios viejos)
+                            
+                            if (planKey) {
+                                // Convertimos 'basico' a 'Básico'
+                                displayPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
+                                if(displayPlan === 'Basico') displayPlan = 'Básico';
+                            } else if (data.has_trial) {
+                                displayPlan = "Prueba Gratis";
                             }
 
-                            badge.innerHTML = `Plan <strong>${planName}</strong>`;
+                            badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
                             badge.classList.remove('hidden');
+                        } else {
+                            badge.classList.add('hidden');
                         }
-                    } else {
-                        // Si no hay sub activa (ej. es un admin sin pago o error)
-                         badge.classList.add('hidden');
                     }
                 } catch (e) {
-                    console.error("Error cargando badge de plan:", e);
+                    console.error("Error cargando badge:", e);
                     badge.classList.add('hidden');
                 }
             }
