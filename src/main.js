@@ -1133,7 +1133,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         const isActivated = await checkSub();
                         
                         if (isActivated) {
-                            window.location.reload(); 
+                            window.location.reload();
+                            sessionStorage.setItem('pida_is_onboarding', 'true');
                         } else {
                             // Fallback de seguridad
                             alert("Pago recibido. Estamos activando tu cuenta, esto puede tardar unos segundos más. Si no accedes en 1 minuto, recarga la página.");
@@ -1306,39 +1307,66 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
 
-        // --- SOLUCIÓN PARA EL BOTÓN DE SALIDA EN EL OVERLAY ---
+        // ... (Listener del botón logout overlay se queda igual) ...
         const btnLogoutOverlay = document.getElementById('logout-from-overlay');
-        if (btnLogoutOverlay) {
-            btnLogoutOverlay.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                auth.signOut().then(() => {
-                    window.location.href = window.location.origin + window.location.pathname;
-                });
-            });
-        }
+        if (btnLogoutOverlay) { /* ... código existente ... */ }
 
         try {
-            // 1. Verificar Permisos
-            const hasAccess = await checkAccessAuthorization(user);
-            const overlay = document.getElementById('pida-subscription-overlay');
+            // ============================================================
+            // 1. VERIFICACIÓN DE PERMISOS INTELIGENTE (MODIFICADO)
+            // ============================================================
+            let hasAccess = false;
+            const isOnboarding = sessionStorage.getItem('pida_is_onboarding');
+            const setupOverlay = document.getElementById('pida-setup-overlay');
+            const subOverlay = document.getElementById('pida-subscription-overlay');
+
+            // Si es un usuario recién suscrito, mostramos "Preparando..." INMEDIATAMENTE
+            if (isOnboarding) {
+                if (setupOverlay) setupOverlay.classList.remove('hidden');
+                if (subOverlay) subOverlay.classList.add('hidden'); // Aseguramos que el otro no salga
+                hideLoader(); // Quitamos el loader genérico
+
+                // Reintentamos hasta 5 veces (5 segundos extra) para asegurar que Firestore se actualizó
+                for (let i = 0; i < 5; i++) {
+                    hasAccess = await checkAccessAuthorization(user);
+                    if (hasAccess) break; // ¡Ya tiene acceso!
+                    await new Promise(r => setTimeout(r, 1000)); // Esperamos 1 seg
+                }
+
+                // Si al final tuvo éxito, limpiamos la bandera
+                if (hasAccess) sessionStorage.removeItem('pida_is_onboarding');
+            } else {
+                // Usuario normal: verificación estándar
+                hasAccess = await checkAccessAuthorization(user);
+            }
 
             // 2. Lógica de Enrutamiento Visual
             if (!hasAccess) {
-                // CASO A: NO AUTORIZADO (Mostrar Overlay de Pago)
-                if (appRoot) appRoot.style.display = 'block'; // Mostramos la app al fondo
-                if (overlay) overlay.classList.remove('hidden'); // Ponemos el bloqueo encima
-                if (landingRoot) landingRoot.style.display = 'none';
+                // CASO A: NO AUTORIZADO
+                if (appRoot) appRoot.style.display = 'block';
+                hideLoader();
+
+                // SI AÚN ESTAMOS EN MODO ONBOARDING (falló la verificación tras reintentos)
+                // Mantenemos el modal de "Preparando" o mostramos error, pero NO el de "un paso".
+                if (sessionStorage.getItem('pida_is_onboarding') && setupOverlay) {
+                    setupOverlay.classList.remove('hidden'); 
+                    // Opcional: Podrías cambiar el texto aquí a "Hubo una demora, recarga la página."
+                } else {
+                    // Si no es onboarding, ahí sí mostramos "Estás a un paso"
+                    if (subOverlay) subOverlay.classList.remove('hidden');
+                    if (setupOverlay) setupOverlay.classList.add('hidden');
+                }
                 
-                // CRÍTICO: Quitar el loader para que se vea el Overlay de pago
-                hideLoader(); 
-                return; // Detenemos la carga de chats para ahorrar recursos
+                return; // Detenemos la carga
             } else {
                 // CASO B: AUTORIZADO (VIP o Suscriptor)
-                if (overlay) overlay.classList.add('hidden');
+                if (subOverlay) subOverlay.classList.add('hidden');
+                if (setupOverlay) setupOverlay.classList.add('hidden'); // Ocultamos el de preparando
                 if (appRoot) appRoot.style.display = 'block';
                 if (landingRoot) landingRoot.style.display = 'none';
                 sessionStorage.removeItem('pida_pending_plan');
+                hideLoader(); 
+            }
                 
                 // --- CORRECCIÓN CRÍTICA: ELIMINAR EL LOADER EN ÉXITO ---
                 hideLoader(); 
