@@ -2066,7 +2066,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // --- CUENTA ---
             if(dom.accUpdate) { dom.accUpdate.onclick = async () => { const f = document.getElementById('acc-firstname').value; const l = document.getElementById('acc-lastname').value; if(f || l) { await user.updateProfile({ displayName: `${f} ${l}` }); dom.pName.textContent = `${f} ${l}`; alert('Actualizado'); } }; }
-            if(dom.accBilling) { dom.accBilling.onclick = async () => { const fn = firebase.functions().httpsCallable('ext-firestore-stripe-payments-createPortalLink'); const { data } = await fn({ returnUrl: window.location.href }); window.location.assign(data.url); }; }
+            if(dom.accBilling) { dom.accBilling.onclick = async () => { try { const h = await Utils.getHeaders(currentUser); const r = await fetch(`${PIDA_CONFIG.API_CHAT}/create-portal-session`, { method: 'POST', headers: h }); const d = await r.json(); if(d.url) window.location.href = d.url; else alert("No se recibió URL"); } catch(e) { console.error(e); alert("Error al abrir portal de facturación."); } }; }
             if(dom.accReset) { dom.accReset.onclick = () => auth.sendPasswordResetEmail(user.email).then(()=>alert('Correo enviado')); }
 
             // INICIO
