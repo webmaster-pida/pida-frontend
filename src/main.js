@@ -1215,21 +1215,28 @@ document.addEventListener('DOMContentLoaded', function () {
     // =========================================================
 
     async function checkAccessAuthorization(user) {
-        // 1. Obtener headers seguros (si falla, no hay acceso)
+        // 1. Obtener headers seguros
         const headers = await Utils.getHeaders(user);
         if (!headers) return false;
 
-        // 2. Opción A: Verificar suscripción activa en Firestore (Rápido)
+        // 2. Opción A: Verificar suscripción en Firestore (Rápido)
         try {
+            // A1. Verificar documento PADRE (Donde escribe tu Webhook) <--- ESTO FALTABA
+            const userDoc = await db.collection('customers').doc(user.uid).get();
+            if (userDoc.exists && userDoc.data().status === 'active') {
+                console.log("Acceso autorizado por documento directo.");
+                return true;
+            }
+
+            // A2. Verificar Subcolección (Stripe Extension estándar)
             const subRef = db.collection('customers').doc(user.uid).collection('subscriptions');
-            // Buscamos cualquier suscripción que esté activa o en periodo de prueba
             const snap = await subRef.where('status', 'in', ['active', 'trialing']).limit(1).get();
             if (!snap.empty) return true;
         } catch (e) {
             console.warn("Error verificando suscripción en caché:", e);
         }
 
-        // 3. Opción B: Verificar VIP/Admin vía Backend (Autoritativo)
+        // 3. Opción B: Verificar VIP/Admin vía Backend
         try {
             const res = await fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { 
                 method: 'POST', 
@@ -1244,7 +1251,6 @@ document.addEventListener('DOMContentLoaded', function () {
             console.error("Error contactando endpoint VIP:", e);
         }
 
-        // Si fallan ambos, no hay acceso
         return false;
     }
 
