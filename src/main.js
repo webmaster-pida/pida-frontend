@@ -1347,6 +1347,65 @@ document.addEventListener('DOMContentLoaded', function () {
                 mobileMenuLogout: document.getElementById('mobile-nav-logout')
             };
 
+            // --- NUEVO: FUNCIÓN PARA MOSTRAR EL PLAN ---
+            async function loadUserPlanBadge() {
+                const badge = document.getElementById('user-plan-badge');
+                if(!badge) return;
+
+                // 1. Chequeo Rápido: ¿Es VIP/Admin por dominio?
+                // (Si quieres mostrar "VIP" para admins, descomenta esto)
+                /*
+                if (user.email.endsWith('@iiresodh.org') || user.email.endsWith('@urquilla.com')) {
+                    badge.textContent = "👑 Plan Corporativo";
+                    badge.classList.remove('hidden');
+                    return;
+                }
+                */
+
+                try {
+                    // 2. Buscar suscripción activa en Firestore
+                    const subRef = db.collection('customers').doc(user.uid).collection('subscriptions');
+                    const snap = await subRef.where('status', 'in', ['active', 'trialing']).limit(1).get();
+
+                    if (!snap.empty) {
+                        const subData = snap.docs[0].data();
+                        // La extensión de Stripe guarda los items en un array
+                        const priceId = subData.items?.[0]?.price?.id;
+                        
+                        if (priceId) {
+                            let planName = "Suscrito"; // Default
+
+                            // Buscamos el nombre del plan comparando IDs con tu constante STRIPE_PRICES
+                            // Recorremos STRIPE_PRICES para encontrar el match
+                            for (const [key, intervals] of Object.entries(STRIPE_PRICES)) {
+                                // key es 'basico', 'avanzado', 'premium'
+                                for (const intervalData of Object.values(intervals)) {
+                                    for (const currencyData of Object.values(intervalData)) {
+                                        if (currencyData.id === priceId) {
+                                            // Capitalizamos: basico -> Básico
+                                            planName = key.charAt(0).toUpperCase() + key.slice(1);
+                                            if(planName === 'Basico') planName = 'Básico'; // Tilde manual
+                                        }
+                                    }
+                                }
+                            }
+
+                            badge.innerHTML = `Plan <strong>${planName}</strong>`;
+                            badge.classList.remove('hidden');
+                        }
+                    } else {
+                        // Si no hay sub activa (ej. es un admin sin pago o error)
+                         badge.classList.add('hidden');
+                    }
+                } catch (e) {
+                    console.error("Error cargando badge de plan:", e);
+                    badge.classList.add('hidden');
+                }
+            }
+
+            // EJECUTAR LA CARGA DEL BADGE
+            loadUserPlanBadge();
+
             // Estado Global
             let state = { currentView: 'investigador', conversations: [], currentChat: { id: null, title: '', messages: [] }, anaFiles: [], anaText: "", anaHistory: [], preText: "" };
 

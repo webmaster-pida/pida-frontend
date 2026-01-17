@@ -821,3 +821,26 @@ input:checked + .slider:before { transform: translateX(24px); }
     margin-left: 5px;
     vertical-align: middle;
 }
+
+/* ESTILOS PARA EL BADGE DEL PLAN */
+    .plan-badge {
+        margin-right: 15px; /* Separación con la mascota */
+        background-color: #EEF2FF; /* Azul muy suave */
+        color: #1D3557; /* Azul PIDA */
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        border: 1px solid #C7D2FE;
+        letter-spacing: 0.5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        display: inline-block;
+        vertical-align: middle;
+    }
+    
+    /* Aseguramos que el contenedor padre alinee todo horizontalmente */
+    .pida-context-controls {
+        display: flex;
+        align-items: center;
+        /* ... tus otros estilos ... */
+    }
