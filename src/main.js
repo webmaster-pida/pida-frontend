@@ -1084,6 +1084,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                     }
 
+                }
+
             } catch (error) {
                 btn.disabled = false;
                 let friendlyMessage = "Ocurrió un error. Intenta de nuevo.";
