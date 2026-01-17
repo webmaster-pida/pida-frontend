@@ -1054,9 +1054,35 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (result.error) {
                         throw new Error(result.error.message);
                     } else if (result.paymentIntent.status === 'succeeded') {
-                        window.location.reload(); 
+                        // --- CAMBIO: ESPERA ACTIVA (POLLING) ---
+                        btn.textContent = "Pago exitoso. Activando...";
+                        
+                        const checkSub = async () => {
+                            let attempts = 0;
+                            // Intentamos durante 20 segundos (10 intentos de 2s)
+                            while (attempts < 10) { 
+                                console.log(`Esperando activación... intento ${attempts + 1}`);
+                                const subCheck = await db.collection('customers').doc(user.uid).get();
+                                // Verificamos si el campo 'status' ya es 'active'
+                                if (subCheck.exists && subCheck.data().status === 'active') {
+                                    return true;
+                                }
+                                await new Promise(r => setTimeout(r, 2000));
+                                attempts++;
+                            }
+                            return false;
+                        };
+
+                        const isActivated = await checkSub();
+                        
+                        if (isActivated) {
+                            window.location.reload(); 
+                        } else {
+                            // Fallback de seguridad
+                            alert("Pago recibido. Estamos activando tu cuenta, esto puede tardar unos segundos más. Si no accedes en 1 minuto, recarga la página.");
+                            window.location.reload();
+                        }
                     }
-                }
 
             } catch (error) {
                 btn.disabled = false;
