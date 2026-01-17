@@ -1182,9 +1182,44 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // ==========================================
-    // APLICACIÓN PRINCIPAL (RUNAPP)
-    // 1. Agregamos 'async' para poder usar 'await' dentro
+    // =========================================================
+    // 4. LÓGICA DE ACCESO Y ARRANQUE DE LA APP (CORREGIDO)
+    // =========================================================
+
+    async function checkAccessAuthorization(user) {
+        // 1. Obtener headers seguros (si falla, no hay acceso)
+        const headers = await Utils.getHeaders(user);
+        if (!headers) return false;
+
+        // 2. Opción A: Verificar suscripción activa en Firestore (Rápido)
+        try {
+            const subRef = db.collection('customers').doc(user.uid).collection('subscriptions');
+            // Buscamos cualquier suscripción que esté activa o en periodo de prueba
+            const snap = await subRef.where('status', 'in', ['active', 'trialing']).limit(1).get();
+            if (!snap.empty) return true;
+        } catch (e) {
+            console.warn("Error verificando suscripción en caché:", e);
+        }
+
+        // 3. Opción B: Verificar VIP/Admin vía Backend (Autoritativo)
+        try {
+            const res = await fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { 
+                method: 'POST', 
+                headers: headers 
+            });
+            
+            if (res.ok) { 
+                const r = await res.json(); 
+                if (r.is_vip_user === true) return true; 
+            }
+        } catch (e) { 
+            console.error("Error contactando endpoint VIP:", e);
+        }
+
+        // Si fallan ambos, no hay acceso
+        return false;
+    }
+
     async function runApp(user) {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
@@ -1192,361 +1227,242 @@ document.addEventListener('DOMContentLoaded', function () {
         // --- SOLUCIÓN PARA EL BOTÓN DE SALIDA EN EL OVERLAY ---
         const btnLogoutOverlay = document.getElementById('logout-from-overlay');
         if (btnLogoutOverlay) {
-            // Usamos addEventListener que es más confiable que .onclick
             btnLogoutOverlay.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log("Cerrando sesión desde overlay...");
                 auth.signOut().then(() => {
                     window.location.href = window.location.origin + window.location.pathname;
                 });
             });
         }
-        // -----------------------------------------------------
 
-        const savedPlan = sessionStorage.getItem('pida_pending_plan');
-        const hasAccess = await checkAccessAuthorization(user);
-        const overlay = document.getElementById('pida-subscription-overlay');
+        try {
+            // 1. Verificar Permisos
+            const hasAccess = await checkAccessAuthorization(user);
+            const overlay = document.getElementById('pida-subscription-overlay');
 
-
-        // 4. Lógica de acceso y protección de la App
-        if (!hasAccess) {
-            // Si no tiene acceso y NO se está registrando, mostramos el bloqueo
-            if (authMode !== 'register') {
-                if (overlay) overlay.classList.remove('hidden');
+            // 2. Lógica de Enrutamiento Visual
+            if (!hasAccess) {
+                // CASO A: NO AUTORIZADO (Mostrar Overlay de Pago)
+                if (appRoot) appRoot.style.display = 'block'; // Mostramos la app al fondo
+                if (overlay) overlay.classList.remove('hidden'); // Ponemos el bloqueo encima
+                if (landingRoot) landingRoot.style.display = 'none';
+                
+                // CRÍTICO: Quitar el loader para que se vea el Overlay de pago
+                hideLoader(); 
+                return; // Detenemos la carga de chats para ahorrar recursos
+            } else {
+                // CASO B: AUTORIZADO (VIP o Suscriptor)
+                if (overlay) overlay.classList.add('hidden');
+                if (appRoot) appRoot.style.display = 'block';
+                if (landingRoot) landingRoot.style.display = 'none';
+                sessionStorage.removeItem('pida_pending_plan');
+                
+                // --- CORRECCIÓN CRÍTICA: ELIMINAR EL LOADER EN ÉXITO ---
+                hideLoader(); 
+                // -------------------------------------------------------
             }
-            
-            // Si no tiene acceso, nos aseguramos de que el layout de la app NO se vea de fondo
-            if (appRoot) appRoot.style.display = 'none'; 
-            
-            // Quitamos el preloader y DETENEMOS la ejecución
-            hideLoader(); 
-            return; // <--- ESTO EVITA LOS ERRORES 403 Y EL CRASH DE JS
-        } else {
-            // Si tiene acceso, ocultamos el modal, mostramos la App y limpiamos el plan
-            if (overlay) overlay.classList.add('hidden');
-            if (appRoot) appRoot.style.display = 'block'; 
-            sessionStorage.removeItem('pida_pending_plan');
-        }
 
-        const dom = {
-            navInv: document.getElementById('nav-investigador'),
-            navAna: document.getElementById('nav-analizador'),
-            navPre: document.getElementById('nav-precalificador'),
-            viewInv: document.getElementById('view-investigador'),
-            viewAna: document.getElementById('view-analizador'),
-            viewPre: document.getElementById('view-precalificador'),
-            viewAcc: document.getElementById('view-account'),
-            chatBox: document.getElementById('pida-chat-box'),
-            input: document.getElementById('pida-input'),
-            sendBtn: document.getElementById('pida-send-btn'),
-            pName: document.getElementById('pida-profile-name'),
-            pEmail: document.getElementById('pida-profile-email'),
-            pAvatar: document.getElementById('pida-profile-avatar'),
-            pLogout: document.getElementById('pida-profile-logout'),
-            anaInput: document.getElementById('analyzer-file-upload'),
-            anaFiles: document.getElementById('active-files-area'),
-            anaBtn: document.getElementById('analyze-btn'),
-            anaResBox: document.getElementById('analyzer-results-section'),
-            anaLoader: document.getElementById('analyzer-loader-container'),
-            anaResTxt: document.getElementById('analyzer-analysis-result'),
-            anaControls: document.getElementById('analyzer-download-controls'),
-            anaInst: document.getElementById('user-instructions'),
-            analyzerClearBtn: document.getElementById('analyzer-clear-btn'),
-            preNewBtn: document.getElementById('pre-new-btn'),
-            preHistBtn: document.getElementById('pre-history-dropdown-btn'),
-            preHistContent: document.getElementById('pre-history-dropdown-content'),
-            preHistList: document.getElementById('pre-history-list'),
-            preCountry: document.getElementById('pre-input-country'),
-            preTitle: document.getElementById('pre-input-title'),
-            preFacts: document.getElementById('pre-input-facts'),
-            preBtn: document.getElementById('pre-analyze-btn'),
-            preClear: document.getElementById('pre-clear-btn'),
-            preResultsBox: document.getElementById('pre-results-section'),
-            preLoader: document.getElementById('pre-loader-container'),
-            preStatus: document.getElementById('pre-status-text'),
-            preResponseCont: document.getElementById('pre-response-container'),
-            preResultTxt: document.getElementById('pre-analysis-result'),
-            preWelcome: document.getElementById('pre-welcome'),
-            preControls: document.getElementById('pre-download-controls'),
-            accUpdate: document.getElementById('acc-update-btn'),
-            accBilling: document.getElementById('acc-billing-btn'),
-            accReset: document.getElementById('acc-reset-btn'),
-            btnLogoutOverlay: document.getElementById('logout-from-overlay'),
-            mobileMenuBtn: document.getElementById('nav-mobile-menu-btn'),
-            mobileMenuOverlay: document.getElementById('mobile-menu-overlay'),
-            mobileMenuProfile: document.getElementById('mobile-nav-profile'),
-            mobileMenuLogout: document.getElementById('mobile-nav-logout')
-        };
-
-        // Estado
-        let state = { currentView: 'investigador', conversations: [], currentChat: { id: null, title: '', messages: [] }, anaFiles: [], anaText: "", anaHistory: [], preText: "" };
-
-        // HELPER PARA NOMBRES DE ARCHIVO CON FECHA
-        const getTimestampedName = (prefix) => {
-            const now = new Date();
-            const dateStr = now.toISOString().split('T')[0]; // YYYY-MM-DD
-            const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-').substring(0, 5); // HH-MM
-            return `${prefix}_${dateStr}_${timeStr}`;
-        };
-
-        // Perfil UI
-        if(dom.pName) dom.pName.textContent = user.displayName || 'Usuario';
-        if(dom.pEmail) dom.pEmail.textContent = user.email;
-        if(dom.pAvatar) dom.pAvatar.src = user.photoURL || 'img/PIDA_logo-P3-80.png';
-        
-        const doLogout = () => auth.signOut().then(() => window.location.reload());
-
-// =========================================================
-        // CONTROL DE INACTIVIDAD (AUTO-LOGOUT)
-        // =========================================================
-        function setupInactivityTimer() {
-            let inactivityTimer;
-            // Configuración: 3 horas (3 * 60 * 60 * 1000 ms)
-            const INACTIVITY_LIMIT = 3 * 60 * 60 * 1000; 
-
-            const resetTimer = () => {
-                // console.log("Actividad detectada. Temporizador reiniciado."); // Solo para debug
-                clearTimeout(inactivityTimer);
-                inactivityTimer = setTimeout(() => {
-                    console.warn("Cerrando sesión por inactividad prolongada.");
-                    alert("Tu sesión ha expirado por inactividad. Por seguridad, debes ingresar nuevamente.");
-                    doLogout(); // Llama a tu función de salida existente
-                }, INACTIVITY_LIMIT);
+            // 3. Referencias del DOM (Solo se cargan si hay acceso)
+            const dom = {
+                navInv: document.getElementById('nav-investigador'),
+                navAna: document.getElementById('nav-analizador'),
+                navPre: document.getElementById('nav-precalificador'),
+                viewInv: document.getElementById('view-investigador'),
+                viewAna: document.getElementById('view-analizador'),
+                viewPre: document.getElementById('view-precalificador'),
+                viewAcc: document.getElementById('view-account'),
+                chatBox: document.getElementById('pida-chat-box'),
+                input: document.getElementById('pida-input'),
+                sendBtn: document.getElementById('pida-send-btn'),
+                pName: document.getElementById('pida-profile-name'),
+                pEmail: document.getElementById('pida-profile-email'),
+                pAvatar: document.getElementById('pida-profile-avatar'),
+                pLogout: document.getElementById('pida-profile-logout'),
+                anaInput: document.getElementById('analyzer-file-upload'),
+                anaFiles: document.getElementById('active-files-area'),
+                anaBtn: document.getElementById('analyze-btn'),
+                anaResBox: document.getElementById('analyzer-results-section'),
+                anaLoader: document.getElementById('analyzer-loader-container'),
+                anaResTxt: document.getElementById('analyzer-analysis-result'),
+                anaControls: document.getElementById('analyzer-download-controls'),
+                anaInst: document.getElementById('user-instructions'),
+                analyzerClearBtn: document.getElementById('analyzer-clear-btn'),
+                preNewBtn: document.getElementById('pre-new-btn'),
+                preHistBtn: document.getElementById('pre-history-dropdown-btn'),
+                preHistContent: document.getElementById('pre-history-dropdown-content'),
+                preHistList: document.getElementById('pre-history-list'),
+                preCountry: document.getElementById('pre-input-country'),
+                preTitle: document.getElementById('pre-input-title'),
+                preFacts: document.getElementById('pre-input-facts'),
+                preBtn: document.getElementById('pre-analyze-btn'),
+                preClear: document.getElementById('pre-clear-btn'),
+                preResultsBox: document.getElementById('pre-results-section'),
+                preLoader: document.getElementById('pre-loader-container'),
+                preStatus: document.getElementById('pre-status-text'),
+                preResponseCont: document.getElementById('pre-response-container'),
+                preResultTxt: document.getElementById('pre-analysis-result'),
+                preWelcome: document.getElementById('pre-welcome'),
+                preControls: document.getElementById('pre-download-controls'),
+                accUpdate: document.getElementById('acc-update-btn'),
+                accBilling: document.getElementById('acc-billing-btn'),
+                accReset: document.getElementById('acc-reset-btn'),
+                mobileMenuBtn: document.getElementById('nav-mobile-menu-btn'),
+                mobileMenuOverlay: document.getElementById('mobile-menu-overlay'),
+                mobileMenuProfile: document.getElementById('mobile-nav-profile'),
+                mobileMenuLogout: document.getElementById('mobile-nav-logout')
             };
 
-            // Eventos que reinician el temporizador (actividad del usuario)
-            const activityEvents = [
-                'mousedown', 'mousemove', 'keydown', 
-                'scroll', 'touchstart', 'click'
-            ];
+            // Estado Global
+            let state = { currentView: 'investigador', conversations: [], currentChat: { id: null, title: '', messages: [] }, anaFiles: [], anaText: "", anaHistory: [], preText: "" };
 
-            // Añadir escuchadores de eventos al objeto window
-            activityEvents.forEach(eventName => {
-                window.addEventListener(eventName, resetTimer, true);
-            });
+            // Helper de Nombres
+            const getTimestampedName = (prefix) => {
+                const now = new Date();
+                const dateStr = now.toISOString().split('T')[0];
+                const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-').substring(0, 5);
+                return `${prefix}_${dateStr}_${timeStr}`;
+            };
 
-            // Iniciar el temporizador al cargar la App
-            resetTimer();
-        }
-
-        // Inicializamos el temporizador de inactividad
-        setupInactivityTimer();
-
-        if(dom.pLogout) dom.pLogout.onclick = doLogout;
-        if(dom.mobileMenuLogout) dom.mobileMenuLogout.onclick = doLogout;
-
-        // Vistas
-        function setView(view) {
-            state.currentView = view;
-            if(dom.navInv) dom.navInv.classList.toggle('active', view === 'investigador');
-            if(dom.navAna) dom.navAna.classList.toggle('active', view === 'analizador');
-            if(dom.navPre) dom.navPre.classList.toggle('active', view === 'precalificador');
-            if(dom.viewInv) dom.viewInv.classList.toggle('hidden', view !== 'investigador');
-            if(dom.viewAna) dom.viewAna.classList.toggle('hidden', view !== 'analizador');
-            if(dom.viewPre) dom.viewPre.classList.toggle('hidden', view !== 'precalificador');
-            if(dom.viewAcc) dom.viewAcc.classList.toggle('hidden', view !== 'cuenta');
+            // UI del Perfil
+            if(dom.pName) dom.pName.textContent = user.displayName || 'Usuario';
+            if(dom.pEmail) dom.pEmail.textContent = user.email;
+            if(dom.pAvatar) dom.pAvatar.src = user.photoURL || 'img/PIDA_logo-P3-80.png';
             
-            const chatCtrls = document.getElementById('chat-controls');
-            const anaCtrls = document.getElementById('analyzer-controls');
-            const preCtrls = document.getElementById('precalifier-controls');
-            const accCtrls = document.getElementById('account-controls');
-            if(chatCtrls) chatCtrls.classList.toggle('hidden', view !== 'investigador');
-            if(anaCtrls) anaCtrls.classList.toggle('hidden', view !== 'analizador');
-            if(preCtrls) preCtrls.classList.toggle('hidden', view !== 'precalificador');
-            if(accCtrls) accCtrls.classList.toggle('hidden', view !== 'cuenta');
+            const doLogout = () => auth.signOut().then(() => window.location.reload());
 
-            if (view === 'investigador') loadChatHistory();
-            if (view === 'analizador') loadAnaHistory();
-            if (view === 'precalificador') loadPreHistory();
-        }
+            // --- CONTROL DE INACTIVIDAD ---
+            function setupInactivityTimer() {
+                let inactivityTimer;
+                const INACTIVITY_LIMIT = 3 * 60 * 60 * 1000; // 3 Horas
 
-        if(dom.navInv) dom.navInv.onclick = () => setView('investigador');
-        if(dom.navAna) dom.navAna.onclick = () => setView('analizador');
-        if(dom.navPre) dom.navPre.onclick = () => setView('precalificador');
-        if(dom.pAvatar) dom.pAvatar.onclick = () => setView('cuenta');
-        const userInfoBtn = document.getElementById('sidebar-user-info-click');
-        if(userInfoBtn) userInfoBtn.onclick = () => setView('cuenta');
+                const resetTimer = () => {
+                    clearTimeout(inactivityTimer);
+                    inactivityTimer = setTimeout(() => {
+                        console.warn("Cerrando sesión por inactividad prolongada.");
+                        alert("Tu sesión ha expirado por inactividad. Por seguridad, debes ingresar nuevamente.");
+                        doLogout(); 
+                    }, INACTIVITY_LIMIT);
+                };
 
-        // Menú Móvil (CORREGIDO: TOGGLE)
-        if (dom.mobileMenuBtn) dom.mobileMenuBtn.onclick = (e) => { 
-            e.stopPropagation(); 
-            dom.mobileMenuOverlay.classList.toggle('hidden'); 
-        };
-        if (dom.mobileMenuOverlay) dom.mobileMenuOverlay.onclick = (e) => { if (e.target === dom.mobileMenuOverlay) dom.mobileMenuOverlay.classList.add('hidden'); };
-        if (dom.mobileMenuProfile) dom.mobileMenuProfile.onclick = () => { setView('cuenta'); dom.mobileMenuOverlay.classList.add('hidden'); };
-
-        // --- HISTORIAL ANALIZADOR ---
-        async function loadAnaHistory() {
-            const h = await Utils.getHeaders(user);
-            const list = document.getElementById('analyzer-history-list');
-            if(!list) return;
-
-            try {
-                list.innerHTML = '<div style="padding:15px; text-align:center; color:#666;">Cargando...</div>';
-                const r = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/`, { headers: h });
-                state.anaHistory = await r.json();
-                list.innerHTML = ''; 
-
-                if (state.anaHistory.length === 0) {
-                    list.innerHTML = '<div style="padding:15px; text-align:center; color:#999; font-size:0.9em;">No hay análisis previos.</div>';
-                    return;
-                }
-
-                state.anaHistory.forEach(a => {
-                    const item = document.createElement('div');
-                    item.className = 'pida-history-item';
-                    
-                    const titleSpan = document.createElement('span');
-                    titleSpan.textContent = a.title || "Sin título";
-                    titleSpan.style.flex = "1";
-                    titleSpan.style.cursor = "pointer";
-                    titleSpan.onclick = async (e) => {
-                        e.stopPropagation();
-                        const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { headers: h });
-                        const d2 = await r2.json();
-                        state.anaText = d2.analysis; // GUARDAMOS EL TEXTO PARA EXPORTAR
-                        
-                        const titleEl = document.getElementById('analyzer-section-title');
-                        if(titleEl) titleEl.style.display = 'block';
-
-                        dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(d2.analysis));
-                        dom.anaLoader.style.display = 'none';
-                        document.getElementById('analyzer-response-container').style.display = 'block';
-                        dom.anaResBox.style.display = 'block';
-                        dom.anaControls.style.display = 'flex';
-                        
-                        const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
-                        if(anaHistContent) anaHistContent.classList.remove('show');
-                    };
-                    
-                    const delBtn = document.createElement('button');
-                    delBtn.className = 'delete-icon-btn';
-                    delBtn.style.color = '#EF4444'; 
-                    delBtn.style.minWidth = '24px';
-                    delBtn.style.border = 'none';
-                    delBtn.style.background = 'transparent';
-                    delBtn.innerHTML = `✕`;
-                    delBtn.onclick = async (e) => {
-                        e.stopPropagation();
-                        const conf = await showCustomConfirm('Se eliminará este análisis.');
-                        if(conf) {
-                            await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
-                            loadAnaHistory(); 
-                        }
-                    };
-
-                    item.appendChild(titleSpan);
-                    item.appendChild(delBtn);
-                    list.appendChild(item);
+                ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'].forEach(evt => {
+                    window.addEventListener(evt, resetTimer, true);
                 });
-
-            } catch(e) { list.innerHTML = '<div style="padding:10px; color:red; font-size:0.8em;">Error.</div>'; }
-        }
-
-        // Dropdowns de Historial
-        const histBtn = document.getElementById('history-dropdown-btn');
-        const histContent = document.getElementById('history-dropdown-content');
-        const anaHistBtn = document.getElementById('analyzer-history-dropdown-btn');
-        const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
-
-        if(histBtn) histBtn.onclick = (e) => { e.stopPropagation(); histContent.classList.toggle('show'); anaHistContent.classList.remove('show'); };
-        if(anaHistBtn) anaHistBtn.onclick = async (e) => { 
-            e.stopPropagation(); 
-            if (!anaHistContent.classList.contains('show')) await loadAnaHistory(); 
-            anaHistContent.classList.toggle('show');
-            histContent.classList.remove('show'); 
-        };
-        window.onclick = () => { if(histContent) histContent.classList.remove('show'); if(anaHistContent) anaHistContent.classList.remove('show'); };
-
-        // --- CHAT LOGIC ---
-
-        function toggleChatButtons(show) {
-            const ids = ['chat-download-txt-btn', 'chat-download-pdf-btn', 'chat-download-docx-btn'];
-            ids.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.style.display = show ? 'inline-flex' : 'none';
-            });
-        }
-
-        function renderChat(msg) {
-            const d = document.createElement('div');
-            d.className = `pida-bubble ${msg.role === 'user' ? 'user-message-bubble' : 'pida-message-bubble'}`;
-
-            // CAMBIO: Usamos Utils.prepareMarkdown en lugar del replace manual
-            // Solo procesamos markdown complejo si es el modelo (PIDA), si es usuario va directo
-            let safeContent = msg.role === 'model' ? Utils.prepareMarkdown(msg.content) : msg.content;
-
-            d.innerHTML = Utils.sanitize(marked.parse(safeContent));
-            dom.chatBox.appendChild(d);
-            if (msg.role === 'model') renderFollowUpQuestions(d);
-            dom.chatBox.parentElement.scrollTop = dom.chatBox.parentElement.scrollHeight;
-        }
-
-        function renderFollowUpQuestions(element) {
-            const headings = Array.from(element.querySelectorAll("h2, h3"));
-            const followUpHeading = headings.find(h => h.textContent.includes("Preguntas de Seguimiento"));
-            if (followUpHeading) {
-                const list = followUpHeading.nextElementSibling;
-                if (list && (list.tagName === "UL" || list.tagName === "OL")) {
-                    const questions = Array.from(list.querySelectorAll("li"));
-                    const card = document.createElement("div");
-                    card.className = "follow-up-card";
-                    card.innerHTML = "<h3>Preguntas de seguimiento:</h3>";
-                    questions.forEach(q => {
-                        const btn = document.createElement("button");
-                        btn.className = "follow-up-btn";
-                        btn.textContent = q.textContent;
-                        btn.onclick = () => { dom.input.value = q.textContent; sendChat(); };
-                        card.appendChild(btn);
-                    });
-                    followUpHeading.remove(); list.remove(); element.appendChild(card);
-                }
+                resetTimer();
             }
-        }
+            setupInactivityTimer();
 
-        async function loadChatHistory() {
-            const h = await Utils.getHeaders(user);
-            if (!h) return;
-            try {
-                const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations`, { headers: h });
-                if (!r.ok) return; 
+            if(dom.pLogout) dom.pLogout.onclick = doLogout;
+            if(dom.mobileMenuLogout) dom.mobileMenuLogout.onclick = doLogout;
 
-                // 1. Descargamos el JSON primero
-                const data = await r.json();
-
-                // 2. Validamos que sea un Array antes de asignarlo al estado
-                if (!Array.isArray(data)) return;
-                state.conversations = data;
-
-                // 3. Declaramos 'list' UNA SOLA VEZ
-                const list = document.getElementById('pida-history-list');
+            // --- GESTIÓN DE VISTAS ---
+            function setView(view) {
+                state.currentView = view;
+                // Navbar
+                if(dom.navInv) dom.navInv.classList.toggle('active', view === 'investigador');
+                if(dom.navAna) dom.navAna.classList.toggle('active', view === 'analizador');
+                if(dom.navPre) dom.navPre.classList.toggle('active', view === 'precalificador');
                 
-                if(list) {
-                    list.innerHTML = '';
-                    state.conversations.forEach(c => {
+                // Secciones
+                if(dom.viewInv) dom.viewInv.classList.toggle('hidden', view !== 'investigador');
+                if(dom.viewAna) dom.viewAna.classList.toggle('hidden', view !== 'analizador');
+                if(dom.viewPre) dom.viewPre.classList.toggle('hidden', view !== 'precalificador');
+                if(dom.viewAcc) dom.viewAcc.classList.toggle('hidden', view !== 'cuenta');
+                
+                // Controles del Header
+                const chatCtrls = document.getElementById('chat-controls');
+                const anaCtrls = document.getElementById('analyzer-controls');
+                const preCtrls = document.getElementById('precalifier-controls');
+                const accCtrls = document.getElementById('account-controls');
+                
+                if(chatCtrls) chatCtrls.classList.toggle('hidden', view !== 'investigador');
+                if(anaCtrls) anaCtrls.classList.toggle('hidden', view !== 'analizador');
+                if(preCtrls) preCtrls.classList.toggle('hidden', view !== 'precalificador');
+                if(accCtrls) accCtrls.classList.toggle('hidden', view !== 'cuenta');
+
+                // Lazy Load de historiales
+                if (view === 'investigador') loadChatHistory();
+                if (view === 'analizador') loadAnaHistory();
+                if (view === 'precalificador') loadPreHistory();
+            }
+
+            // Listeners de Navegación
+            if(dom.navInv) dom.navInv.onclick = () => setView('investigador');
+            if(dom.navAna) dom.navAna.onclick = () => setView('analizador');
+            if(dom.navPre) dom.navPre.onclick = () => setView('precalificador');
+            if(dom.pAvatar) dom.pAvatar.onclick = () => setView('cuenta');
+            const userInfoBtn = document.getElementById('sidebar-user-info-click');
+            if(userInfoBtn) userInfoBtn.onclick = () => setView('cuenta');
+
+            // Menú Móvil
+            if (dom.mobileMenuBtn) dom.mobileMenuBtn.onclick = (e) => { 
+                e.stopPropagation(); 
+                dom.mobileMenuOverlay.classList.toggle('hidden'); 
+            };
+            if (dom.mobileMenuOverlay) dom.mobileMenuOverlay.onclick = (e) => { 
+                if (e.target === dom.mobileMenuOverlay) dom.mobileMenuOverlay.classList.add('hidden'); 
+            };
+            if (dom.mobileMenuProfile) dom.mobileMenuProfile.onclick = () => { 
+                setView('cuenta'); 
+                dom.mobileMenuOverlay.classList.add('hidden'); 
+            };
+
+            // --- LÓGICA DE HISTORIALES (MISMA LÓGICA PREVIA, SOLO REFERENCIADA) ---
+            
+            // 1. ANALIZADOR
+            async function loadAnaHistory() {
+                const h = await Utils.getHeaders(user);
+                const list = document.getElementById('analyzer-history-list');
+                if(!list) return;
+
+                try {
+                    list.innerHTML = '<div style="padding:15px; text-align:center; color:#666;">Cargando...</div>';
+                    const r = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/`, { headers: h });
+                    state.anaHistory = await r.json();
+                    list.innerHTML = ''; 
+
+                    if (state.anaHistory.length === 0) {
+                        list.innerHTML = '<div style="padding:15px; text-align:center; color:#999; font-size:0.9em;">No hay análisis previos.</div>';
+                        return;
+                    }
+
+                    state.anaHistory.forEach(a => {
                         const item = document.createElement('div');
-                        item.className = `pida-history-item ${c.id === state.currentChat.id ? 'active' : ''}`;
+                        item.className = 'pida-history-item';
                         
                         const titleSpan = document.createElement('span');
-                        titleSpan.className = 'pida-history-item-title';
-                        titleSpan.textContent = c.title || "Sin título";
+                        titleSpan.textContent = a.title || "Sin título";
                         titleSpan.style.flex = "1";
-                        titleSpan.onclick = (e) => { 
-                            e.stopPropagation(); 
-                            loadChat(c.id); 
-                            const histContent = document.getElementById('history-dropdown-content');
-                            if(histContent) histContent.classList.remove('show'); 
+                        titleSpan.style.cursor = "pointer";
+                        titleSpan.onclick = async (e) => {
+                            e.stopPropagation();
+                            const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { headers: h });
+                            const d2 = await r2.json();
+                            state.anaText = d2.analysis;
+                            
+                            const titleEl = document.getElementById('analyzer-section-title');
+                            if(titleEl) titleEl.style.display = 'block';
+
+                            dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(d2.analysis));
+                            dom.anaLoader.style.display = 'none';
+                            document.getElementById('analyzer-response-container').style.display = 'block';
+                            dom.anaResBox.style.display = 'block';
+                            dom.anaControls.style.display = 'flex';
+                            
+                            const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
+                            if(anaHistContent) anaHistContent.classList.remove('show');
                         };
                         
                         const delBtn = document.createElement('button');
                         delBtn.className = 'delete-icon-btn';
-                        delBtn.innerHTML = '✕';
+                        delBtn.innerHTML = `✕`;
+                        delBtn.style.color = '#EF4444'; 
                         delBtn.onclick = async (e) => {
                             e.stopPropagation();
-                            if(await showCustomConfirm('¿Eliminar chat?')) {
-                                await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${c.id}`, { method: 'DELETE', headers: h });
-                                loadChatHistory();
+                            const conf = await showCustomConfirm('Se eliminará este análisis.');
+                            if(conf) {
+                                await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
+                                loadAnaHistory(); 
                             }
                         };
 
@@ -1554,534 +1470,534 @@ document.addEventListener('DOMContentLoaded', function () {
                         item.appendChild(delBtn);
                         list.appendChild(item);
                     });
-                }
-            } catch (e) { 
-                console.error("Error cargando historial:", e); 
+
+                } catch(e) { list.innerHTML = '<div style="padding:10px; color:red; font-size:0.8em;">Error cargando historial.</div>'; }
             }
-        }
 
-        async function loadChat(id) {
-            const h = await Utils.getHeaders(user);
-            const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${id}/messages`, { headers: h });
-            const msgs = await r.json();
-            const c = state.conversations.find(x => x.id === id);
-            state.currentChat = { id, title: c?.title, messages: msgs };
-            dom.chatBox.innerHTML = '';
-            toggleChatButtons(true);
-            msgs.forEach(renderChat);
-            loadChatHistory();
-        }
-
-        async function startBackendSession() {
-            const h = await Utils.getHeaders(user);
-            try {
-                const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations`, {
-                    method: 'POST', headers: h, body: JSON.stringify({ title: "Nuevo Chat" })
-                });
-                const newConvo = await r.json();
-                state.conversations.unshift(newConvo);
-                state.currentChat.id = newConvo.id;
-                state.currentChat.title = newConvo.title;
-                loadChatHistory();
-                return true;
-            } catch (e) { return false; }
-        }
-
-        async function sendChat() {
-            const txt = dom.input.value.trim();
-            if (!txt) return;
-
-            if (!state.currentChat.id) {
-                const success = await startBackendSession();
-                if (!success) { alert("Error de conexión."); return; }
-                toggleChatButtons(true);
-            }
-            
-            renderChat({ role: 'user', content: txt });
-            state.currentChat.messages.push({ role: 'user', content: txt });
-            dom.input.value = '';
-
-            const botBubble = document.createElement('div');
-            botBubble.className = 'pida-bubble pida-message-bubble';
-            botBubble.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
-            dom.chatBox.appendChild(botBubble);
-            dom.chatBox.parentElement.scrollTop = dom.chatBox.parentElement.scrollHeight;
-
-            try {
+            // 2. CHAT
+            async function loadChatHistory() {
                 const h = await Utils.getHeaders(user);
-                const r = await fetch(`${PIDA_CONFIG.API_CHAT}/chat-stream/${state.currentChat.id}`, {
-                    method: 'POST', headers: h, body: JSON.stringify({ prompt: txt })
-                });
-                const reader = r.body.getReader();
-                const decoder = new TextDecoder();
-                let fullText = "";
-                
-                while (true) {
-                    const { value, done } = await reader.read();
-                    if (done) break;
-                    const chunk = decoder.decode(value);
-                    const lines = chunk.split('\n\n');
-                    for (const l of lines) {
-                        if (l.startsWith('data:')) {
-                            try {
-                                const d = JSON.parse(l.substring(6));
-                                if (d.text) {
-                                    if (fullText === "") botBubble.innerHTML = '';
-                                    fullText += d.text;
-                                    // CAMBIO: Preparar markdown antes de parsear
-                                    let safeContent = Utils.prepareMarkdown(fullText);
-                                    botBubble.innerHTML = Utils.sanitize(marked.parse(safeContent));
-                                    dom.chatBox.parentElement.scrollTop = dom.chatBox.parentElement.scrollHeight;
+                if (!h) return;
+                try {
+                    const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations`, { headers: h });
+                    if (!r.ok) return; 
+
+                    const data = await r.json();
+                    if (!Array.isArray(data)) return;
+                    state.conversations = data;
+
+                    const list = document.getElementById('pida-history-list');
+                    if(list) {
+                        list.innerHTML = '';
+                        state.conversations.forEach(c => {
+                            const item = document.createElement('div');
+                            item.className = `pida-history-item ${c.id === state.currentChat.id ? 'active' : ''}`;
+                            
+                            const titleSpan = document.createElement('span');
+                            titleSpan.className = 'pida-history-item-title';
+                            titleSpan.textContent = c.title || "Sin título";
+                            titleSpan.style.flex = "1";
+                            titleSpan.onclick = (e) => { 
+                                e.stopPropagation(); 
+                                loadChat(c.id); 
+                                const histContent = document.getElementById('history-dropdown-content');
+                                if(histContent) histContent.classList.remove('show'); 
+                            };
+                            
+                            const delBtn = document.createElement('button');
+                            delBtn.className = 'delete-icon-btn';
+                            delBtn.innerHTML = '✕';
+                            delBtn.onclick = async (e) => {
+                                e.stopPropagation();
+                                if(await showCustomConfirm('¿Eliminar chat?')) {
+                                    await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${c.id}`, { method: 'DELETE', headers: h });
+                                    loadChatHistory();
                                 }
-                            } catch (e) { }
-                        }
+                            };
+
+                            item.appendChild(titleSpan);
+                            item.appendChild(delBtn);
+                            list.appendChild(item);
+                        });
+                    }
+                } catch (e) { console.error("Error cargando historial de chat:", e); }
+            }
+
+            // 3. PRECALIFICADOR
+            async function loadPreHistory() {
+                if (!dom.preHistList) return;
+                try {
+                    dom.preHistList.innerHTML = '<div style="padding:15px; text-align:center; color:#666;">Cargando...</div>';
+                    
+                    const snapshot = await db.collection('users').doc(user.uid).collection('prequalifications')
+                                            .orderBy('created_at', 'desc').limit(20).get();
+
+                    dom.preHistList.innerHTML = '';
+                    if (snapshot.empty) {
+                        dom.preHistList.innerHTML = '<div style="padding:15px; text-align:center; color:#999; font-size:0.9em;">Sin historial.</div>';
+                        return;
+                    }
+
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const displayTitle = data.title || "Sin título"; 
+                        
+                        const item = document.createElement('div');
+                        item.className = 'pida-history-item';
+                        
+                        const titleSpan = document.createElement('span');
+                        titleSpan.textContent = displayTitle;
+                        titleSpan.style.flex = "1";
+                        titleSpan.style.cursor = "pointer";
+                        
+                        titleSpan.onclick = (e) => {
+                            e.stopPropagation();
+                            // Load Pre Item
+                            if(dom.preTitle) dom.preTitle.value = data.title || "";
+                            if(dom.preCountry) dom.preCountry.value = data.country_code || "";
+                            if(dom.preFacts) dom.preFacts.value = data.facts || "";
+
+                            dom.preWelcome.style.display = 'none';
+                            dom.preResultsBox.style.display = 'block';
+                            dom.preLoader.style.display = 'none';
+                            dom.preResponseCont.style.display = 'block';
+                            dom.preControls.style.display = 'flex';
+                            state.preText = data.analysis;
+                            dom.preResultTxt.innerHTML = Utils.sanitize(marked.parse(data.analysis));
+                            dom.preHistContent.classList.remove('show');
+                        };
+                        
+                        const delBtn = document.createElement('button');
+                        delBtn.className = 'delete-icon-btn';
+                        delBtn.style.color = '#EF4444'; 
+                        delBtn.innerHTML = `✕`;
+                        delBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            if(await showCustomConfirm('¿Eliminar registro?')) {
+                                await doc.ref.delete();
+                                loadPreHistory();
+                            }
+                        };
+
+                        item.appendChild(titleSpan);
+                        item.appendChild(delBtn);
+                        dom.preHistList.appendChild(item);
+                    });
+                } catch (error) { console.error(error); }
+            }
+
+            // Dropdowns
+            const histBtn = document.getElementById('history-dropdown-btn');
+            const histContent = document.getElementById('history-dropdown-content');
+            const anaHistBtn = document.getElementById('analyzer-history-dropdown-btn');
+            const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
+
+            if(histBtn) histBtn.onclick = (e) => { e.stopPropagation(); histContent.classList.toggle('show'); anaHistContent.classList.remove('show'); };
+            if(anaHistBtn) anaHistBtn.onclick = async (e) => { 
+                e.stopPropagation(); 
+                if (!anaHistContent.classList.contains('show')) await loadAnaHistory(); 
+                anaHistContent.classList.toggle('show');
+                histContent.classList.remove('show'); 
+            };
+            
+            // Dropdown Precalificador
+            if (dom.preHistBtn) {
+                dom.preHistBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    histContent.classList.remove('show');
+                    anaHistContent.classList.remove('show');
+                    if (!dom.preHistContent.classList.contains('show')) loadPreHistory();
+                    dom.preHistContent.classList.toggle('show');
+                };
+            }
+            window.onclick = () => { 
+                if(histContent) histContent.classList.remove('show'); 
+                if(anaHistContent) anaHistContent.classList.remove('show');
+                if(dom.preHistContent) dom.preHistContent.classList.remove('show');
+            };
+
+            // --- CHAT: RENDER Y LOGICA ---
+            function toggleChatButtons(show) {
+                ['chat-download-txt-btn', 'chat-download-pdf-btn', 'chat-download-docx-btn'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.style.display = show ? 'inline-flex' : 'none';
+                });
+            }
+
+            function renderChat(msg) {
+                const d = document.createElement('div');
+                d.className = `pida-bubble ${msg.role === 'user' ? 'user-message-bubble' : 'pida-message-bubble'}`;
+                let safeContent = msg.role === 'model' ? Utils.prepareMarkdown(msg.content) : msg.content;
+                d.innerHTML = Utils.sanitize(marked.parse(safeContent));
+                dom.chatBox.appendChild(d);
+                if (msg.role === 'model') renderFollowUpQuestions(d);
+                dom.chatBox.parentElement.scrollTop = dom.chatBox.parentElement.scrollHeight;
+            }
+
+            function renderFollowUpQuestions(element) {
+                const headings = Array.from(element.querySelectorAll("h2, h3"));
+                const followUpHeading = headings.find(h => h.textContent.includes("Preguntas de Seguimiento"));
+                if (followUpHeading) {
+                    const list = followUpHeading.nextElementSibling;
+                    if (list && (list.tagName === "UL" || list.tagName === "OL")) {
+                        const questions = Array.from(list.querySelectorAll("li"));
+                        const card = document.createElement("div");
+                        card.className = "follow-up-card";
+                        card.innerHTML = "<h3>Preguntas de seguimiento:</h3>";
+                        questions.forEach(q => {
+                            const btn = document.createElement("button");
+                            btn.className = "follow-up-btn";
+                            btn.textContent = q.textContent;
+                            btn.onclick = () => { dom.input.value = q.textContent; sendChat(); };
+                            card.appendChild(btn);
+                        });
+                        followUpHeading.remove(); list.remove(); element.appendChild(card);
                     }
                 }
-                state.currentChat.messages.push({ role: 'model', content: fullText });
-                renderFollowUpQuestions(botBubble);
-                
-                if (state.currentChat.messages.length === 2) {
-                    await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${state.currentChat.id}/title`, {
-                        method: 'PATCH', headers: h, body: JSON.stringify({ title: txt.substring(0, 30) })
+            }
+
+            async function loadChat(id) {
+                const h = await Utils.getHeaders(user);
+                const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${id}/messages`, { headers: h });
+                const msgs = await r.json();
+                const c = state.conversations.find(x => x.id === id);
+                state.currentChat = { id, title: c?.title, messages: msgs };
+                dom.chatBox.innerHTML = '';
+                toggleChatButtons(true);
+                msgs.forEach(renderChat);
+                loadChatHistory();
+            }
+
+            async function startBackendSession() {
+                const h = await Utils.getHeaders(user);
+                try {
+                    const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations`, {
+                        method: 'POST', headers: h, body: JSON.stringify({ title: "Nuevo Chat" })
                     });
+                    const newConvo = await r.json();
+                    state.conversations.unshift(newConvo);
+                    state.currentChat.id = newConvo.id;
+                    state.currentChat.title = newConvo.title;
                     loadChatHistory();
+                    return true;
+                } catch (e) { return false; }
+            }
+
+            async function sendChat() {
+                const txt = dom.input.value.trim();
+                if (!txt) return;
+
+                if (!state.currentChat.id) {
+                    const success = await startBackendSession();
+                    if (!success) { alert("Error de conexión."); return; }
+                    toggleChatButtons(true);
                 }
-            } catch (error) {
-                botBubble.innerHTML = "<span style='color:red'>Error de conexión.</span>";
-            }
-        }
-
-        async function handleNewChat(clearUI = true) {
-            if (!dom.chatBox) return;
-            if (clearUI) { 
-                dom.chatBox.innerHTML = ''; 
-                if(dom.input) dom.input.value = ''; 
-                state.currentChat = { id: null, title: '', messages: [] };
                 
-                const items = document.querySelectorAll('.pida-history-item');
-                if(items) items.forEach(el => el.classList.remove('active'));
+                renderChat({ role: 'user', content: txt });
+                state.currentChat.messages.push({ role: 'user', content: txt });
+                dom.input.value = '';
 
-                toggleChatButtons(false);
-
-                renderChat({
-                    role: 'model',
-                    content: "**¡Hola! Soy PIDA, tu asistente experto en Derechos Humanos y temas afines.**\n\nEstoy para apoyarte y responder cualquier pregunta que me hagas, incluyendo investigaciones, análisis de casos, búsqueda de jurisprudencia y redacción legal de todo tipo de documentos, cartas, informes, elaboración de proyectos y seguimiento y monitoreo.\n\n**¿Qué te gustaría pedirme ahora?**"
-                });
-            }
-        }
-
-        // --- MANEJADORES DE CHAT ---
-        const pidaForm = document.getElementById('pida-form');
-        if (pidaForm) pidaForm.onsubmit = (e) => { e.preventDefault(); sendChat(); };
-
-        const onNewChatClick = (e) => { e.preventDefault(); handleNewChat(true); };
-        const btnSidebar = document.getElementById('pida-new-chat-btn'); // ID correcto del HTML
-        if (btnSidebar) btnSidebar.onclick = onNewChatClick;
-        const btnMobile = document.getElementById('new-chat-btn');
-        if (btnMobile) btnMobile.onclick = onNewChatClick;
-        const btnClear = document.getElementById('chat-clear-btn');
-        if(btnClear) btnClear.onclick = onNewChatClick;
-        
-        if (dom.sendBtn) dom.sendBtn.onclick = (e) => { e.preventDefault(); sendChat(); };
-        if (dom.input) dom.input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } };
-
-        // --- BOTONES DE DESCARGA CHAT ---
-        document.getElementById('chat-download-txt-btn').onclick = () => {
-            const name = getTimestampedName("Experto-PIDA");
-            Exporter.downloadTXT(name, "Reporte Experto Jurídico", state.currentChat.messages);
-        };
-        document.getElementById('chat-download-pdf-btn').onclick = () => {
-            const name = getTimestampedName("Experto-PIDA");
-            Exporter.downloadPDF(name, "Reporte Experto Jurídico", state.currentChat.messages);
-        };
-        document.getElementById('chat-download-docx-btn').onclick = () => {
-            const name = getTimestampedName("Experto-PIDA");
-            Exporter.downloadDOCX(name, "Reporte Experto Jurídico", state.currentChat.messages);
-        };
-
-        // --- ANALYZER LOGIC ---
-        const anaUploadBtn = document.getElementById('analyzer-upload-btn');
-        if(anaUploadBtn) anaUploadBtn.onclick = () => dom.anaInput.click();
-        if(dom.anaInput) dom.anaInput.onchange = (e) => { state.anaFiles.push(...e.target.files); renderFiles(); };
-
-        function renderFiles() {
-            dom.anaFiles.innerHTML = '';
-            state.anaFiles.forEach((f, i) => {
-                const d = document.createElement('div');
-                d.className = 'active-file-chip';
-                d.innerHTML = `<span>${f.name}</span> <button>×</button>`;
-                d.querySelector('button').onclick = () => { state.anaFiles.splice(i, 1); renderFiles(); };
-                dom.anaFiles.appendChild(d);
-            });
-        }
-
-        function showAnalyzerWelcome() {
-            dom.anaResBox.style.display = 'block'; 
-            document.getElementById('analyzer-response-container').style.display = 'block';
-            dom.anaControls.style.display = 'none'; 
-            dom.anaLoader.style.display = 'none';
-            dom.anaResTxt.innerHTML = `
-                <div class="pida-bubble pida-message-bubble">
-                    <h3>📑 Analizador de Documentos</h3>
-                    <p>Sube tus archivos (PDF, DOCX) y escribe una instrucción clara. PIDA leerá, resumirá y sitematizará el documento por ti.</p>
-                    <hr>
-                    <strong>Ejemplos de lo que puedes pedir:</strong>
-                    <ul style="margin-top: 10px; padding-left: 20px; line-height: 1.6;">
-                        <li>"Haz un resumen ejecutivo de este documento (contrato, sentencia, tesis, etc)."</li>
-                        <li>"Identifica las cláusulas de rescisión y sus penalizaciones."</li>
-                        <li>"Extrae una lista cronológica de los hechos en esta sentencia y prepara un borrador de recurso de impugnación confirme a la legislación del país que se trate."</li>
-                        <li>"¿Existen riesgos legales para mi cliente en este documento?"</li>
-                    </ul>
-
-                </div>`;
-        }
-        showAnalyzerWelcome();
-
-        if(dom.anaBtn) {
-            dom.anaBtn.onclick = async () => {
-                if (!state.anaFiles.length) { alert("Sube al menos un documento."); return; }
-                
-                dom.anaResBox.style.display = 'block'; 
-                dom.anaLoader.style.display = 'block';
-                document.getElementById('analyzer-response-container').style.display = 'none';
-                dom.anaResTxt.innerHTML = ''; 
-                dom.anaControls.style.display = 'none';
-                
-                const fd = new FormData();
-                state.anaFiles.forEach(f => fd.append('files', f));
-                const instructions = dom.anaInst.value.trim() || "Analiza este documento y resume sus puntos clave.";
-                fd.append('instructions', instructions);
-                
-                const token = await user.getIdToken();
+                const botBubble = document.createElement('div');
+                botBubble.className = 'pida-bubble pida-message-bubble';
+                botBubble.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
+                dom.chatBox.appendChild(botBubble);
+                dom.chatBox.parentElement.scrollTop = dom.chatBox.parentElement.scrollHeight;
 
                 try {
-                    const r = await fetch(`${PIDA_CONFIG.API_ANA}/analyze/`, {
-                        method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd
+                    const h = await Utils.getHeaders(user);
+                    const r = await fetch(`${PIDA_CONFIG.API_CHAT}/chat-stream/${state.currentChat.id}`, {
+                        method: 'POST', headers: h, body: JSON.stringify({ prompt: txt })
                     });
-                    
                     const reader = r.body.getReader();
                     const decoder = new TextDecoder();
                     let fullText = "";
-                    let started = false;
-
+                    
                     while (true) {
                         const { value, done } = await reader.read();
                         if (done) break;
                         const chunk = decoder.decode(value);
                         const lines = chunk.split('\n\n');
-                        for (const line of lines) {
-                            if (line.startsWith('data:')) {
+                        for (const l of lines) {
+                            if (l.startsWith('data:')) {
                                 try {
-                                    const data = JSON.parse(line.substring(5).trim());
-                                    if (data.text) {
-                                        if (!started) { 
-                                            dom.anaLoader.style.display = 'none'; 
-                                            document.getElementById('analyzer-response-container').style.display = 'block';
-                                            const titleEl = document.getElementById('analyzer-section-title');
-                                            if(titleEl) titleEl.style.display = 'block';
-                                            started = true; 
-                                        }
-                                        fullText += data.text;
-                                        dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
-                                        // Scroll auto
-                                        const scrollContainer = dom.viewAna.querySelector('.pida-view-content');
-                                        if(scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
-                                    }
-                                    if (data.done) {
-                                        state.anaText = fullText; // GUARDAR TEXTO PARA EXPORTAR
-                                        dom.anaControls.style.display = 'flex';
-                                        loadAnaHistory();
-                                    }
-                                } catch (e) {}
-                            }
-                        }
-                    }
-                } catch (e) {
-                    dom.anaLoader.style.display = 'none';
-                    dom.anaResTxt.innerHTML = `<span style='color:red'>Error: ${e.message}</span>`;
-                    document.getElementById('analyzer-response-container').style.display = 'block';
-                }
-            };
-        }
-
-        if (dom.anaInst) {
-            dom.anaInst.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); dom.anaBtn.click(); } };
-        }
-        if(dom.analyzerClearBtn) {
-            dom.analyzerClearBtn.onclick = () => {
-                state.anaFiles = []; state.anaText = ""; renderFiles();
-                dom.anaInst.value = ''; showAnalyzerWelcome(); 
-            };
-        }
-
-        // --- BOTONES DE DESCARGA ANALIZADOR ---
-        document.getElementById('analyzer-download-txt-btn').onclick = () => {
-            if(!state.anaText) return alert("No hay análisis para descargar.");
-            const name = getTimestampedName("Analizador-PIDA");
-            Exporter.downloadTXT(name, "Reporte Análisis Documental", state.anaText);
-        };
-        document.getElementById('analyzer-download-pdf-btn').onclick = () => {
-            if(!state.anaText) return alert("No hay análisis para descargar.");
-            const name = getTimestampedName("Analizador-PIDA");
-            Exporter.downloadPDF(name, "Reporte Análisis Documental", state.anaText);
-        };
-        document.getElementById('analyzer-download-docx-btn').onclick = () => {
-            if(!state.anaText) return alert("No hay análisis para descargar.");
-            const name = getTimestampedName("Analizador-PIDA");
-            Exporter.downloadDOCX(name, "Reporte Análisis Documental", state.anaText);
-        };
-
-// =========================================================
-        // LÓGICA PRECALIFICADOR (ACTUALIZADA SIN TÍTULO MANUAL)
-        // =========================================================
-
-    // 1. Cargar historial usando los campos de tu imagen
-        async function loadPreHistory() {
-            if (!dom.preHistList) return;
-            try {
-                dom.preHistList.innerHTML = '<div style="padding:15px; text-align:center; color:#666;">Cargando...</div>';
-                
-                const snapshot = await db.collection('users')
-                                         .doc(user.uid)
-                                         .collection('prequalifications')
-                                         .orderBy('created_at', 'desc') // <--- CAMBIO: created_at (snake_case)
-                                         .limit(20)
-                                         .get();
-
-                dom.preHistList.innerHTML = '';
-                if (snapshot.empty) {
-                    dom.preHistList.innerHTML = '<div style="padding:15px; text-align:center; color:#999; font-size:0.9em;">Sin historial.</div>';
-                    return;
-                }
-
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    // Usamos el campo title directo de la BD
-                    const displayTitle = data.title || "Sin título"; 
-                    
-                    const item = document.createElement('div');
-                    item.className = 'pida-history-item';
-                    
-                    const titleSpan = document.createElement('span');
-                    titleSpan.textContent = displayTitle;
-                    titleSpan.style.flex = "1";
-                    titleSpan.style.cursor = "pointer";
-                    
-                    titleSpan.onclick = (e) => {
-                        e.stopPropagation();
-                        loadPreItem(data); // Pasamos todo el objeto data
-                        dom.preHistContent.classList.remove('show');
-                    };
-                    
-                    // Botón eliminar
-                    const delBtn = document.createElement('button');
-                    delBtn.className = 'delete-icon-btn';
-                    delBtn.style.color = '#EF4444'; 
-                    delBtn.innerHTML = `✕`;
-                    delBtn.onclick = async (e) => {
-                        e.stopPropagation();
-                        if(await showCustomConfirm('¿Eliminar registro?')) {
-                            await doc.ref.delete();
-                            loadPreHistory();
-                        }
-                    };
-
-                    item.appendChild(titleSpan);
-                    item.appendChild(delBtn);
-                    dom.preHistList.appendChild(item);
-                });
-            } catch (error) { console.error(error); }
-        }
-
-        // 2. Cargar ítem y restaurar inputs (Título, País, Hechos)
-        function loadPreItem(data) {
-            if (!data || !data.analysis) return;
-
-            // Restaurar los inputs para que el usuario vea qué generó esto
-            if(dom.preTitle) dom.preTitle.value = data.title || "";
-            if(dom.preCountry) dom.preCountry.value = data.country_code || "";
-            if(dom.preFacts) dom.preFacts.value = data.facts || "";
-
-            // Mostrar UI de resultados
-            dom.preWelcome.style.display = 'none';
-            dom.preResultsBox.style.display = 'block';
-            dom.preLoader.style.display = 'none';
-            dom.preResponseCont.style.display = 'block';
-            dom.preControls.style.display = 'flex';
-            
-            state.preText = data.analysis;
-            dom.preResultTxt.innerHTML = Utils.sanitize(marked.parse(data.analysis));
-        }
-
-        // 3. Manejadores de eventos del Historial y Botón Nuevo
-            if (dom.preNewBtn) {
-                dom.preNewBtn.onclick = () => {
-                    resetPrecalifier();
-                };
-            }
-
-            if (dom.preHistBtn) {
-                dom.preHistBtn.onclick = (e) => {
-                    e.stopPropagation();
-                    // Cerrar otros dropdowns si están abiertos (chat o analyzer)
-                    const histContent = document.getElementById('history-dropdown-content');
-                    const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
-                    if(histContent) histContent.classList.remove('show');
-                    if(anaHistContent) anaHistContent.classList.remove('show');
-
-                    // Abrir/Cerrar el historial del precalificador
-                    if (!dom.preHistContent.classList.contains('show')) {
-                        loadPreHistory(); // Cargar datos al abrir
-                    }
-                    dom.preHistContent.classList.toggle('show');
-                };
-            }
-            
-            // Cerrar el dropdown si se hace clic fuera (esto ya lo tenías global, pero aseguramos)
-            window.addEventListener('click', () => {
-                if(dom.preHistContent) dom.preHistContent.classList.remove('show');
-            });
-        
-        function resetPrecalifier() {
-            // Ya no hay preTitle que limpiar
-            if(dom.preFacts) dom.preFacts.value = '';
-            if(dom.preCountry) dom.preCountry.value = '';
-            if(dom.preTitle) dom.preTitle.value = '';
-            
-            dom.preWelcome.style.display = 'flex';
-            dom.preResultsBox.style.display = 'none';
-            dom.preLoader.style.display = 'none';
-            dom.preResponseCont.style.display = 'none';
-            dom.preControls.style.display = 'none';
-            dom.preResultTxt.innerHTML = '';
-            state.preText = "";
-        }
-
-        if (dom.preClear) dom.preClear.onclick = resetPrecalifier;
-
-        if (dom.preBtn) {
-            dom.preBtn.onclick = async () => {
-                // TÍTULO: Usar el del input o generar uno con fecha si está vacío
-                const now = new Date();
-                let title = dom.preTitle.value.trim(); 
-                if (!title) {
-                    title = `Caso ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
-                }
-                
-                const facts = dom.preFacts.value.trim();
-                const country = dom.preCountry.value || null;
-
-                // Validación
-                if (!facts) {
-                    alert("Por favor, narra los hechos del caso.");
-                    return;
-                }
-
-                // UI Setup
-                dom.preWelcome.style.display = 'none';
-                dom.preResultsBox.style.display = 'block'; 
-                dom.preLoader.style.display = 'block';     
-                dom.preStatus.textContent = "Analizando delitos y DDHH...";
-                dom.preResponseCont.style.display = 'none'; 
-                dom.preResultTxt.innerHTML = '';
-                dom.preControls.style.display = 'none';
-                state.preText = "";
-                dom.preBtn.disabled = true;
-
-                try {
-                    const token = await user.getIdToken();
-                    const response = await fetch(`${PIDA_CONFIG.API_PRE}/analyze`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}`
-                        },
-                        // Enviamos el título manual
-                        body: JSON.stringify({ title, facts, country_code: country })
-                    });
-
-                    const reader = response.body.getReader();
-                    const decoder = new TextDecoder();
-                    let fullText = "";
-
-                    while (true) {
-                        const { done, value } = await reader.read();
-                        if (done) break;
-                        const chunk = decoder.decode(value);
-                        const lines = chunk.split("\n\n");
-                        for (const line of lines) {
-                            if (line.startsWith("data: ")) {
-                                try {
-                                    const data = JSON.parse(line.replace("data: ", "").trim());
-                                    if (data.event === "status") {
-                                        dom.preStatus.textContent = data.message;
-                                    } else if (data.text) {
-                                        if (dom.preLoader.style.display !== 'none') {
-                                            dom.preLoader.style.display = 'none';
-                                            dom.preResponseCont.style.display = 'block';
-                                        }
-                                        fullText += data.text;
-                                        dom.preResultTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
-                                        const scrollCont = dom.viewPre.querySelector('.pida-view-content');
-                                        if(scrollCont) scrollCont.scrollTop = scrollCont.scrollHeight;
-                                    } else if (data.event === "done") {
-                                        state.preText = fullText;
-                                        dom.preControls.style.display = 'flex';
+                                    const d = JSON.parse(l.substring(6));
+                                    if (d.text) {
+                                        if (fullText === "") botBubble.innerHTML = '';
+                                        fullText += d.text;
+                                        let safeContent = Utils.prepareMarkdown(fullText);
+                                        botBubble.innerHTML = Utils.sanitize(marked.parse(safeContent));
+                                        dom.chatBox.parentElement.scrollTop = dom.chatBox.parentElement.scrollHeight;
                                     }
                                 } catch (e) { }
                             }
                         }
                     }
+                    state.currentChat.messages.push({ role: 'model', content: fullText });
+                    renderFollowUpQuestions(botBubble);
+                    
+                    if (state.currentChat.messages.length === 2) {
+                        await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${state.currentChat.id}/title`, {
+                            method: 'PATCH', headers: h, body: JSON.stringify({ title: txt.substring(0, 30) })
+                        });
+                        loadChatHistory();
+                    }
                 } catch (error) {
-                    dom.preLoader.style.display = 'none';
-                    dom.preResponseCont.style.display = 'block';
-                    dom.preResultTxt.innerHTML = `<span style='color:red'>Error: ${error.message}</span>`;
-                } finally {
-                    dom.preBtn.disabled = false;
+                    botBubble.innerHTML = "<span style='color:red'>Error de conexión.</span>";
                 }
-            };
-        }
+            }
 
-        // Descargas del Precalificador
-        document.getElementById('pre-download-txt-btn').onclick = () => {
-            if(!state.preText) return alert("No hay resultado para descargar.");
-            const name = getTimestampedName("Precalificador-PIDA");
-            Exporter.downloadTXT(name, "Precalificación de Caso", state.preText);
-        };
-        document.getElementById('pre-download-pdf-btn').onclick = () => {
-            if(!state.preText) return alert("No hay resultado para descargar.");
-            const name = getTimestampedName("Precalificador-PIDA");
-            Exporter.downloadPDF(name, "Precalificación de Caso", state.preText);
-        };
-        document.getElementById('pre-download-docx-btn').onclick = () => {
-            if(!state.preText) return alert("No hay resultado para descargar.");
-            const name = getTimestampedName("Precalificador-PIDA");
-            Exporter.downloadDOCX(name, "Precalificación de Caso", state.preText);
-        };
+            async function handleNewChat(clearUI = true) {
+                if (!dom.chatBox) return;
+                if (clearUI) { 
+                    dom.chatBox.innerHTML = ''; 
+                    if(dom.input) dom.input.value = ''; 
+                    state.currentChat = { id: null, title: '', messages: [] };
+                    
+                    const items = document.querySelectorAll('.pida-history-item');
+                    if(items) items.forEach(el => el.classList.remove('active'));
 
-        // --- CUENTA ---
-        if(dom.accUpdate) {
-            dom.accUpdate.onclick = async () => {
-                const f = document.getElementById('acc-firstname').value;
-                const l = document.getElementById('acc-lastname').value;
-                if(f || l) { await user.updateProfile({ displayName: `${f} ${l}` }); dom.pName.textContent = `${f} ${l}`; alert('Actualizado'); }
-            };
-        }
-        if(dom.accBilling) {
-            dom.accBilling.onclick = async () => {
-                const fn = firebase.functions().httpsCallable('ext-firestore-stripe-payments-createPortalLink');
-                const { data } = await fn({ returnUrl: window.location.href });
-                window.location.assign(data.url);
-            };
-        }
-        if(dom.accReset) {
-            dom.accReset.onclick = () => auth.sendPasswordResetEmail(user.email).then(()=>alert('Correo enviado'));
-        }
+                    toggleChatButtons(false);
 
-        // INICIO
-        setView('investigador');
-        handleNewChat(true); 
-        loadChatHistory();
+                    renderChat({
+                        role: 'model',
+                        content: "**¡Hola! Soy PIDA, tu asistente experto en Derechos Humanos.**\n\nEstoy listo para apoyarte en investigaciones, análisis de casos y redacción legal.\n\n**¿Qué te gustaría pedirme ahora?**"
+                    });
+                }
+            }
+
+            // Manejadores Chat
+            const pidaForm = document.getElementById('pida-form');
+            if (pidaForm) pidaForm.onsubmit = (e) => { e.preventDefault(); sendChat(); };
+
+            const onNewChatClick = (e) => { e.preventDefault(); handleNewChat(true); };
+            const btnSidebar = document.getElementById('pida-new-chat-btn');
+            if (btnSidebar) btnSidebar.onclick = onNewChatClick;
+            const btnClear = document.getElementById('chat-clear-btn');
+            if(btnClear) btnClear.onclick = onNewChatClick;
+            
+            if (dom.sendBtn) dom.sendBtn.onclick = (e) => { e.preventDefault(); sendChat(); };
+            if (dom.input) dom.input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } };
+
+            // Descargas Chat
+            document.getElementById('chat-download-txt-btn').onclick = () => {
+                const name = getTimestampedName("Experto-PIDA");
+                Exporter.downloadTXT(name, "Reporte Experto Jurídico", state.currentChat.messages);
+            };
+            document.getElementById('chat-download-pdf-btn').onclick = () => {
+                const name = getTimestampedName("Experto-PIDA");
+                Exporter.downloadPDF(name, "Reporte Experto Jurídico", state.currentChat.messages);
+            };
+            document.getElementById('chat-download-docx-btn').onclick = () => {
+                const name = getTimestampedName("Experto-PIDA");
+                Exporter.downloadDOCX(name, "Reporte Experto Jurídico", state.currentChat.messages);
+            };
+
+            // --- ANALIZADOR (RESTO DE LA LÓGICA) ---
+            const anaUploadBtn = document.getElementById('analyzer-upload-btn');
+            if(anaUploadBtn) anaUploadBtn.onclick = () => dom.anaInput.click();
+            if(dom.anaInput) dom.anaInput.onchange = (e) => { state.anaFiles.push(...e.target.files); renderFiles(); };
+
+            function renderFiles() {
+                dom.anaFiles.innerHTML = '';
+                state.anaFiles.forEach((f, i) => {
+                    const d = document.createElement('div');
+                    d.className = 'active-file-chip';
+                    d.innerHTML = `<span>${f.name}</span> <button>×</button>`;
+                    d.querySelector('button').onclick = () => { state.anaFiles.splice(i, 1); renderFiles(); };
+                    dom.anaFiles.appendChild(d);
+                });
+            }
+
+            function showAnalyzerWelcome() {
+                dom.anaResBox.style.display = 'block'; 
+                document.getElementById('analyzer-response-container').style.display = 'block';
+                dom.anaControls.style.display = 'none'; 
+                dom.anaLoader.style.display = 'none';
+                dom.anaResTxt.innerHTML = `
+                    <div class="pida-bubble pida-message-bubble">
+                        <h3>📑 Analizador de Documentos</h3>
+                        <p>Sube tus archivos (PDF, DOCX) y recibe un análisis sistemático.</p>
+                    </div>`;
+            }
+            showAnalyzerWelcome();
+
+            if(dom.anaBtn) {
+                dom.anaBtn.onclick = async () => {
+                    if (!state.anaFiles.length) { alert("Sube al menos un documento."); return; }
+                    
+                    dom.anaResBox.style.display = 'block'; 
+                    dom.anaLoader.style.display = 'block';
+                    document.getElementById('analyzer-response-container').style.display = 'none';
+                    dom.anaResTxt.innerHTML = ''; 
+                    dom.anaControls.style.display = 'none';
+                    
+                    const fd = new FormData();
+                    state.anaFiles.forEach(f => fd.append('files', f));
+                    const instructions = dom.anaInst.value.trim() || "Analiza este documento.";
+                    fd.append('instructions', instructions);
+                    
+                    const token = await user.getIdToken();
+
+                    try {
+                        const r = await fetch(`${PIDA_CONFIG.API_ANA}/analyze/`, {
+                            method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd
+                        });
+                        
+                        const reader = r.body.getReader();
+                        const decoder = new TextDecoder();
+                        let fullText = "";
+                        let started = false;
+
+                        while (true) {
+                            const { value, done } = await reader.read();
+                            if (done) break;
+                            const chunk = decoder.decode(value);
+                            const lines = chunk.split('\n\n');
+                            for (const line of lines) {
+                                if (line.startsWith('data:')) {
+                                    try {
+                                        const data = JSON.parse(line.substring(5).trim());
+                                        if (data.text) {
+                                            if (!started) { 
+                                                dom.anaLoader.style.display = 'none'; 
+                                                document.getElementById('analyzer-response-container').style.display = 'block';
+                                                const titleEl = document.getElementById('analyzer-section-title');
+                                                if(titleEl) titleEl.style.display = 'block';
+                                                started = true; 
+                                            }
+                                            fullText += data.text;
+                                            dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
+                                        }
+                                        if (data.done) {
+                                            state.anaText = fullText;
+                                            dom.anaControls.style.display = 'flex';
+                                            loadAnaHistory();
+                                        }
+                                    } catch (e) {}
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        dom.anaLoader.style.display = 'none';
+                        dom.anaResTxt.innerHTML = `<span style='color:red'>Error: ${e.message}</span>`;
+                        document.getElementById('analyzer-response-container').style.display = 'block';
+                    }
+                };
+            }
+            
+            if (dom.anaInst) { dom.anaInst.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); dom.anaBtn.click(); } }; }
+            if(dom.analyzerClearBtn) { dom.analyzerClearBtn.onclick = () => { state.anaFiles = []; state.anaText = ""; renderFiles(); dom.anaInst.value = ''; showAnalyzerWelcome(); }; }
+            
+            // Descargas Analizador
+            document.getElementById('analyzer-download-txt-btn').onclick = () => { if(!state.anaText) return; const name = getTimestampedName("Analizador-PIDA"); Exporter.downloadTXT(name, "Reporte Análisis", state.anaText); };
+            document.getElementById('analyzer-download-pdf-btn').onclick = () => { if(!state.anaText) return; const name = getTimestampedName("Analizador-PIDA"); Exporter.downloadPDF(name, "Reporte Análisis", state.anaText); };
+            document.getElementById('analyzer-download-docx-btn').onclick = () => { if(!state.anaText) return; const name = getTimestampedName("Analizador-PIDA"); Exporter.downloadDOCX(name, "Reporte Análisis", state.anaText); };
+
+            // --- PRECALIFICADOR (Manejadores y Reset) ---
+            function resetPrecalifier() {
+                if(dom.preFacts) dom.preFacts.value = '';
+                if(dom.preCountry) dom.preCountry.value = '';
+                if(dom.preTitle) dom.preTitle.value = '';
+                
+                dom.preWelcome.style.display = 'flex';
+                dom.preResultsBox.style.display = 'none';
+                dom.preLoader.style.display = 'none';
+                dom.preResponseCont.style.display = 'none';
+                dom.preControls.style.display = 'none';
+                dom.preResultTxt.innerHTML = '';
+                state.preText = "";
+            }
+            if (dom.preNewBtn) dom.preNewBtn.onclick = resetPrecalifier;
+            if (dom.preClear) dom.preClear.onclick = resetPrecalifier;
+
+            if (dom.preBtn) {
+                dom.preBtn.onclick = async () => {
+                    const now = new Date();
+                    let title = dom.preTitle.value.trim(); 
+                    if (!title) title = `Caso ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
+                    const facts = dom.preFacts.value.trim();
+                    const country = dom.preCountry.value || null;
+
+                    if (!facts) { alert("Narra los hechos."); return; }
+
+                    dom.preWelcome.style.display = 'none';
+                    dom.preResultsBox.style.display = 'block'; 
+                    dom.preLoader.style.display = 'block';     
+                    dom.preStatus.textContent = "Analizando delitos y DDHH...";
+                    dom.preResponseCont.style.display = 'none'; 
+                    dom.preResultTxt.innerHTML = '';
+                    dom.preControls.style.display = 'none';
+                    state.preText = "";
+                    dom.preBtn.disabled = true;
+
+                    try {
+                        const token = await user.getIdToken();
+                        const response = await fetch(`${PIDA_CONFIG.API_PRE}/analyze`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ title, facts, country_code: country })
+                        });
+
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+                        let fullText = "";
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+                            const chunk = decoder.decode(value);
+                            const lines = chunk.split("\n\n");
+                            for (const line of lines) {
+                                if (line.startsWith("data: ")) {
+                                    try {
+                                        const data = JSON.parse(line.replace("data: ", "").trim());
+                                        if (data.event === "status") { dom.preStatus.textContent = data.message; }
+                                        else if (data.text) {
+                                            if (dom.preLoader.style.display !== 'none') {
+                                                dom.preLoader.style.display = 'none';
+                                                dom.preResponseCont.style.display = 'block';
+                                            }
+                                            fullText += data.text;
+                                            dom.preResultTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
+                                        } else if (data.event === "done") {
+                                            state.preText = fullText;
+                                            dom.preControls.style.display = 'flex';
+                                        }
+                                    } catch (e) { }
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        dom.preLoader.style.display = 'none';
+                        dom.preResponseCont.style.display = 'block';
+                        dom.preResultTxt.innerHTML = `<span style='color:red'>Error: ${error.message}</span>`;
+                    } finally {
+                        dom.preBtn.disabled = false;
+                    }
+                };
+            }
+
+            // Descargas Precalificador
+            document.getElementById('pre-download-txt-btn').onclick = () => { if(!state.preText) return; const name = getTimestampedName("Precalificador-PIDA"); Exporter.downloadTXT(name, "Precalificación de Caso", state.preText); };
+            document.getElementById('pre-download-pdf-btn').onclick = () => { if(!state.preText) return; const name = getTimestampedName("Precalificador-PIDA"); Exporter.downloadPDF(name, "Precalificación de Caso", state.preText); };
+            document.getElementById('pre-download-docx-btn').onclick = () => { if(!state.preText) return; const name = getTimestampedName("Precalificador-PIDA"); Exporter.downloadDOCX(name, "Precalificación de Caso", state.preText); };
+
+            // --- CUENTA ---
+            if(dom.accUpdate) { dom.accUpdate.onclick = async () => { const f = document.getElementById('acc-firstname').value; const l = document.getElementById('acc-lastname').value; if(f || l) { await user.updateProfile({ displayName: `${f} ${l}` }); dom.pName.textContent = `${f} ${l}`; alert('Actualizado'); } }; }
+            if(dom.accBilling) { dom.accBilling.onclick = async () => { const fn = firebase.functions().httpsCallable('ext-firestore-stripe-payments-createPortalLink'); const { data } = await fn({ returnUrl: window.location.href }); window.location.assign(data.url); }; }
+            if(dom.accReset) { dom.accReset.onclick = () => auth.sendPasswordResetEmail(user.email).then(()=>alert('Correo enviado')); }
+
+            // INICIO
+            setView('investigador');
+            handleNewChat(true); 
+            loadChatHistory();
+
+        } catch (error) {
+            console.error("Error crítico en runApp:", error);
+            // Si algo falla catastróficamente, al menos quitamos el loader y mostramos el error
+            hideLoader();
+            alert("Hubo un problema al cargar la aplicación. Por favor, recarga la página.");
+        }
     }
 
     //
