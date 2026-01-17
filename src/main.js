@@ -1510,19 +1510,16 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!h) return;
             try {
                 const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations`, { headers: h });
-                
-                // 1. Verificación de respuesta exitosa
                 if (!r.ok) return; 
 
-                // 2. Descargamos los datos PRIMERO
+                // 1. Descargamos el JSON primero
                 const data = await r.json();
 
-                // 3. Validamos si es un Array ANTES de asignarlo al estado
+                // 2. Validamos que sea un Array antes de asignarlo al estado
                 if (!Array.isArray(data)) return;
-                
                 state.conversations = data;
 
-                // 4. Declaramos 'list' UNA SOLA VEZ
+                // 3. Declaramos 'list' UNA SOLA VEZ
                 const list = document.getElementById('pida-history-list');
                 
                 if(list) {
@@ -1533,7 +1530,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         
                         const titleSpan = document.createElement('span');
                         titleSpan.className = 'pida-history-item-title';
-                        titleSpan.textContent = c.title;
+                        titleSpan.textContent = c.title || "Sin título";
                         titleSpan.style.flex = "1";
                         titleSpan.onclick = (e) => { 
                             e.stopPropagation(); 
@@ -1542,8 +1539,19 @@ document.addEventListener('DOMContentLoaded', function () {
                             if(histContent) histContent.classList.remove('show'); 
                         };
                         
+                        const delBtn = document.createElement('button');
+                        delBtn.className = 'delete-icon-btn';
+                        delBtn.innerHTML = '✕';
+                        delBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            if(await showCustomConfirm('¿Eliminar chat?')) {
+                                await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${c.id}`, { method: 'DELETE', headers: h });
+                                loadChatHistory();
+                            }
+                        };
+
                         item.appendChild(titleSpan);
-                        // Aquí iría el resto de tu lógica para el botón de borrar...
+                        item.appendChild(delBtn);
                         list.appendChild(item);
                     });
                 }
@@ -1667,7 +1675,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (pidaForm) pidaForm.onsubmit = (e) => { e.preventDefault(); sendChat(); };
 
         const onNewChatClick = (e) => { e.preventDefault(); handleNewChat(true); };
-        const btnSidebar = document.getElementById('pida-new-chat-btn');
+        const btnSidebar = document.getElementById('pida-new-chat-btn'); // ID correcto del HTML
         if (btnSidebar) btnSidebar.onclick = onNewChatClick;
         const btnMobile = document.getElementById('new-chat-btn');
         if (btnMobile) btnMobile.onclick = onNewChatClick;
