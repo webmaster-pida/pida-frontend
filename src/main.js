@@ -1526,30 +1526,19 @@ document.addEventListener('DOMContentLoaded', function () {
             // --- GESTIÓN DE VISTAS ---
             function setView(view) {
                 state.currentView = view;
-                // Navbar
+                
+                // 1. Navbar (Solo estilos visuales, NO lógica de clicks)
                 if(dom.navInv) dom.navInv.classList.toggle('active', view === 'investigador');
                 if(dom.navAna) dom.navAna.classList.toggle('active', view === 'analizador');
-                // LÓGICA MODIFICADA PARA PRECALIFICADOR
-                if(dom.navPre) dom.navPre.onclick = () => {
-                    if (userPlan === 'basico') {
-                        // Si es básico, mostramos alerta y NO cambiamos de vista
-                        // Opcional: Podrías abrir el portal de facturación directamente aquí
-                        const upgrade = confirm("🔒 Esta función es exclusiva de los planes Avanzado y Premium.\n\n¿Deseas mejorar tu plan ahora?");
-                        if (upgrade && dom.accBilling) {
-                            dom.accBilling.click(); // Simula clic en el botón de ir al portal
-                        }
-                        return;
-                    }
-                    setView('precalificador');
-                };
+                if(dom.navPre) dom.navPre.classList.toggle('active', view === 'precalificador');
 
-                // Secciones
+                // 2. Secciones
                 if(dom.viewInv) dom.viewInv.classList.toggle('hidden', view !== 'investigador');
                 if(dom.viewAna) dom.viewAna.classList.toggle('hidden', view !== 'analizador');
                 if(dom.viewPre) dom.viewPre.classList.toggle('hidden', view !== 'precalificador');
                 if(dom.viewAcc) dom.viewAcc.classList.toggle('hidden', view !== 'cuenta');
                 
-                // Controles del Header
+                // 3. Controles del Header
                 const chatCtrls = document.getElementById('chat-controls');
                 const anaCtrls = document.getElementById('analyzer-controls');
                 const preCtrls = document.getElementById('precalifier-controls');
@@ -1560,7 +1549,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if(preCtrls) preCtrls.classList.toggle('hidden', view !== 'precalificador');
                 if(accCtrls) accCtrls.classList.toggle('hidden', view !== 'cuenta');
 
-                // Lazy Load de historiales
+                // 4. Lazy Load de historiales
                 if (view === 'investigador') loadChatHistory();
                 if (view === 'analizador') loadAnaHistory();
                 if (view === 'precalificador') loadPreHistory();
