@@ -1354,24 +1354,26 @@ document.addEventListener('DOMContentLoaded', function () {
                 if(!badge) return;
 
                 try {
-                    // Leemos el documento principal del usuario
                     const userDoc = await db.collection('customers').doc(user.uid).get();
                     
                     if (userDoc.exists) {
                         const data = userDoc.data();
                         
-                        // Si está activo, buscamos el plan
                         if (data.status === 'active') {
+                            // 1. Identificamos el plan
                             const planKey = data.plan; // 'basico', 'avanzado', 'premium'
-                            
-                            let displayPlan = "Suscrito"; // Fallback por si no hay plan guardado (usuarios viejos)
+                            let displayPlan = "Suscripción"; // Texto por defecto si no hay dato
                             
                             if (planKey) {
-                                // Convertimos 'basico' a 'Básico'
+                                // Formateo: basico -> Básico
                                 displayPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
                                 if(displayPlan === 'Basico') displayPlan = 'Básico';
-                            } else if (data.has_trial) {
-                                displayPlan = "Prueba Gratis";
+                            }
+
+                            // 2. Si es prueba, lo agregamos como SUFIJO, no reemplazo
+                            // Así queda: "Plan Básico (Prueba)"
+                            if (data.has_trial) {
+                                displayPlan += " <span style='font-size:0.85em; opacity:0.8;'>(Prueba)</span>";
                             }
 
                             badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
