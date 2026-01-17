@@ -348,6 +348,7 @@ window.switchAuthMode = function(mode, showTabs = true) {
     const disclaimer = document.getElementById('register-disclaimer'); 
     const forgotLink = document.getElementById('btn-forgot-password');
     const errMsg = document.getElementById('login-message');
+    const nameFields = document.getElementById('register-name-fields'); // <--- Referencia
     
     if(errMsg) errMsg.style.display = 'none';
 
@@ -360,7 +361,11 @@ window.switchAuthMode = function(mode, showTabs = true) {
         tabRegister.classList.toggle('active', mode === 'register');
     }
 
+    // 3. Lógica de Modos
     if (mode === 'reset') {
+        // OCULTAR CAMPOS DE NOMBRE
+        if(nameFields) nameFields.style.display = 'none';
+
         title.textContent = 'Recuperar Contraseña';
         desc.textContent = 'Ingresa tu correo para enviarte un enlace de restauración.';
         submitBtn.textContent = 'Enviar enlace de recuperación';
@@ -370,11 +375,19 @@ window.switchAuthMode = function(mode, showTabs = true) {
         if(disclaimer) disclaimer.style.display = 'none';
         if(forgotLink) forgotLink.parentElement.style.display = 'none';
         document.getElementById('login-password').required = false;
+
+        // Ocultar tarjeta si existe
+        const cardContainer = document.getElementById('card-element-container');
+        if (cardContainer) cardContainer.style.display = 'none';
+
     } else {
         if(passContainer) passContainer.style.display = 'block';
         document.getElementById('login-password').required = true;
 
         if (mode === 'login') {
+            // OCULTAR CAMPOS DE NOMBRE
+            if(nameFields) nameFields.style.display = 'none';
+
             title.textContent = 'Bienvenido de nuevo';
             desc.textContent = 'Accede para continuar tu investigación.';
             submitBtn.textContent = 'Ingresar';
@@ -382,7 +395,15 @@ window.switchAuthMode = function(mode, showTabs = true) {
             if(googleBtn) googleBtn.style.display = 'flex';
             if(divider) divider.style.display = 'block';
             if(forgotLink) forgotLink.parentElement.style.display = 'block';
-        } else {
+
+            // Ocultar tarjeta
+            const cardContainer = document.getElementById('card-element-container');
+            if (cardContainer) cardContainer.style.display = 'none';
+
+        } else { // REGISTER
+            // MOSTRAR CAMPOS DE NOMBRE
+            if(nameFields) nameFields.style.display = 'flex';
+
             title.textContent = 'Crear una cuenta';
             desc.textContent = 'Únete para acceder a PIDA.';
             submitBtn.textContent = 'Registrarme e iniciar prueba gratis';
@@ -390,18 +411,15 @@ window.switchAuthMode = function(mode, showTabs = true) {
             if(googleBtn) googleBtn.style.display = 'none';
             if(divider) divider.style.display = 'none';
             if(forgotLink) forgotLink.parentElement.style.display = 'none';
-        }
 
-        // --- LÓGICA DE STRIPE ELEMENTS (FIJA EL PROBLEMA DE DESAPARICIÓN) ---
-        const authForm = document.getElementById('login-form');
-        let cardContainer = document.getElementById('card-element-container');
+            // --- LÓGICA DE STRIPE ELEMENTS ---
+            const authForm = document.getElementById('login-form');
+            let cardContainer = document.getElementById('card-element-container');
 
-        if (mode === 'register') {
             if (!cardContainer) {
                 cardContainer = document.createElement('div');
                 cardContainer.id = 'card-element-container';
                 cardContainer.style.margin = "20px 0";
-                // Inyectamos el checkbox de términos aquí mismo para asegurar que aparezca
                 cardContainer.innerHTML = `
                     <label style="font-weight:600; font-size:0.9rem; color:#1D3557; margin-bottom:8px; display:block;">Datos de la tarjeta</label>
                     <div id="stripe-card-element" style="padding:12px; border:1px solid #ccc; border-radius:8px; background:white;"></div>
@@ -423,12 +441,10 @@ window.switchAuthMode = function(mode, showTabs = true) {
                 cardElement.mount('#stripe-card-element');
             }
             cardContainer.style.display = 'block';
-        } else {
-            if (cardContainer) cardContainer.style.display = 'none';
         }
     }
 
-    // --- LÓGICA DE NAVEGACIÓN INFERIOR (ELIMINA EL TEXTO SOLICITADO) ---
+    // Footer nav logic... (Igual que antes)
     const footerNav = document.getElementById('auth-footer-nav');
     if (footerNav) {
         if (mode === 'login') {
@@ -436,7 +452,6 @@ window.switchAuthMode = function(mode, showTabs = true) {
         } else if (mode === 'register') {
             footerNav.innerHTML = `¿Ya tienes cuenta? <a href="#" onclick="window.switchAuthMode('login', false); return false;" style="color: var(--pida-accent); text-decoration: underline; cursor: pointer;">Inicia sesión aquí</a>`;
         } else {
-            // Aquí se elimina la leyenda "Volver al inicio de sesión" para el modo reset u otros
             footerNav.innerHTML = ''; 
         }
     }
@@ -1006,16 +1021,36 @@ document.addEventListener('DOMContentLoaded', function () {
                         return; 
                     }
 
+                    // 2. NUEVO: Validar Nombre y Apellido
+                    const fName = document.getElementById('reg-firstname').value.trim();
+                    const lName = document.getElementById('reg-lastname').value.trim();
+                    
+                    if (!fName || !lName) {
+                        btn.disabled = false;
+                        btn.textContent = 'Registrarme e iniciar prueba gratis';
+                        const errMsg = document.getElementById('login-message');
+                        if (errMsg) {
+                            errMsg.textContent = "❌ Por favor ingresa tu nombre y apellido.";
+                            errMsg.style.display = 'block';
+                            errMsg.style.color = '#EF4444';
+                        }
+                        return;
+                    }
+                    const fullName = `${fName} ${lName}`;
+
                     btn.disabled = true;
                     btn.textContent = "Creando cuenta...";
 
-                    // 2. Crear el usuario en Firebase
+                    // 3. Crear el usuario en Firebase
                     const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
                     const user = userCredential.user;
 
+                    // 4. NUEVO: Actualizar el Display Name en Firebase inmediatamente
+                    await user.updateProfile({ displayName: fullName });
+
                     btn.textContent = "Iniciando tu prueba de 5 días...";
 
-                    // 3. Obtener monto según plan e intervalo seleccionados
+                    // 5. Obtener monto según plan e intervalo seleccionados
                     const planKey = sessionStorage.getItem('pida_pending_plan') || 'basico';
                     const intervalKey = sessionStorage.getItem('pida_pending_interval') || 'monthly';
                     const planData = STRIPE_PRICES[planKey][intervalKey][currentCurrency];
@@ -1024,7 +1059,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         throw new Error("No se pudo identificar el plan. Selecciona uno nuevamente.");
                     }
 
-                    // 4. Llamar al Backend del Chat para el Client Secret
+                    // 6. Llamar al Backend del Chat para el Client Secret
+                    // NUEVO: Enviamos el campo 'name' en el body
                     const headers = await Utils.getHeaders(user);
                     const intentRes = await fetch(`${PIDA_CONFIG.API_CHAT}/create-payment-intent`, {
                         method: 'POST',
@@ -1033,7 +1069,8 @@ document.addEventListener('DOMContentLoaded', function () {
                             priceId: planData.id, 
                             currency: currentCurrency.toLowerCase(),
                             plan_key: planKey,
-                            trial_period_days: 5
+                            trial_period_days: 5,
+                            name: fullName // <--- AQUÍ VA EL NOMBRE
                         })
                     });
 
@@ -1047,18 +1084,24 @@ document.addEventListener('DOMContentLoaded', function () {
                     const clientSecret = data.clientSecret;
                     // ------------------------------------------------------------
 
-                    // 5. Confirmar el Pago (o Configuración si es Trial)
+                    // 7. Confirmar el Pago (o Configuración si es Trial)
                     let result;
                     
                     // Si el secreto empieza con 'seti_', es un Trial (SetupIntent)
                     if (clientSecret.startsWith('seti_')) {
                         result = await stripe.confirmCardSetup(clientSecret, {
-                            payment_method: { card: cardElement }
+                            payment_method: { 
+                                card: cardElement,
+                                billing_details: { name: fullName } // Opcional: enviarlo también a Stripe JS
+                            }
                         });
                     } else {
                         // Si empieza con 'pi_', es cobro inmediato (PaymentIntent)
                         result = await stripe.confirmCardPayment(clientSecret, {
-                            payment_method: { card: cardElement }
+                            payment_method: { 
+                                card: cardElement,
+                                billing_details: { name: fullName }
+                            }
                         });
                     }
 
