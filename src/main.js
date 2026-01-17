@@ -1306,6 +1306,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function runApp(user) {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
+        let userPlan = null;
 
         // ... (Listener del botón logout overlay se queda igual) ...
         const btnLogoutOverlay = document.getElementById('logout-from-overlay');
@@ -1423,11 +1424,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 mobileMenuLogout: document.getElementById('mobile-nav-logout')
             };
 
-            // --- NUEVO: FUNCIÓN PARA MOSTRAR EL PLAN ---
+            // --- FUNCIÓN PARA MOSTRAR EL PLAN Y GESTIONAR PERMISOS UI ---
             async function loadUserPlanBadge() {
                 const badge = document.getElementById('user-plan-badge');
-                if(!badge) return;
-
+                
                 try {
                     const userDoc = await db.collection('customers').doc(user.uid).get();
                     
@@ -1435,31 +1435,46 @@ document.addEventListener('DOMContentLoaded', function () {
                         const data = userDoc.data();
                         
                         if (data.status === 'active') {
-                            // 1. Identificamos el plan
-                            const planKey = data.plan; // 'basico', 'avanzado', 'premium'
-                            let displayPlan = "Suscripción"; // Texto por defecto si no hay dato
+                            const planKey = data.plan || 'basico'; 
+                            userPlan = planKey; // Guardamos el plan globalmente
+
+                            // 1. ACTUALIZAR BADGE DEL HEADER
+                            let displayPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
+                            if(displayPlan === 'Basico') displayPlan = 'Básico';
+                            if (data.has_trial) displayPlan += " <span style='font-size:0.85em; opacity:0.8;'>(Prueba)</span>";
                             
-                            if (planKey) {
-                                // Formateo: basico -> Básico
-                                displayPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
-                                if(displayPlan === 'Basico') displayPlan = 'Básico';
+                            if(badge) {
+                                badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
+                                badge.classList.remove('hidden');
                             }
 
-                            // 2. Si es prueba, lo agregamos como SUFIJO, no reemplazo
-                            // Así queda: "Plan Básico (Prueba)"
-                            if (data.has_trial) {
-                                displayPlan += " <span style='font-size:0.85em; opacity:0.8;'>(Prueba)</span>";
+                            // 2. LÓGICA DE BLOQUEO DEL PRECALIFICADOR (PLAN BÁSICO)
+                            const btnPre = document.getElementById('nav-precalificador');
+                            if (btnPre) {
+                                if (planKey === 'basico') {
+                                    // ESTILO BLOQUEADO: Candado + Tachado + Gris
+                                    btnPre.innerHTML = `
+                                        <span style="font-size: 1.1em;">🔒</span> 
+                                        <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>
+                                    `;
+                                    btnPre.style.cursor = 'not-allowed';
+                                    btnPre.title = "Disponible en planes Avanzado y Premium";
+                                    btnPre.classList.add('locked-feature'); // Clase útil por si quieres dar más estilo CSS
+                                } else {
+                                    // ESTILO NORMAL (Restaurar por si acaso)
+                                    btnPre.innerHTML = `
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg>
+                                        <span>Precalificador</span>
+                                    `;
+                                    btnPre.style.cursor = 'pointer';
+                                    btnPre.title = "";
+                                    btnPre.classList.remove('locked-feature');
+                                }
                             }
-
-                            badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
-                            badge.classList.remove('hidden');
-                        } else {
-                            badge.classList.add('hidden');
                         }
                     }
                 } catch (e) {
-                    console.error("Error cargando badge:", e);
-                    badge.classList.add('hidden');
+                    console.error("Error cargando plan:", e);
                 }
             }
 
@@ -1514,8 +1529,20 @@ document.addEventListener('DOMContentLoaded', function () {
                 // Navbar
                 if(dom.navInv) dom.navInv.classList.toggle('active', view === 'investigador');
                 if(dom.navAna) dom.navAna.classList.toggle('active', view === 'analizador');
-                if(dom.navPre) dom.navPre.classList.toggle('active', view === 'precalificador');
-                
+                // LÓGICA MODIFICADA PARA PRECALIFICADOR
+                if(dom.navPre) dom.navPre.onclick = () => {
+                    if (userPlan === 'basico') {
+                        // Si es básico, mostramos alerta y NO cambiamos de vista
+                        // Opcional: Podrías abrir el portal de facturación directamente aquí
+                        const upgrade = confirm("🔒 Esta función es exclusiva de los planes Avanzado y Premium.\n\n¿Deseas mejorar tu plan ahora?");
+                        if (upgrade && dom.accBilling) {
+                            dom.accBilling.click(); // Simula clic en el botón de ir al portal
+                        }
+                        return;
+                    }
+                    setView('precalificador');
+                };
+
                 // Secciones
                 if(dom.viewInv) dom.viewInv.classList.toggle('hidden', view !== 'investigador');
                 if(dom.viewAna) dom.viewAna.classList.toggle('hidden', view !== 'analizador');
