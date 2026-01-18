@@ -1548,13 +1548,16 @@ document.addEventListener('DOMContentLoaded', function () {
                                     btnPre.classList.add('locked-feature');
 
                                     // 2. Forzamos la acción del clic AQUÍ MISMO
-                                    // Esto garantiza que el modal se abra sí o sí al detectar el plan básico
                                     btnPre.onclick = (e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
                                         const modal = document.getElementById('pida-upgrade-modal');
                                         if (modal) {
-                                            modal.classList.remove('hidden');
+                                            // Lógica de apertura suave (Igual al modal de límites)
+                                            modal.style.display = 'flex';
+                                            setTimeout(() => {
+                                                modal.classList.add('active');
+                                            }, 10);
                                         }
                                     };
 
@@ -1657,16 +1660,36 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             // ------------------------------------------------------------
-            // NUEVO: LÓGICA DEL MODAL PREMIUM (INICIO)
+            // NUEVO: LÓGICA DEL MODAL PREMIUM (ESTILO ROBOT)
             // ------------------------------------------------------------
             const upgradeModal = document.getElementById('pida-upgrade-modal');
             const btnUpgradeAction = document.getElementById('btn-upgrade-action');
+            const btnCloseUpgrade = document.getElementById('close-upgrade-modal-btn');
 
+            // Función para cerrar suavemente
+            const closeUpgradeModal = () => {
+                if (upgradeModal) {
+                    upgradeModal.classList.remove('active');
+                    setTimeout(() => {
+                        upgradeModal.style.display = 'none';
+                    }, 300); // Espera la transición CSS
+                }
+            };
+
+            // Acción del botón principal "Mejorar mi Plan"
             if (btnUpgradeAction) {
                 btnUpgradeAction.onclick = () => {
-                    upgradeModal.classList.add('hidden'); 
+                    closeUpgradeModal();
                     // Al dar clic en mejorar, simulamos ir al botón de facturación
                     if (dom.accBilling) dom.accBilling.click();
+                };
+            }
+
+            // Acción del botón "X"
+            if (btnCloseUpgrade) {
+                btnCloseUpgrade.onclick = (e) => {
+                    e.preventDefault();
+                    closeUpgradeModal();
                 };
             }
             // ------------------------------------------------------------
