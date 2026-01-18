@@ -1946,6 +1946,39 @@ document.addEventListener('DOMContentLoaded', function () {
                 } catch (e) { return false; }
             }
 
+
+            // --- CONTROLADOR DEL MODAL DE LÍMITE ---
+            window.closeLimitModal = function() {
+                const modal = document.getElementById('pida-limit-modal');
+                if (modal) modal.classList.remove('active');
+            }
+
+            function openLimitModal(message) {
+                const modal = document.getElementById('pida-limit-modal');
+                const msgEl = document.getElementById('pida-limit-message');
+                const btn = document.getElementById('pida-limit-upgrade-btn');
+                
+                if (modal && msgEl) {
+                    // 1. Poner el mensaje correcto
+                    msgEl.textContent = message;
+                    
+                    // 2. Configurar el botón para ir a facturación
+                    if (btn) {
+                        btn.onclick = (e) => {
+                            e.preventDefault();
+                            closeLimitModal();
+                            // Redirigir al portal de facturación existente
+                            const billingBtn = document.getElementById('acc-billing-btn');
+                            if (billingBtn) billingBtn.click();
+                        };
+                    }
+                    
+                    // 3. Mostrar Modal (usando clase active para animación CSS)
+                    modal.classList.add('active');
+                }
+            }
+
+
             async function sendChat() {
                 const txt = dom.input.value.trim();
                 if (!txt) return;
@@ -1977,63 +2010,33 @@ document.addEventListener('DOMContentLoaded', function () {
                         method: 'POST', headers: h, body: JSON.stringify({ prompt: txt })
                     });
 
-                    // --- MANEJO DE ERRORES DE LÍMITE (Production Grade) ---
-                    if (!r.ok) {
-                        if (r.status === 429 || r.status === 402 || r.status === 403) {
-                            
-                            const currentPlan = (typeof userPlan !== 'undefined' && userPlan) ? userPlan : 'demo';
-                            
-                            const messages = {
-                                'basico': "Has agotado tus 5 consultas diarias del Plan Básico.",
-                                'avanzado': "Has agotado tus 20 consultas diarias del Plan Avanzado.",
-                                'premium': "Has alcanzado tu límite diario.",
-                                'demo': "Has agotado tu consulta de prueba diaria."
-                            };
-
-                            const limitMsg = messages[currentPlan] || "Has alcanzado tu límite de consultas diarias.";
-
-                            // 1. TRANSFORMAMOS LA BURBUJA: Reemplazamos las clases estándar
-                            botBubble.className = 'pida-limit-card'; 
-                            
-                            // 2. INYECTAMOS EL CONTENIDO DIRECTAMENTE (Sin el div contenedor extra)
-                            botBubble.innerHTML = `
-                                <div class="pida-limit-row">
-                                    <img src="img/PIDA-Señal_de_ALTO-256.png" 
-                                            alt="Alto PIDA" 
-                                            class="pida-limit-img">
-                                    
-                                    <div class="pida-limit-text-group">
-                                        <h3 class="pida-limit-title">
-                                            Límite Diario Alcanzado
-                                        </h3>
-                                        <p class="pida-limit-desc">
-                                            ${limitMsg}
-                                        </p>
-                                    </div>
-                                </div>
-                                
-                                <button id="btn-upgrade-limit-action" class="pida-limit-btn">
-                                    MEJORAR MI PLAN
-                                </button>
-                            `;
-                            
-                            // Binding del evento click
-                            setTimeout(() => {
-                                const btn = document.getElementById('btn-upgrade-limit-action');
-                                if(btn && dom.accBilling) {
-                                    btn.onclick = (e) => {
-                                        e.preventDefault();
-                                        dom.accBilling.click();
-                                    };
-                                }
-                            }, 50);
-
-                            return; 
-                        }
+                    // --- MANEJO DE ERRORES: ABRIR MODAL (CLEAN) ---
+                if (!r.ok) {
+                    if (r.status === 429 || r.status === 402 || r.status === 403) {
                         
-                        throw new Error(`Error del servidor (${r.status})`);
+                        // 1. Eliminar la burbuja de "escribiendo..." inmediatamente
+                        if(botBubble) botBubble.remove();
+
+                        // 2. Definir el mensaje según el plan
+                        const currentPlan = (typeof userPlan !== 'undefined' && userPlan) ? userPlan : 'demo';
+                        
+                        const messages = {
+                            'basico': "Has agotado tus 5 consultas diarias del Plan Básico.",
+                            'avanzado': "Has agotado tus 20 consultas diarias del Plan Avanzado.",
+                            'premium': "Has alcanzado tu límite diario.",
+                            'demo': "Has agotado tu consulta de prueba diaria."
+                        };
+                        
+                        const limitMsg = messages[currentPlan] || "Has alcanzado tu límite de consultas diarias.";
+
+                        // 3. ABRIR EL MODAL
+                        openLimitModal(limitMsg);
+
+                        return; // Detenemos la ejecución del chat
                     }
-                    // -----------------------------------------------
+                    
+                    throw new Error(`Error del servidor (${r.status})`);
+                }
 
                     // --- PROCESAMIENTO DEL STREAM (ÉXITO) ---
                     const reader = r.body.getReader();

@@ -729,5 +729,27 @@
     </div>
 </div>
 
+<div id="pida-limit-modal" class="pida-modal-overlay">
+    <div class="pida-modal-card">
+        <button class="pida-modal-close" onclick="closeLimitModal()">&times;</button>
+        
+        <div class="pida-modal-row">
+            <img src="img/PIDA-Señal_de_ALTO-256.png" 
+                 alt="Límite alcanzado" 
+                 class="pida-modal-img"
+                 onerror="this.style.display='none'">
+            
+            <div class="pida-modal-text">
+                <h3 class="pida-modal-title">Límite Diario Alcanzado</h3>
+                <p class="pida-modal-desc" id="pida-limit-message"></p>
+            </div>
+        </div>
+        
+        <button id="pida-limit-upgrade-btn" class="pida-modal-btn">
+            MEJORAR MI PLAN
+        </button>
+    </div>
+</div>
+
 </body>
 </html>
