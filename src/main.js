@@ -435,7 +435,7 @@ window.switchAuthMode = function(mode, showTabs = true) {
 
                     <div id="promo-input-container" style="display: none; margin-bottom: 15px; animation: fadeIn 0.3s ease-in-out;">
                         <input type="text" id="promo-code-input" class="login-input" 
-                               placeholder="Ingresa tu código (Ej: PIDA20)" 
+                               placeholder="Ingresa tu código" 
                                style="margin-bottom: 0; font-size: 0.9rem; text-transform: uppercase;">
                     </div>
 
