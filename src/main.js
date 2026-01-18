@@ -1592,16 +1592,6 @@ document.addEventListener('DOMContentLoaded', function () {
             // Listeners de Navegación
             if(dom.navInv) dom.navInv.onclick = () => setView('investigador');
             if(dom.navAna) dom.navAna.onclick = () => setView('analizador');
-            
-            // MODIFICADO: Precalificador con bloqueo de modal
-            if(dom.navPre) dom.navPre.onclick = () => {
-                if (userPlan === 'basico') {
-                    // Si es básico, ¡ABRIMOS EL MODAL BONITO!
-                    if (upgradeModal) upgradeModal.classList.remove('hidden');
-                    return; 
-                }
-                setView('precalificador');
-            };
 
             if(dom.pAvatar) dom.pAvatar.onclick = () => setView('cuenta');
             const userInfoBtn = document.getElementById('sidebar-user-info-click');
