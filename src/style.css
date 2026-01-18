@@ -845,115 +845,101 @@ input:checked + .slider:before { transform: translateX(24px); }
         /* ... tus otros estilos ... */
     }
 
-/* =========================================
-   MODAL DE LÍMITE (SOLUCIÓN DEFINITIVA)
-   ========================================= */
-
-/* Fondo oscuro que cubre toda la pantalla */
+/* =========================================================
+   SISTEMA DE MODAL DE LÍMITE (A PRUEBA DE FALLOS)
+   ========================================================= */
 .pida-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.6); /* Oscuro semi-transparente */
-    backdrop-filter: blur(4px); /* Efecto borroso elegante */
-    z-index: 999999; /* Por encima de todo */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    animation: fadeInModal 0.3s ease-out;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background-color: rgba(15, 23, 42, 0.85) !important; /* Azul muy oscuro profundo */
+    backdrop-filter: blur(8px) !important;
+    z-index: 999999999 !important; /* Por encima de cualquier sidebar o header */
+    display: none; /* Controlado por JS (flex) */
+    justify-content: center !important;
+    align-items: center !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s ease-in-out !important;
 }
 
-/* Tarjeta del Modal (Tu diseño Horizontal Limpio) */
+.pida-modal-overlay.active {
+    opacity: 1 !important;
+}
+
 .pida-modal-card {
-    background: #ffffff;
-    width: 90%;
-    max-width: 550px; /* Un poco más ancho para que respire */
-    border-radius: 20px;
-    padding: 35px;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-    position: relative;
-    animation: slideUpModal 0.3s ease-out;
+    background: #ffffff !important;
+    width: 90% !important;
+    max-width: 480px !important;
+    border-radius: 24px !important;
+    padding: 40px !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    position: relative !important;
+    text-align: center !important;
+    display: block !important;
+    border: 1px solid rgba(255,255,255,0.1) !important;
 }
 
-/* Botón de cerrar (X) */
 .pida-modal-close {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    color: #94A3B8;
-    cursor: pointer;
-    transition: color 0.2s;
-}
-.pida-modal-close:hover { color: #1D3557; }
-
-/* Animaciones */
-@keyframes fadeInModal { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUpModal { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-/* --- REUTILIZAMOS TU DISEÑO INTERNO --- */
-.pida-limit-row {
-    display: flex;
-    align-items: center;
-    gap: 25px;
-    margin-bottom: 30px;
-    text-align: left;
+    position: absolute !important;
+    top: 20px !important;
+    right: 20px !important;
+    background: #f1f5f9 !important;
+    border: none !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    font-size: 20px !important;
+    line-height: 1 !important;
+    color: #64748b !important;
+    cursor: pointer !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    transition: all 0.2s !important;
 }
 
-.pida-limit-img {
-    width: 85px;
-    height: auto;
-    flex-shrink: 0;
-    object-fit: contain;
+.pida-modal-close:hover {
+    background: #e2e8f0 !important;
+    color: #0f172a !important;
 }
 
-.pida-limit-text-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.pida-modal-img {
+    width: 100px !important;
+    height: auto !important;
+    margin: 0 auto 20px auto !important;
+    display: block !important;
 }
 
-.pida-limit-title {
-    color: #1D3557; /* Azul Corporativo */
-    font-family: 'Inter', sans-serif;
-    font-weight: 800;
-    font-size: 1.4rem;
-    line-height: 1.1;
-    margin: 0;
+.pida-modal-title {
+    color: #1d3557 !important;
+    font-size: 1.5rem !important;
+    font-weight: 800 !important;
+    margin-bottom: 12px !important;
 }
 
-.pida-limit-desc {
-    color: #64748B;
-    font-size: 1rem;
-    line-height: 1.5;
-    margin: 0;
+.pida-modal-desc {
+    color: #64748b !important;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    margin-bottom: 30px !important;
 }
 
-/* Botón Azul Sólido */
-.pida-limit-btn {
-    display: block;
-    width: 100%;
-    background-color: #1D3557;
-    color: white;
-    border: none;
-    padding: 16px;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 1rem;
-    cursor: pointer;
-    text-align: center;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    transition: background-color 0.2s;
+.pida-modal-btn {
+    background-color: #1d3557 !important;
+    color: #ffffff !important;
+    width: 100% !important;
+    padding: 16px !important;
+    border-radius: 12px !important;
+    font-weight: 700 !important;
+    font-size: 1rem !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: transform 0.2s, background 0.2s !important;
 }
-.pida-limit-btn:hover { background-color: #0056B3; }
 
-/* Móvil */
-@media (max-width: 500px) {
-    .pida-limit-row { flex-direction: column; text-align: center; }
-    .pida-modal-card { padding: 25px; }
+.pida-modal-btn:hover {
+    background-color: #0056B3 !important;
+    transform: translateY(-2px) !important;
 }

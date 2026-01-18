@@ -564,6 +564,49 @@ async function detectLocation() {
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    // =========================================================
+    // GESTIÓN GLOBAL DEL MODAL DE LÍMITE (SOLUCIÓN PASO 1)
+    // =========================================================
+    window.closeLimitModal = function() {
+        const modal = document.getElementById('pida-limit-modal');
+        if (modal) {
+            modal.classList.remove('active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+    };
+
+    window.openLimitModal = function(message) {
+        const modal = document.getElementById('pida-limit-modal');
+        const msgEl = document.getElementById('pida-limit-message');
+        const btn = document.getElementById('pida-limit-upgrade-btn');
+
+        if (modal && msgEl) {
+            modal.style.display = 'flex';
+            msgEl.textContent = message;
+
+            if (btn) {
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    window.closeLimitModal();
+                    const billingBtn = document.getElementById('acc-billing-btn');
+                    if (billingBtn) {
+                        billingBtn.click();
+                    } else {
+                        window.location.hash = 'planes';
+                        if(document.getElementById('pida-app-root')) document.getElementById('pida-app-root').style.display='none';
+                        if(document.getElementById('landing-page-root')) document.getElementById('landing-page-root').style.display='block';
+                    }
+                };
+            }
+
+            setTimeout(() => {
+                modal.classList.add('active');
+            }, 10);
+        }
+    };
+
     // --- LÓGICA UNIFICADA DEL INTERRUPTOR MENSUAL/ANUAL ---
     const intervalToggle = document.getElementById('billing-interval-toggle');
     if (intervalToggle) {
@@ -1945,39 +1988,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     return true;
                 } catch (e) { return false; }
             }
-
-
-            // --- CONTROLADOR DEL MODAL DE LÍMITE ---
-            window.closeLimitModal = function() {
-                const modal = document.getElementById('pida-limit-modal');
-                if (modal) modal.classList.remove('active');
-            }
-
-            function openLimitModal(message) {
-                const modal = document.getElementById('pida-limit-modal');
-                const msgEl = document.getElementById('pida-limit-message');
-                const btn = document.getElementById('pida-limit-upgrade-btn');
-                
-                if (modal && msgEl) {
-                    // 1. Poner el mensaje correcto
-                    msgEl.textContent = message;
-                    
-                    // 2. Configurar el botón para ir a facturación
-                    if (btn) {
-                        btn.onclick = (e) => {
-                            e.preventDefault();
-                            closeLimitModal();
-                            // Redirigir al portal de facturación existente
-                            const billingBtn = document.getElementById('acc-billing-btn');
-                            if (billingBtn) billingBtn.click();
-                        };
-                    }
-                    
-                    // 3. Mostrar Modal (usando clase active para animación CSS)
-                    modal.classList.add('active');
-                }
-            }
-
 
             async function sendChat() {
                 const txt = dom.input.value.trim();

@@ -731,22 +731,19 @@
 
 <div id="pida-limit-modal" class="pida-modal-overlay">
     <div class="pida-modal-card">
-        <button class="pida-modal-close" onclick="closeLimitModal()">&times;</button>
+        <button class="pida-modal-close" onclick="window.closeLimitModal()">&times;</button>
         
-        <div class="pida-modal-row">
-            <img src="img/PIDA-Señal_de_ALTO-256.png" 
-                 alt="Límite alcanzado" 
-                 class="pida-modal-img"
-                 onerror="this.style.display='none'">
-            
-            <div class="pida-modal-text">
-                <h3 class="pida-modal-title">Límite Diario Alcanzado</h3>
-                <p class="pida-modal-desc" id="pida-limit-message"></p>
-            </div>
-        </div>
+        <img src="img/PIDA-Señal_de_ALTO-256-trans.png" 
+             alt="Límite alcanzado" 
+             class="pida-modal-img">
+        
+        <h3 class="pida-modal-title">Límite Diario Alcanzado</h3>
+        <p class="pida-modal-desc" id="pida-limit-message">
+            Has alcanzado el límite de consultas para tu plan actual.
+        </p>
         
         <button id="pida-limit-upgrade-btn" class="pida-modal-btn">
-            MEJORAR MI PLAN
+            MEJORAR MI PLAN ⭐
         </button>
     </div>
 </div>
