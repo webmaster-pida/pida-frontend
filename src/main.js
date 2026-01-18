@@ -2083,33 +2083,63 @@ document.addEventListener('DOMContentLoaded', function () {
                         method: 'POST', headers: h, body: JSON.stringify({ prompt: txt })
                     });
 
-                    // --- MANEJO DE ERRORES: ABRIR MODAL (CLEAN) ---
-                if (!r.ok) {
-                    if (r.status === 429 || r.status === 402 || r.status === 403) {
-                        
-                        // 1. Eliminar la burbuja de "escribiendo..." inmediatamente
-                        if(botBubble) botBubble.remove();
+                    // --- MANEJO DE ERRORES: LECTURA DIRECTA DEL BACKEND (CÓDIGO COMPLETO) ---
+                    if (!r.ok) {
+                        // Capturamos códigos de límite (429) o permisos (402, 403)
+                        if (r.status === 429 || r.status === 402 || r.status === 403) {
+                            
+                            // 1. Eliminar la burbuja de "escribiendo..." para limpiar la UI
+                            if(botBubble) botBubble.remove();
 
-                        // 2. Definir el mensaje según el plan
-                        const currentPlan = (typeof userPlan !== 'undefined' && userPlan) ? userPlan : 'demo';
-                        
-                        const messages = {
-                            'basico': "Has agotado tus 5 consultas diarias del Plan Básico.",
-                            'avanzado': "Has agotado tus 20 consultas diarias del Plan Avanzado.",
-                            'premium': "Has alcanzado tu límite diario.",
-                            'demo': "Has agotado tu consulta de prueba diaria."
-                        };
-                        
-                        const limitMsg = messages[currentPlan] || "Has alcanzado tu límite de consultas diarias.";
+                            // Mensaje por defecto (por seguridad)
+                            let limitMsg = "Has alcanzado tu límite de consultas diarias.";
 
-                        // 3. ABRIR EL MODAL
-                        openLimitModal(limitMsg);
+                            try {
+                                // 2. LEER LA VERDAD DEL SERVIDOR
+                                // El backend envía un JSON: { "detail": "Límite diario alcanzado para el plan basico" }
+                                const errData = await r.json();
+                                const detail = (errData.detail || "").toLowerCase();
 
-                        return; // Detenemos la ejecución del chat
+                                // 3. ASIGNAR EL MENSAJE CORRECTO SEGÚN EL DETALLE DEL SERVIDOR
+                                if (detail.includes('basico') || detail.includes('básico')) {
+                                    limitMsg = "Has agotado tus 5 consultas diarias del Plan Básico.";
+                                } else if (detail.includes('avanzado')) {
+                                    limitMsg = "Has agotado tus 20 consultas diarias del Plan Avanzado.";
+                                } else if (detail.includes('premium')) {
+                                    limitMsg = "Has alcanzado tu límite diario (Premium).";
+                                } else if (detail.includes('vip')) {
+                                    limitMsg = "Has alcanzado un límite de seguridad.";
+                                } else if (detail.includes('demo')) {
+                                    limitMsg = "Has agotado tu consulta de prueba diaria.";
+                                } else if (detail) {
+                                    // Si el servidor mandó otro mensaje, lo usamos
+                                    limitMsg = errData.detail;
+                                }
+                            } catch (e) {
+                                console.error("No se pudo leer el detalle del error JSON:", e);
+                                // Fallback COMPLETO: Si el JSON falla, usamos la variable local para todos los casos
+                                const currentPlan = (typeof userPlan !== 'undefined' && userPlan) ? userPlan : 'demo';
+                                
+                                if (currentPlan === 'basico') {
+                                    limitMsg = "Has agotado tus 5 consultas diarias del Plan Básico.";
+                                } else if (currentPlan === 'avanzado') {
+                                    limitMsg = "Has agotado tus 20 consultas diarias del Plan Avanzado.";
+                                } else if (currentPlan === 'premium') {
+                                    limitMsg = "Has alcanzado tu límite diario.";
+                                } else if (currentPlan === 'demo') {
+                                    limitMsg = "Has agotado tu consulta de prueba diaria.";
+                                }
+                            }
+
+                            // 4. ABRIR EL MODAL CON EL TEXTO CORRECTO
+                            openLimitModal(limitMsg);
+
+                            return; // IMPORTANTE: Detenemos la ejecución aquí
+                        }
+                        
+                        // Si es otro tipo de error (500, etc), lanzamos excepción genérica
+                        throw new Error(`Error del servidor (${r.status})`);
                     }
-                    
-                    throw new Error(`Error del servidor (${r.status})`);
-                }
 
                     // --- PROCESAMIENTO DEL STREAM (ÉXITO) ---
                     const reader = r.body.getReader();
