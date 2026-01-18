@@ -2133,10 +2133,33 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     toggleChatButtons(false);
 
-                    renderChat({
-                        role: 'model',
-                        content: "**¡Hola! Soy PIDA, tu asistente experto en Derechos Humanos.**\n\nEstoy listo para apoyarte en investigaciones, análisis de casos y redacción legal.\n\n**¿Qué te gustaría pedirme ahora?**"
-                    });
+                    // --- INICIO DE NUEVA BURBUJA DE BIENVENIDA PERSONALIZADA ---
+                    const welcomeDiv = document.createElement('div');
+                    welcomeDiv.className = 'pida-bubble pida-message-bubble';
+                    // Estilo inline para asegurar que se vea bien en móviles y escritorio
+                    welcomeDiv.innerHTML = `
+                        <div style="display: flex; flex-direction: row; gap: 20px; align-items: flex-start;">
+                            <img src="img/PIDA-Productos_Stripe.png" alt="PIDA" style="width: 85px; height: auto; flex-shrink: 0; object-fit: contain;">
+                            
+                            <div>
+                                <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--pida-primary); line-height: 1.3; border-bottom: none; padding-bottom: 0;">
+                                    ¡Hola! Soy PIDA, tu asistente experto en Derechos Humanos y temas afines.
+                                </h3>
+                                <p style="margin: 10px 0; line-height: 1.5; color: #374151;">
+                                    Estoy para apoyarte y responder cualquier pregunta que me hagas, incluyendo investigaciones, análisis de casos, búsqueda de jurisprudencia y redacción legal de todo tipo de documentos, cartas, informes, elaboración de proyectos y seguimiento y monitoreo.
+                                </p>
+                                <strong style="color: var(--pida-accent);">¿Qué te gustaría pedirme ahora?</strong>
+                            </div>
+                        </div>
+                        <style>
+                            @media (max-width: 600px) {
+                                .pida-message-bubble > div { flex-direction: column !important; align-items: center !important; text-align: center !important; }
+                                .pida-message-bubble img { width: 70px !important; margin-bottom: 10px; }
+                            }
+                        </style>
+                    `;
+                    dom.chatBox.appendChild(welcomeDiv);
+                    // --- FIN DE NUEVA BURBUJA ---
                 }
             }
 
