@@ -1457,8 +1457,9 @@ document.addEventListener('DOMContentLoaded', function () {
                                         <span style="font-size: 1.1em;">🔒</span> 
                                         <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>
                                     `;
-                                    btnPre.style.cursor = 'not-allowed';
-                                    btnPre.title = "Disponible en planes Avanzado y Premium";
+                                    btnPre.style.cursor = 'pointer';
+                                    btnPre.style.pointerEvents = 'auto';
+                                    btnPre.title = "Haz clic para desbloquear esta función";
                                     btnPre.classList.add('locked-feature'); // Clase útil por si quieres dar más estilo CSS
                                 } else {
                                     // ESTILO NORMAL (Restaurar por si acaso)
