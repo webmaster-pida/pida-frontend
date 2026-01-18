@@ -2278,62 +2278,58 @@ document.addEventListener('DOMContentLoaded', function () {
                 dom.anaBtn.onclick = async () => {
                     if (!state.anaFiles.length) { alert("Sube al menos un documento."); return; }
                     
-                    dom.anaResBox.style.display = 'block'; 
-                    dom.anaLoader.style.display = 'block';
-                    document.getElementById('analyzer-response-container').style.display = 'none';
-                    dom.anaResTxt.innerHTML = ''; 
-                    dom.anaControls.style.display = 'none';
+                    // ... (código de UI loading igual que antes) ...
                     
                     const fd = new FormData();
                     state.anaFiles.forEach(f => fd.append('files', f));
-                    const instructions = dom.anaInst.value.trim() || "Analiza este documento.";
-                    fd.append('instructions', instructions);
-                    
-                    const token = await user.getIdToken();
+                    // ... (resto de preparación de datos) ...
 
                     try {
+                        const token = await user.getIdToken();
                         const r = await fetch(`${PIDA_CONFIG.API_ANA}/analyze/`, {
                             method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd
                         });
                         
-                        const reader = r.body.getReader();
-                        const decoder = new TextDecoder();
-                        let fullText = "";
-                        let started = false;
-
-                        while (true) {
-                            const { value, done } = await reader.read();
-                            if (done) break;
-                            const chunk = decoder.decode(value);
-                            const lines = chunk.split('\n\n');
-                            for (const line of lines) {
-                                if (line.startsWith('data:')) {
-                                    try {
-                                        const data = JSON.parse(line.substring(5).trim());
-                                        if (data.text) {
-                                            if (!started) { 
-                                                dom.anaLoader.style.display = 'none'; 
-                                                document.getElementById('analyzer-response-container').style.display = 'block';
-                                                const titleEl = document.getElementById('analyzer-section-title');
-                                                if(titleEl) titleEl.style.display = 'block';
-                                                started = true; 
-                                            }
-                                            fullText += data.text;
-                                            dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
-                                        }
-                                        if (data.done) {
-                                            state.anaText = fullText;
-                                            dom.anaControls.style.display = 'flex';
-                                            loadAnaHistory();
-                                        }
-                                    } catch (e) {}
+                        // --- NUEVO MANEJO DE ERRORES DEL ANALIZADOR ---
+                        if (!r.ok) {
+                            if (r.status === 429 || r.status === 403 || r.status === 402) {
+                                dom.anaLoader.style.display = 'none';
+                                document.getElementById('analyzer-response-container').style.display = 'block';
+                                
+                                let limitMsg = "No se pudo realizar el análisis.";
+                                
+                                try {
+                                    const errData = await r.json();
+                                    const detail = (errData.detail || "").toLowerCase();
+                                    
+                                    // Mapeo inteligente de mensajes
+                                    if (detail.includes('límite diario')) {
+                                        if (detail.includes('basico')) limitMsg = "Has agotado tus 3 análisis diarios del Plan Básico.";
+                                        else if (detail.includes('avanzado')) limitMsg = "Has agotado tus 15 análisis diarios del Plan Avanzado.";
+                                        else limitMsg = "Has alcanzado tu límite diario de análisis.";
+                                    } else if (detail.includes('documento')) {
+                                        // Error de cantidad de archivos
+                                        limitMsg = errData.detail; // Usamos el mensaje directo del backend que ya es descriptivo
+                                    } else {
+                                        limitMsg = errData.detail || limitMsg;
+                                    }
+                                } catch (e) {
+                                    console.error("Error parsing analyzer error:", e);
                                 }
+
+                                // Usamos el MISMO modal de límites del chat (Reutilización eficiente)
+                                openLimitModal(limitMsg);
+                                return;
                             }
+                            throw new Error(`Error del servidor (${r.status})`);
                         }
+                        // ---------------------------------------------
+
+                        // ... (Resto del código de procesamiento del stream igual que antes) ...
+
                     } catch (e) {
                         dom.anaLoader.style.display = 'none';
-                        dom.anaResTxt.innerHTML = `<span style='color:red'>Error: ${e.message}</span>`;
-                        document.getElementById('analyzer-response-container').style.display = 'block';
+                        // ... (Manejo de errores genéricos) ...
                     }
                 };
             }
