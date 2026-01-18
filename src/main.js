@@ -1911,16 +1911,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 const txt = dom.input.value.trim();
                 if (!txt) return;
 
+                // Validar sesión
                 if (!state.currentChat.id) {
                     const success = await startBackendSession();
-                    if (!success) { alert("Error de conexión."); return; }
+                    if (!success) { alert("Error de conexión al iniciar sesión."); return; }
                     toggleChatButtons(true);
                 }
                 
+                // 1. Renderizar mensaje del usuario
                 renderChat({ role: 'user', content: txt });
                 state.currentChat.messages.push({ role: 'user', content: txt });
                 dom.input.value = '';
 
+                // 2. Crear burbuja del bot (Loading)
                 const botBubble = document.createElement('div');
                 botBubble.className = 'pida-bubble pida-message-bubble';
                 botBubble.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
@@ -1929,12 +1932,58 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 try {
                     const h = await Utils.getHeaders(user);
+                    
+                    // Petición al Backend
                     const r = await fetch(`${PIDA_CONFIG.API_CHAT}/chat-stream/${state.currentChat.id}`, {
                         method: 'POST', headers: h, body: JSON.stringify({ prompt: txt })
                     });
+
+                    // --- AQUÍ ESTÁ LA MAGIA PARA DETECTAR EL 429 ---
+                    if (!r.ok) {
+                        // Si el estatus es 429 (Límite), 402 o 403
+                        if (r.status === 429 || r.status === 402 || r.status === 403) {
+                            
+                            // Recuperamos el plan de forma segura
+                            const currentPlan = (typeof userPlan !== 'undefined' && userPlan) ? userPlan : 'demo';
+                            
+                            let limitMsg = "Has alcanzado tu límite de consultas diarias.";
+                            if (currentPlan === 'basico') limitMsg = "Has agotado tus 5 consultas diarias del Plan Básico.";
+                            if (currentPlan === 'avanzado') limitMsg = "Has agotado tus 20 consultas diarias del Plan Avanzado.";
+                            if (currentPlan === 'demo') limitMsg = "Has agotado tu consulta de prueba diaria.";
+
+                            // Quitamos los puntos y ponemos la tarjeta roja
+                            botBubble.innerHTML = `
+                                <div class="limit-warning-card">
+                                    <div style="font-size: 2rem; margin-bottom: 10px;">🛑</div>
+                                    <h3 style="color: #B91C1C; margin: 0 0 5px 0; font-weight: 800;">Límite Diario Alcanzado</h3>
+                                    <p style="color: #7F1D1D; font-size: 0.95rem; margin-bottom: 15px;">${limitMsg}</p>
+                                    <button class="upgrade-limit-btn" id="btn-upgrade-limit-action">
+                                        Mejorar mi Plan ⭐
+                                    </button>
+                                </div>
+                            `;
+                            
+                            // Activamos el botón
+                            setTimeout(() => {
+                                const btn = document.getElementById('btn-upgrade-limit-action');
+                                if(btn) btn.onclick = (e) => {
+                                    e.preventDefault();
+                                    if(dom.accBilling) dom.accBilling.click();
+                                };
+                            }, 100);
+
+                            return; // DETENEMOS AQUÍ PARA QUE NO SIGA PENSANDO
+                        }
+                        
+                        throw new Error(`Error del servidor (${r.status})`);
+                    }
+                    // -----------------------------------------------
+
+                    // --- PROCESAMIENTO DEL STREAM (ÉXITO) ---
                     const reader = r.body.getReader();
                     const decoder = new TextDecoder();
                     let fullText = "";
+                    let isFirstChunk = true;
                     
                     while (true) {
                         const { value, done } = await reader.read();
@@ -1945,8 +1994,13 @@ document.addEventListener('DOMContentLoaded', function () {
                             if (l.startsWith('data:')) {
                                 try {
                                     const d = JSON.parse(l.substring(6));
+                                    if (d.error) { throw new Error(d.error); }
+
                                     if (d.text) {
-                                        if (fullText === "") botBubble.innerHTML = '';
+                                        if (isFirstChunk) { 
+                                            botBubble.innerHTML = ''; 
+                                            isFirstChunk = false; 
+                                        }
                                         fullText += d.text;
                                         let safeContent = Utils.prepareMarkdown(fullText);
                                         botBubble.innerHTML = Utils.sanitize(marked.parse(safeContent));
@@ -1960,16 +2014,21 @@ document.addEventListener('DOMContentLoaded', function () {
                     renderFollowUpQuestions(botBubble);
                     
                     if (state.currentChat.messages.length === 2) {
-                        await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${state.currentChat.id}/title`, {
+                        fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${state.currentChat.id}/title`, {
                             method: 'PATCH', headers: h, body: JSON.stringify({ title: txt.substring(0, 30) })
-                        });
+                        }).catch(e => console.error(e));
                         loadChatHistory();
                     }
+
                 } catch (error) {
-                    botBubble.innerHTML = "<span style='color:red'>Error de conexión.</span>";
+                    console.error("Error en sendChat:", error);
+                    // Si falló y sigue mostrando los puntos, mostramos error genérico
+                    if (botBubble.innerHTML.includes('typing-indicator')) {
+                        botBubble.innerHTML = `<span style='color:#EF4444; font-weight:bold;'>⚠️ Ocurrió un error de conexión.</span>`;
+                    }
                 }
             }
-
+            
             async function handleNewChat(clearUI = true) {
                 if (!dom.chatBox) return;
                 if (clearUI) { 
