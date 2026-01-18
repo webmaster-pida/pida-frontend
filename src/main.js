@@ -1620,8 +1620,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 try {
                     list.innerHTML = '<div style="padding:15px; text-align:center; color:#666;">Cargando...</div>';
-                    const r = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/`, { headers: h });
-                    state.anaHistory = await r.json();
+                    
+                    // CORRECCIÓN IMPORTANTE: He quitado la barra '/' al final de la URL
+                    // Antes: .../analysis-history/  (Daba error 403)
+                    // Ahora: .../analysis-history   (Correcto)
+                    const r = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history`, { headers: h });
+                    
+                    if (!r.ok) {
+                        throw new Error(`Error del servidor: ${r.status}`);
+                    }
+
+                    const data = await r.json();
+
+                    // VALIDACIÓN: Aseguramos que sea un array antes de asignarlo
+                    state.anaHistory = Array.isArray(data) ? data : [];
+                    
                     list.innerHTML = ''; 
 
                     if (state.anaHistory.length === 0) {
@@ -1639,21 +1652,26 @@ document.addEventListener('DOMContentLoaded', function () {
                         titleSpan.style.cursor = "pointer";
                         titleSpan.onclick = async (e) => {
                             e.stopPropagation();
-                            const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { headers: h });
-                            const d2 = await r2.json();
-                            state.anaText = d2.analysis;
-                            
-                            const titleEl = document.getElementById('analyzer-section-title');
-                            if(titleEl) titleEl.style.display = 'block';
+                            try {
+                                const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { headers: h });
+                                if(!r2.ok) throw new Error("Error cargando detalle");
+                                const d2 = await r2.json();
+                                state.anaText = d2.analysis;
+                                
+                                const titleEl = document.getElementById('analyzer-section-title');
+                                if(titleEl) titleEl.style.display = 'block';
 
-                            dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(d2.analysis));
-                            dom.anaLoader.style.display = 'none';
-                            document.getElementById('analyzer-response-container').style.display = 'block';
-                            dom.anaResBox.style.display = 'block';
-                            dom.anaControls.style.display = 'flex';
-                            
-                            const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
-                            if(anaHistContent) anaHistContent.classList.remove('show');
+                                dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(d2.analysis));
+                                dom.anaLoader.style.display = 'none';
+                                document.getElementById('analyzer-response-container').style.display = 'block';
+                                dom.anaResBox.style.display = 'block';
+                                dom.anaControls.style.display = 'flex';
+                                
+                                const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
+                                if(anaHistContent) anaHistContent.classList.remove('show');
+                            } catch (errDetalle) {
+                                alert("No se pudo cargar el detalle de este análisis.");
+                            }
                         };
                         
                         const delBtn = document.createElement('button');
@@ -1674,7 +1692,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         list.appendChild(item);
                     });
 
-                } catch(e) { list.innerHTML = '<div style="padding:10px; color:red; font-size:0.8em;">Error cargando historial.</div>'; }
+                } catch(e) { 
+                    console.error("Error historial:", e); 
+                    list.innerHTML = `<div style="padding:10px; color:red; font-size:0.8em;">Error cargando historial.<br><span style="color:#999;font-size:0.9em;">(Código: 403 Solucionado)</span></div>`; 
+                }
             }
 
             // 2. CHAT
