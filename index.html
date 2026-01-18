@@ -413,6 +413,7 @@
 
     <!-- APP DASHBOARD -->
     <div id="pida-app-root">
+        
         <div id="pida-subscription-overlay" class="pida-overlay hidden">
             <div class="pida-overlay-content" style="max-width: 480px; padding: 50px; border-radius: 20px; position: relative; z-index: 1000;">
                 <div style="font-size: 3.5rem; margin-bottom: 20px;">✨</div>
@@ -426,8 +427,6 @@
                 onclick="document.getElementById('pida-app-root').style.display='none'; document.getElementById('landing-page-root').style.display='block'; window.location.hash='planes';">
                 Ver Planes y Empezar Prueba Gratis
                 </a>
-
-                <!-- BOTÓN DE CERRAR SESIÓN (ID EXACTO) -->
                 <button id="logout-from-overlay" type="button" style="margin-top: 25px; background: none; border: none; color: #666; text-decoration: underline; cursor: pointer; font-size: 0.9rem; padding: 10px; display: inline-block;">
                     Cerrar sesión e ingresar con otra cuenta
                 </button>
@@ -444,40 +443,19 @@
                 </p>
                 <div class="loader" style="margin: 30px auto; border-top-color: var(--pida-accent);"></div>
             </div>
-        </div> <div id="pida-upgrade-modal" class="pida-overlay hidden" style="z-index: 3000;">
+        </div> 
+
+        <div id="pida-upgrade-modal" class="pida-overlay hidden" style="z-index: 3000;">
             <div class="pida-overlay-content" style="max-width: 500px; padding: 40px; text-align: center; border-radius: 16px; position: relative; background: #fff; box-shadow: 0 20px 50px rgba(0,0,0,0.3);">
-                
                 <button class="close-login-btn" onclick="document.getElementById('pida-upgrade-modal').classList.add('hidden')" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #999;">×</button>
-                
                 <div style="font-size: 4rem; margin-bottom: 15px; animation: float 3s ease-in-out infinite;">🔒</div>
                 <h2 style="color: var(--pida-primary); margin-bottom: 10px; font-family: 'Space Grotesk', sans-serif;">Función Exclusiva</h2>
-                
                 <p style="color: #555; font-size: 1.05rem; line-height: 1.6; margin-bottom: 30px;">
                     El <strong>Precalificador Penal y de Derechos Humanos</strong> es una herramienta de análisis avanzado disponible únicamente en los planes <strong style="color: var(--pida-accent);">Avanzado</strong> y <strong style="color: var(--pida-accent);">Premium</strong>.
                 </p>
-                
                 <div style="display: flex; gap: 15px; justify-content: center;">
                     <button onclick="document.getElementById('pida-upgrade-modal').classList.add('hidden')" class="pida-button-secondary" style="border: 1px solid #ddd; padding: 12px 24px; border-radius: 8px;">Entendido</button>
                     <button id="btn-upgrade-action" class="pida-button-primary" style="padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);">Mejorar mi Plan ⭐</button>
-                </div>
-            </div>
-        </div>
-                </div>
-                <div class="pida-overlay-content" style="max-width: 500px; padding: 40px; text-align: center; border-radius: 16px; position: relative; background: #fff; box-shadow: 0 20px 50px rgba(0,0,0,0.3);">
-                    
-                    <button class="close-login-btn" onclick="document.getElementById('pida-upgrade-modal').classList.add('hidden')" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #999;">×</button>
-                    
-                    <div style="font-size: 4rem; margin-bottom: 15px; animation: float 3s ease-in-out infinite;">🔒</div>
-                    <h2 style="color: var(--pida-primary); margin-bottom: 10px; font-family: 'Space Grotesk', sans-serif;">Función Exclusiva</h2>
-                    
-                    <p style="color: #555; font-size: 1.05rem; line-height: 1.6; margin-bottom: 30px;">
-                        El <strong>Precalificador Penal y de Derechos Humanos</strong> es una herramienta de análisis avanzado disponible únicamente en los planes <strong style="color: var(--pida-accent);">Avanzado</strong> y <strong style="color: var(--pida-accent);">Premium</strong>.
-                    </p>
-                    
-                    <div style="display: flex; gap: 15px; justify-content: center;">
-                        <button onclick="document.getElementById('pida-upgrade-modal').classList.add('hidden')" class="pida-button-secondary" style="border: 1px solid #ddd; padding: 12px 24px; border-radius: 8px;">Entendido</button>
-                        <button id="btn-upgrade-action" class="pida-button-primary" style="padding: 12px 24px; border-radius: 8px; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);">Mejorar mi Plan ⭐</button>
-                    </div>
                 </div>
             </div>
         </div>
