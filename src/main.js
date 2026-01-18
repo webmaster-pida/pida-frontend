@@ -1506,79 +1506,107 @@ document.addEventListener('DOMContentLoaded', function () {
                 mobileMenuLogout: document.getElementById('mobile-nav-logout')
             };
 
-            // --- FUNCIÓN PARA MOSTRAR EL PLAN Y GESTIONAR PERMISOS UI ---
+            // --- FUNCIÓN PARA MOSTRAR EL PLAN Y GESTIONAR PERMISOS UI (VIP VISUAL) ---
             async function loadUserPlanBadge() {
                 const badge = document.getElementById('user-plan-badge');
+                let planKey = 'basico'; // Plan por defecto
+                let isTrial = false;
                 
+                // 1. Consultar si es VIP (Admin o Dominio autorizado)
+                let isVip = false;
+                try {
+                    const h = await Utils.getHeaders(currentUser);
+                    const res = await fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h });
+                    if (res.ok) {
+                        const r = await res.json();
+                        isVip = r.is_vip_user;
+                    }
+                } catch (e) { console.error("Error verificando VIP:", e); }
+
+                // 2. Consultar Base de Datos (Firestore) para usuarios normales
                 try {
                     const userDoc = await db.collection('customers').doc(user.uid).get();
-                    
                     if (userDoc.exists) {
                         const data = userDoc.data();
-                        
                         if (data.status === 'active') {
-                            const planKey = data.plan || 'basico'; 
-                            userPlan = planKey; // Guardamos el plan globalmente
-
-                            // 1. ACTUALIZAR BADGE DEL HEADER
-                            let displayPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
-                            if(displayPlan === 'Basico') displayPlan = 'Básico';
-                            if (data.has_trial) displayPlan += " <span style='font-size:0.85em; opacity:0.8;'>(Prueba)</span>";
-                            
-                            if(badge) {
-                                badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
-                                badge.classList.remove('hidden');
-                            }
-
-                            // 2. LÓGICA DE BLOQUEO DEL PRECALIFICADOR (PLAN BÁSICO)
-                            const btnPre = document.getElementById('nav-precalificador');
-                            if (btnPre) {
-                                if (planKey === 'basico') {
-                                    // ESTILO BLOQUEADO: Candado + Tachado + Gris
-                                    btnPre.innerHTML = `
-                                        <span style="font-size: 1.1em;">🔒</span> 
-                                        <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>
-                                    `;
-                                    
-                                    // --- CORRECCIÓN DEFINITIVA ---
-                                    // 1. Forzamos visualmente que parezca cliqueable
-                                    btnPre.style.cursor = 'pointer'; 
-                                    btnPre.style.pointerEvents = 'auto';
-                                    btnPre.title = "Haz clic para desbloquear esta función";
-                                    btnPre.classList.add('locked-feature');
-
-                                    // 2. Forzamos la acción del clic AQUÍ MISMO
-                                    btnPre.onclick = (e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        const modal = document.getElementById('pida-upgrade-modal');
-                                        if (modal) {
-                                            // Lógica de apertura suave (Igual al modal de límites)
-                                            modal.style.display = 'flex';
-                                            setTimeout(() => {
-                                                modal.classList.add('active');
-                                            }, 10);
-                                        }
-                                    };
-
-                                } else {
-                                    // ESTILO NORMAL (Usuario Avanzado/Premium)
-                                    btnPre.innerHTML = `
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg>
-                                        <span>Precalificador</span>
-                                    `;
-                                    btnPre.style.cursor = 'pointer';
-                                    btnPre.title = "";
-                                    btnPre.classList.remove('locked-feature');
-                                    
-                                    // Restauramos la navegación normal
-                                    btnPre.onclick = () => setView('precalificador');
-                                }
-                            }
+                            planKey = data.plan || 'basico';
+                            isTrial = data.has_trial || false;
                         }
                     }
-                } catch (e) {
-                    console.error("Error cargando plan:", e);
+                } catch (e) { console.error("Error cargando plan DB:", e); }
+
+                // --- LOGICA DE FUERZA MAYOR ---
+                // Si es VIP, funcionalmente le damos el nivel 'premium' para desbloquear todo
+                if (isVip) {
+                    planKey = 'premium';
+                }
+                
+                userPlan = planKey; // Guardamos el plan globalmente para el chat
+
+                // 3. ACTUALIZAR BADGE DEL HEADER (VISUAL)
+                if(badge) {
+                    badge.classList.remove('hidden');
+
+                    if (isVip) {
+                        // --- ESTILO EXCLUSIVO VIP ---
+                        badge.innerHTML = `Plan <strong style="color: #D97706;">VIP</strong> 🌟`;
+                        
+                        // Sobrescribimos estilos CSS para que se vea dorado/especial
+                        badge.style.backgroundColor = '#FFFBEB'; // Fondo crema suave
+                        badge.style.border = '1px solid #FCD34D'; // Borde dorado
+                        badge.style.color = '#92400E'; // Texto marrón dorado
+                        badge.style.boxShadow = '0 2px 5px rgba(245, 158, 11, 0.2)'; // Sombra dorada
+                    } else {
+                        // --- ESTILO NORMAL ---
+                        let displayPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
+                        if(displayPlan === 'Basico') displayPlan = 'Básico';
+                        if (isTrial) displayPlan += " <span style='font-size:0.85em; opacity:0.8;'>(Prueba)</span>";
+                        
+                        badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
+                        
+                        // Limpiamos estilos inline por si antes fue VIP (SPA navigation)
+                        badge.style.backgroundColor = '';
+                        badge.style.border = '';
+                        badge.style.color = '';
+                        badge.style.boxShadow = '';
+                    }
+                }
+
+                // 4. LÓGICA DE BLOQUEO DEL PRECALIFICADOR
+                const btnPre = document.getElementById('nav-precalificador');
+                if (btnPre) {
+                    // Si es básico (y NO es VIP, porque arriba forzamos premium si es vip), bloqueamos
+                    if (planKey === 'basico') {
+                        // ESTILO BLOQUEADO
+                        btnPre.innerHTML = `
+                            <span style="font-size: 1.1em;">🔒</span> 
+                            <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>
+                        `;
+                        btnPre.style.cursor = 'pointer'; 
+                        btnPre.title = "Haz clic para desbloquear esta función";
+                        btnPre.classList.add('locked-feature');
+
+                        btnPre.onclick = (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            const modal = document.getElementById('pida-upgrade-modal');
+                            if (modal) {
+                                modal.style.display = 'flex';
+                                setTimeout(() => modal.classList.add('active'), 10);
+                            }
+                        };
+                    } else {
+                        // ESTILO DESBLOQUEADO (Avanzado, Premium o VIP)
+                        btnPre.innerHTML = `
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg>
+                            <span>Precalificador</span>
+                        `;
+                        btnPre.style.cursor = 'pointer';
+                        btnPre.title = "";
+                        btnPre.classList.remove('locked-feature');
+                        
+                        btnPre.onclick = () => setView('precalificador');
+                    }
                 }
             }
 
