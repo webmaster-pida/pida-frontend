@@ -1858,6 +1858,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     const list = document.getElementById('pida-history-list');
                     if(list) {
                         list.innerHTML = '';
+                        
+                        // --- ESTADO VACÍO (CHAT) ---
+                        if (state.conversations.length === 0) {
+                            list.innerHTML = `
+                                <div style="text-align: center; color: #6B7280; padding: 40px 10px; font-size: 0.9em;">
+                                    <div style="font-size: 2em; margin-bottom: 10px; opacity: 0.5;">💬</div>
+                                    <p style="margin:0;">No hay consultas previas.</p>
+                                </div>
+                            `;
+                            return;
+                        }
+
                         state.conversations.forEach(c => {
                             const item = document.createElement('div');
                             item.className = `pida-history-item ${c.id === state.currentChat.id ? 'active' : ''}`;
@@ -1903,7 +1915,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     dom.preHistList.innerHTML = '';
                     if (snapshot.empty) {
-                        dom.preHistList.innerHTML = '<div style="padding:15px; text-align:center; color:#999; font-size:0.9em;">Sin historial.</div>';
+                        dom.preHistList.innerHTML = `
+                            <div style="text-align: center; color: #6B7280; padding: 40px 10px; font-size: 0.9em;">
+                                <div style="font-size: 2em; margin-bottom: 10px; opacity: 0.5;">📋</div>
+                                <p style="margin:0;">No hay precalificaciones previas.</p>
+                            </div>
+                        `;
                         return;
                     }
 
