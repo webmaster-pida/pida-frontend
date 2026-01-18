@@ -1457,10 +1457,22 @@ document.addEventListener('DOMContentLoaded', function () {
                                         <span style="font-size: 1.1em;">🔒</span> 
                                         <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>
                                     `;
+                                    
+                                    // --- SOLUCIÓN VISUAL ---
                                     btnPre.style.cursor = 'pointer';
                                     btnPre.style.pointerEvents = 'auto';
                                     btnPre.title = "Haz clic para desbloquear esta función";
-                                    btnPre.classList.add('locked-feature'); // Clase útil por si quieres dar más estilo CSS
+                                    btnPre.classList.add('locked-feature');
+
+                                    // --- SOLUCIÓN LÓGICA (NUEVO) ---
+                                    // Forzamos la apertura del modal directamente aquí
+                                    btnPre.onclick = (e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        const modal = document.getElementById('pida-upgrade-modal');
+                                        if (modal) modal.classList.remove('hidden');
+                                    };
+
                                 } else {
                                     // ESTILO NORMAL (Restaurar por si acaso)
                                     btnPre.innerHTML = `
@@ -1470,6 +1482,9 @@ document.addEventListener('DOMContentLoaded', function () {
                                     btnPre.style.cursor = 'pointer';
                                     btnPre.title = "";
                                     btnPre.classList.remove('locked-feature');
+                                    
+                                    // Restauramos la navegación normal
+                                    btnPre.onclick = () => setView('precalificador');
                                 }
                             }
                         }
