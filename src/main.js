@@ -420,12 +420,23 @@ window.switchAuthMode = function(mode, showTabs = true) {
                 cardContainer = document.createElement('div');
                 cardContainer.id = 'card-element-container';
                 cardContainer.style.margin = "20px 0";
+                
+                // --- HTML CON CHECKBOX Y CAMPO OCULTO ---
                 cardContainer.innerHTML = `
                     <label style="font-weight:600; font-size:0.9rem; color:#1D3557; margin-bottom:8px; display:block;">Datos de la tarjeta</label>
                     <div id="stripe-card-element" style="padding:12px; border:1px solid #ccc; border-radius:8px; background:white; margin-bottom: 15px;"></div>
                     
-                    <div style="margin-bottom: 15px;">
-                        <input type="text" id="promo-code-input" class="login-input" placeholder="¿Tienes un código de descuento? (Opcional)" style="margin-bottom: 0; font-size: 0.9rem;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                        <input type="checkbox" id="has-promo-check" style="width: 16px; height: 16px; cursor: pointer; margin: 0;">
+                        <label for="has-promo-check" style="font-size: 0.9rem; color: #1D3557; cursor: pointer; user-select: none;">
+                            ¿Tienes un código de descuento?
+                        </label>
+                    </div>
+
+                    <div id="promo-input-container" style="display: none; margin-bottom: 15px; animation: fadeIn 0.3s ease-in-out;">
+                        <input type="text" id="promo-code-input" class="login-input" 
+                               placeholder="Ingresa tu código (Ej: PIDA20)" 
+                               style="margin-bottom: 0; font-size: 0.9rem; text-transform: uppercase;">
                     </div>
 
                     <div id="card-errors" style="color:#EF4444; font-size:0.8rem; margin-top:5px; display:none;"></div>
@@ -437,7 +448,28 @@ window.switchAuthMode = function(mode, showTabs = true) {
                         </label>
                     </div>
                 `;
+                
+                // INYECTAR EN EL FORMULARIO
                 authForm.insertBefore(cardContainer, document.getElementById('auth-submit-btn'));
+
+                // --- LÓGICA PARA MOSTRAR/OCULTAR EL INPUT ---
+                const promoCheck = document.getElementById('has-promo-check');
+                const promoContainer = document.getElementById('promo-input-container');
+                
+                if(promoCheck && promoContainer) {
+                    promoCheck.addEventListener('change', (e) => {
+                        if (e.target.checked) {
+                            promoContainer.style.display = 'block';
+                            // Enfocar el input automáticamente para mejor UX
+                            document.getElementById('promo-code-input').focus();
+                        } else {
+                            promoContainer.style.display = 'none';
+                            // Limpiar el input si se desmarca para evitar enviar códigos parciales
+                            document.getElementById('promo-code-input').value = '';
+                        }
+                    });
+                }
+                // ---------------------------------------------
 
                 const elements = stripe.elements();
                 cardElement = elements.create('card', { 
