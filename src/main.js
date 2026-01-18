@@ -1862,9 +1862,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         // --- ESTADO VACÍO (CHAT) ---
                         if (state.conversations.length === 0) {
                             list.innerHTML = `
-                                <div style="text-align: center; color: #6B7280; padding: 40px 10px; font-size: 0.9em;">
-                                    <div style="font-size: 2em; margin-bottom: 10px; opacity: 0.5;">💬</div>
-                                    <p style="margin:0;">No hay consultas previas.</p>
+                                <div style="text-align: center; color: #9CA3AF; padding: 30px 10px; font-size: 0.9em;">
+                                    No hay consultas previas.
                                 </div>
                             `;
                             return;
@@ -1916,9 +1915,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     dom.preHistList.innerHTML = '';
                     if (snapshot.empty) {
                         dom.preHistList.innerHTML = `
-                            <div style="text-align: center; color: #6B7280; padding: 40px 10px; font-size: 0.9em;">
-                                <div style="font-size: 2em; margin-bottom: 10px; opacity: 0.5;">📋</div>
-                                <p style="margin:0;">No hay precalificaciones previas.</p>
+                            <div style="text-align: center; color: #9CA3AF; padding: 30px 10px; font-size: 0.9em;">
+                                No hay precalificaciones previas.
                             </div>
                         `;
                         return;
@@ -2299,7 +2297,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     
                     const fd = new FormData();
                     state.anaFiles.forEach(f => fd.append('files', f));
-                    // ... (resto de preparación de datos) ...
+                    fd.append('instructions', dom.anaInst.value || "Analizar estos documentos");
 
                     try {
                         const token = await user.getIdToken();
