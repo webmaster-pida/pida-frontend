@@ -1992,29 +1992,32 @@ document.addEventListener('DOMContentLoaded', function () {
 
                             const limitMsg = messages[currentPlan] || "Has alcanzado tu límite de consultas diarias.";
 
+                            // 1. TRANSFORMAMOS LA BURBUJA: Reemplazamos las clases estándar
+                            botBubble.className = 'pida-limit-card'; 
+                            
+                            // 2. INYECTAMOS EL CONTENIDO DIRECTAMENTE (Sin el div contenedor extra)
                             botBubble.innerHTML = `
-                                <div class="pida-limit-card">
-                                    <div class="pida-limit-row">
-                                        <img src="img/PIDA-Señal_de_ALTO-256-trans.png" 
-                                             alt="Alto PIDA" 
-                                             class="pida-limit-img">
-                                        
-                                        <div class="pida-limit-text-group">
-                                            <h3 class="pida-limit-title">
-                                                Límite Diario Alcanzado
-                                            </h3>
-                                            <p class="pida-limit-desc">
-                                                ${limitMsg}
-                                            </p>
-                                        </div>
-                                    </div>
+                                <div class="pida-limit-row">
+                                    <img src="img/PIDA-Señal_de_ALTO-256.png" 
+                                            alt="Alto PIDA" 
+                                            class="pida-limit-img">
                                     
-                                    <button id="btn-upgrade-limit-action" class="pida-limit-btn">
-                                        MEJORAR MI PLAN
-                                    </button>
+                                    <div class="pida-limit-text-group">
+                                        <h3 class="pida-limit-title">
+                                            Límite Diario Alcanzado
+                                        </h3>
+                                        <p class="pida-limit-desc">
+                                            ${limitMsg}
+                                        </p>
+                                    </div>
                                 </div>
+                                
+                                <button id="btn-upgrade-limit-action" class="pida-limit-btn">
+                                    MEJORAR MI PLAN
+                                </button>
                             `;
                             
+                            // Binding del evento click
                             setTimeout(() => {
                                 const btn = document.getElementById('btn-upgrade-limit-action');
                                 if(btn && dom.accBilling) {
