@@ -2109,8 +2109,6 @@ document.addEventListener('DOMContentLoaded', function () {
                                     limitMsg = "Has alcanzado tu límite diario (Premium).";
                                 } else if (detail.includes('vip')) {
                                     limitMsg = "Has alcanzado un límite de seguridad.";
-                                } else if (detail.includes('demo')) {
-                                    limitMsg = "Has agotado tu consulta de prueba diaria.";
                                 } else if (detail) {
                                     // Si el servidor mandó otro mensaje, lo usamos
                                     limitMsg = errData.detail;
@@ -2118,7 +2116,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             } catch (e) {
                                 console.error("No se pudo leer el detalle del error JSON:", e);
                                 // Fallback COMPLETO: Si el JSON falla, usamos la variable local para todos los casos
-                                const currentPlan = (typeof userPlan !== 'undefined' && userPlan) ? userPlan : 'demo';
+                                const currentPlan = (typeof userPlan !== 'undefined' && userPlan) ? userPlan : 'none';
                                 
                                 if (currentPlan === 'basico') {
                                     limitMsg = "Has agotado tus 5 consultas diarias del Plan Básico.";
@@ -2126,8 +2124,6 @@ document.addEventListener('DOMContentLoaded', function () {
                                     limitMsg = "Has agotado tus 20 consultas diarias del Plan Avanzado.";
                                 } else if (currentPlan === 'premium') {
                                     limitMsg = "Has alcanzado tu límite diario.";
-                                } else if (currentPlan === 'demo') {
-                                    limitMsg = "Has agotado tu consulta de prueba diaria.";
                                 }
                             }
 
