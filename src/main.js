@@ -422,8 +422,14 @@ window.switchAuthMode = function(mode, showTabs = true) {
                 cardContainer.style.margin = "20px 0";
                 cardContainer.innerHTML = `
                     <label style="font-weight:600; font-size:0.9rem; color:#1D3557; margin-bottom:8px; display:block;">Datos de la tarjeta</label>
-                    <div id="stripe-card-element" style="padding:12px; border:1px solid #ccc; border-radius:8px; background:white;"></div>
+                    <div id="stripe-card-element" style="padding:12px; border:1px solid #ccc; border-radius:8px; background:white; margin-bottom: 15px;"></div>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <input type="text" id="promo-code-input" class="login-input" placeholder="¿Tienes un código de descuento? (Opcional)" style="margin-bottom: 0; font-size: 0.9rem;">
+                    </div>
+
                     <div id="card-errors" style="color:#EF4444; font-size:0.8rem; margin-top:5px; display:none;"></div>
+                    
                     <div id="terms-container" style="display: flex; align-items: flex-start; gap: 10px; margin-top: 15px; text-align: left;">
                         <input type="checkbox" id="terms-checkbox" style="width: 18px; height: 18px; margin-top: 2px; cursor: pointer;">
                         <label for="terms-checkbox" style="font-size: 0.8rem; color: #4B5563; line-height: 1.4; cursor: pointer;">
@@ -1021,7 +1027,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         return; 
                     }
 
-                    // 2. NUEVO: Validar Nombre y Apellido
+                    // 2. Validar Nombre y Apellido
                     const fName = document.getElementById('reg-firstname').value.trim();
                     const lName = document.getElementById('reg-lastname').value.trim();
                     
@@ -1038,19 +1044,24 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                     const fullName = `${fName} ${lName}`;
 
+                    // 3. CAPTURAR CÓDIGO DE PROMOCIÓN (NUEVO)
+                    // Usamos ?.value por seguridad, aunque el input ya debería existir
+                    const promoInput = document.getElementById('promo-code-input');
+                    const promoCode = promoInput ? promoInput.value.trim() : "";
+
                     btn.disabled = true;
                     btn.textContent = "Creando cuenta...";
 
-                    // 3. Crear el usuario en Firebase
+                    // 4. Crear el usuario en Firebase
                     const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
                     const user = userCredential.user;
 
-                    // 4. NUEVO: Actualizar el Display Name en Firebase inmediatamente
+                    // 5. Actualizar el Display Name en Firebase inmediatamente
                     await user.updateProfile({ displayName: fullName });
 
                     btn.textContent = "Iniciando tu prueba de 5 días...";
 
-                    // 5. Obtener monto según plan e intervalo seleccionados
+                    // 6. Obtener monto según plan e intervalo seleccionados
                     const planKey = sessionStorage.getItem('pida_pending_plan') || 'basico';
                     const intervalKey = sessionStorage.getItem('pida_pending_interval') || 'monthly';
                     const planData = STRIPE_PRICES[planKey][intervalKey][currentCurrency];
@@ -1059,8 +1070,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         throw new Error("No se pudo identificar el plan. Selecciona uno nuevamente.");
                     }
 
-                    // 6. Llamar al Backend del Chat para el Client Secret
-                    // NUEVO: Enviamos el campo 'name' en el body
+                    // 7. Llamar al Backend (INCLUYENDO EL CÓDIGO DE PROMOCIÓN)
                     const headers = await Utils.getHeaders(user);
                     const intentRes = await fetch(`${PIDA_CONFIG.API_CHAT}/create-payment-intent`, {
                         method: 'POST',
@@ -1070,33 +1080,32 @@ document.addEventListener('DOMContentLoaded', function () {
                             currency: currentCurrency.toLowerCase(),
                             plan_key: planKey,
                             trial_period_days: 5,
-                            name: fullName // <--- AQUÍ VA EL NOMBRE
+                            name: fullName,
+                            promotion_code: promoCode // <--- AQUÍ ENVIAMOS EL CUPÓN
                         })
                     });
 
-                    // --- ESTA ES LA PROTECCIÓN QUE EVITA LA PANTALLA EN BLANCO ---
+                    // --- PROTECCIÓN DE ERRORES ---
                     if (!intentRes.ok) {
                         const errorData = await intentRes.json();
+                        // Si el cupón es inválido, el backend lanzará error 400 y lo veremos aquí
                         throw new Error(errorData.detail || "Error en el servidor de pagos (400)");
                     }
 
                     const data = await intentRes.json();
                     const clientSecret = data.clientSecret;
-                    // ------------------------------------------------------------
-
-                    // 7. Confirmar el Pago (o Configuración si es Trial)
+                    
+                    // 8. Confirmar el Pago (o Configuración si es Trial)
                     let result;
                     
-                    // Si el secreto empieza con 'seti_', es un Trial (SetupIntent)
                     if (clientSecret.startsWith('seti_')) {
                         result = await stripe.confirmCardSetup(clientSecret, {
                             payment_method: { 
                                 card: cardElement,
-                                billing_details: { name: fullName } // Opcional: enviarlo también a Stripe JS
+                                billing_details: { name: fullName } 
                             }
                         });
                     } else {
-                        // Si empieza con 'pi_', es cobro inmediato (PaymentIntent)
                         result = await stripe.confirmCardPayment(clientSecret, {
                             payment_method: { 
                                 card: cardElement,
@@ -1109,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         throw new Error(result.error.message);
                     } 
                     
-                    // Verificamos éxito en cualquiera de los dos casos
+                    // Verificamos éxito
                     const intent = result.paymentIntent || result.setupIntent;
                     
                     if (intent.status === 'succeeded') {
@@ -1133,15 +1142,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         const isActivated = await checkSub();
                         
                         if (isActivated) {
-                            window.location.reload();
                             sessionStorage.setItem('pida_is_onboarding', 'true');
+                            window.location.reload();
                         } else {
-                            // Fallback de seguridad
                             alert("Pago recibido. Estamos activando tu cuenta, esto puede tardar unos segundos más. Si no accedes en 1 minuto, recarga la página.");
                             window.location.reload();
                         }
                     }
-
                 }
 
             } catch (error) {
