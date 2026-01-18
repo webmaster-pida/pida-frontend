@@ -1663,7 +1663,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     // CORRECCIÓN IMPORTANTE: He quitado la barra '/' al final de la URL
                     // Antes: .../analysis-history/  (Daba error 403)
                     // Ahora: .../analysis-history   (Correcto)
-                    const r = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history`, { headers: h });
+                    const r = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/`, { headers: h });
                     
                     if (!r.ok) {
                         throw new Error(`Error del servidor: ${r.status}`);
@@ -1692,7 +1692,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         titleSpan.onclick = async (e) => {
                             e.stopPropagation();
                             try {
-                                const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { headers: h });
+                                const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}/`, { headers: h });
                                 if(!r2.ok) throw new Error("Error cargando detalle");
                                 const d2 = await r2.json();
                                 state.anaText = d2.analysis;
