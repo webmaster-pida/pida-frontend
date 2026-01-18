@@ -1981,7 +1981,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (!r.ok) {
                         if (r.status === 429 || r.status === 402 || r.status === 403) {
                             
-                            // 1. Determinar el mensaje exacto según el plan
                             const currentPlan = (typeof userPlan !== 'undefined' && userPlan) ? userPlan : 'demo';
                             
                             const messages = {
@@ -1993,41 +1992,40 @@ document.addEventListener('DOMContentLoaded', function () {
 
                             const limitMsg = messages[currentPlan] || "Has alcanzado tu límite de consultas diarias.";
 
-                            // 2. Renderizado limpio (Solo clases CSS)
-                            // Usamos la ruta img/PIDA-Señal_de_ALTO-256.png
                             botBubble.innerHTML = `
                                 <div class="pida-limit-card">
-                                    <img src="img/PIDA-Señal_de_ALTO-256.png" 
-                                         alt="Alto PIDA" 
-                                         class="pida-limit-img">
-                                    
-                                    <h3 class="pida-limit-title">
-                                        Límite Diario Alcanzado
-                                    </h3>
-                                    
-                                    <p class="pida-limit-desc">
-                                        ${limitMsg}
-                                    </p>
+                                    <div class="pida-limit-row">
+                                        <img src="img/PIDA-Señal_de_ALTO-256-trans.png" 
+                                             alt="Alto PIDA" 
+                                             class="pida-limit-img">
+                                        
+                                        <div class="pida-limit-text-group">
+                                            <h3 class="pida-limit-title">
+                                                Límite Diario Alcanzado
+                                            </h3>
+                                            <p class="pida-limit-desc">
+                                                ${limitMsg}
+                                            </p>
+                                        </div>
+                                    </div>
                                     
                                     <button id="btn-upgrade-limit-action" class="pida-limit-btn">
-                                        Mejorar mi Plan ⭐
+                                        MEJORAR MI PLAN
                                     </button>
                                 </div>
                             `;
                             
-                            // 3. Binding del evento (Desacoplado)
-                            // Usamos un pequeño timeout para asegurar que el DOM se renderizó
                             setTimeout(() => {
                                 const btn = document.getElementById('btn-upgrade-limit-action');
                                 if(btn && dom.accBilling) {
                                     btn.onclick = (e) => {
                                         e.preventDefault();
-                                        dom.accBilling.click(); // Redirige al flujo de facturación existente
+                                        dom.accBilling.click();
                                     };
                                 }
                             }, 50);
 
-                            return; // Interrumpimos el flujo para no mostrar 'escribiendo...'
+                            return; 
                         }
                         
                         throw new Error(`Error del servidor (${r.status})`);

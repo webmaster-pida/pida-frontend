@@ -846,90 +846,104 @@ input:checked + .slider:before { transform: translateX(24px); }
     }
 
 /* =========================================
-   COMPONENTE: TARJETA DE LÍMITE (CLEAN WHITE)
+   COMPONENTE: TARJETA DE LÍMITE
    ========================================= */
 
 .pida-limit-card {
     background: #ffffff;
-    border: 1px solid #E2E8F0; /* Borde gris muy suave */
-    border-radius: 24px;       /* Bordes más redondeados y modernos */
-    padding: 40px 30px;
-    text-align: center;
-    margin: 30px auto;
-    max-width: 440px;
-    /* Sombra elegante y difuminada (Glassmorphism inspired shadow) */
+    border: 1px solid #E2E8F0;
+    border-radius: 20px;
+    padding: 30px;
+    margin: 20px auto;
+    max-width: 500px;
     box-shadow: 0 20px 40px -5px rgba(29, 53, 87, 0.08), 
                 0 10px 15px -3px rgba(0, 0, 0, 0.03);
     position: relative;
     overflow: hidden;
-    animation: pidaSlideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation: pidaFadeIn 0.4s ease-out forwards;
+    text-align: left;
 }
 
-/* Animación de entrada profesional */
-@keyframes pidaSlideUpFade {
-    0% { opacity: 0; transform: translateY(20px) scale(0.98); }
-    100% { opacity: 1; transform: translateY(0) scale(1); }
+@keyframes pidaFadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Layout Horizontal */
+.pida-limit-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 25px;
 }
 
 .pida-limit-img {
-    width: 140px; /* Tamaño ideal para el robot */
+    width: 80px;
     height: auto;
-    margin-bottom: 24px;
-    /* Sombra específica para que el robot "flote" */
-    filter: drop-shadow(0 8px 12px rgba(29, 53, 87, 0.15));
-    transition: transform 0.3s ease;
+    flex-shrink: 0;
+    object-fit: contain;
 }
 
-.pida-limit-card:hover .pida-limit-img {
-    transform: scale(1.05) rotate(-2deg); /* Micro-interacción al pasar el mouse */
+.pida-limit-text-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding-top: 5px;
 }
 
 .pida-limit-title {
-    color: var(--pida-primary); /* #1D3557 */
-    font-family: var(--font-display);
+    color: var(--pida-primary, #1D3557); 
+    font-family: var(--font-display, sans-serif);
     font-weight: 800;
-    font-size: 1.5rem;
-    margin-bottom: 12px;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
+    font-size: 1.25rem;
+    line-height: 1.1;
+    margin: 0;
 }
 
 .pida-limit-desc {
-    color: #64748B; /* Slate 500 para buena lectura */
-    font-size: 1rem;
-    line-height: 1.6;
-    margin-bottom: 32px;
-    padding: 0 10px;
+    color: #64748B;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0;
 }
 
-/* Botón de Acción Principal (CTA) */
+/* Botón Sólido (Sin Gradiente) */
 .pida-limit-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); /* Tu degradado rojo */
+    display: block;
+    width: 100%;
+    background-color: var(--pida-primary, #1D3557); /* AZUL SÓLIDO */
     color: white;
     border: none;
-    padding: 16px 36px;
-    border-radius: 50px; /* Full Pill Shape */
+    padding: 14px 20px;
+    border-radius: 12px;
     font-weight: 700;
     font-size: 1rem;
     cursor: pointer;
-    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(29, 53, 87, 0.2); /* Sombra sutil */
+    transition: all 0.2s ease;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
     text-decoration: none;
 }
 
+/* Hover: Aclaramos ligeramente el azul sólido */
 .pida-limit-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 25px rgba(239, 68, 68, 0.35);
-    background: linear-gradient(135deg, #ff5f5f 0%, #d62222 100%);
+    background-color: var(--pida-accent, #0056B3); 
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(29, 53, 87, 0.25);
 }
 
 .pida-limit-btn:active {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25);
+    transform: translateY(0);
+}
+
+/* Adaptación Móvil */
+@media (max-width: 480px) {
+    .pida-limit-row {
+        align-items: center;
+    }
+    .pida-limit-text-group {
+        text-align: left;
+    }
 }
