@@ -1506,13 +1506,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 mobileMenuLogout: document.getElementById('mobile-nav-logout')
             };
 
-            // --- FUNCIÓN PARA MOSTRAR EL PLAN Y GESTIONAR PERMISOS UI (VIP VISUAL) ---
+            // --- FUNCIÓN PARA MOSTRAR EL PLAN Y GESTIONAR PERMISOS UI (VERSIÓN FINAL BLINDADA) ---
             async function loadUserPlanBadge() {
                 const badge = document.getElementById('user-plan-badge');
-                let planKey = 'basico'; // Plan por defecto
+                // Si el elemento no existe en el DOM, salimos para evitar errores
+                if (!badge) return;
+
+                // 1. LIMPIEZA TOTAL DE ESTILOS (CRÍTICO)
+                // Esto garantiza que si vienes de una cuenta VIP, se borren los estilos dorados
+                badge.classList.remove('vip-active');
+                badge.removeAttribute('style'); 
+                
+                let planKey = 'basico'; 
                 let isTrial = false;
                 
-                // 1. Consultar si es VIP (Admin o Dominio autorizado)
+                // 2. VERIFICACIÓN VIP (Backend Check)
                 let isVip = false;
                 try {
                     const h = await Utils.getHeaders(currentUser);
@@ -1521,11 +1529,14 @@ document.addEventListener('DOMContentLoaded', function () {
                         const r = await res.json();
                         isVip = r.is_vip_user;
                     }
-                } catch (e) { console.error("Error verificando VIP:", e); }
+                } catch (e) { 
+                    console.error("Error checking VIP:", e); 
+                }
 
-                // 2. Consultar Base de Datos (Firestore) para usuarios normales
+                // 3. OBTENER DATOS DE FIRESTORE (Plan normal de suscripción)
                 try {
-                    const userDoc = await db.collection('customers').doc(user.uid).get();
+                    // Usamos currentUser.uid para asegurar que leemos el usuario actual
+                    const userDoc = await db.collection('customers').doc(currentUser.uid).get();
                     if (userDoc.exists) {
                         const data = userDoc.data();
                         if (data.status === 'active') {
@@ -1533,78 +1544,79 @@ document.addEventListener('DOMContentLoaded', function () {
                             isTrial = data.has_trial || false;
                         }
                     }
-                } catch (e) { console.error("Error cargando plan DB:", e); }
+                } catch (e) { 
+                    console.error("Error getting plan:", e); 
+                }
 
-                // --- LOGICA DE FUERZA MAYOR ---
-                // Si es VIP, funcionalmente le damos el nivel 'premium' para desbloquear todo
+                // 4. LÓGICA DE NEGOCIO (Fuerza Mayor)
+                // Si el backend confirma que es VIP, ignoramos el plan de la BD y forzamos 'premium'
+                // para desbloquear funcionalmente todas las herramientas en el frontend.
                 if (isVip) {
                     planKey = 'premium';
                 }
                 
-                userPlan = planKey; // Guardamos el plan globalmente para el chat
+                // Actualizamos la variable global userPlan
+                userPlan = planKey; 
 
-                // 3. ACTUALIZAR BADGE DEL HEADER (VISUAL)
-                if(badge) {
-                    badge.classList.remove('hidden');
+                // 5. RENDERIZADO VISUAL DEL BADGE
+                badge.classList.remove('hidden');
 
-                    if (isVip) {
-                        // --- ESTILO EXCLUSIVO VIP ---
-                        badge.innerHTML = `Plan <strong style="color: #D97706;">VIP</strong> 🌟`;
-                        
-                        // Sobrescribimos estilos CSS para que se vea dorado/especial
-                        badge.style.backgroundColor = '#FFFBEB'; // Fondo crema suave
-                        badge.style.border = '1px solid #FCD34D'; // Borde dorado
-                        badge.style.color = '#92400E'; // Texto marrón dorado
-                        badge.style.boxShadow = '0 2px 5px rgba(245, 158, 11, 0.2)'; // Sombra dorada
-                    } else {
-                        // --- ESTILO NORMAL ---
-                        let displayPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
-                        if(displayPlan === 'Basico') displayPlan = 'Básico';
-                        if (isTrial) displayPlan += " <span style='font-size:0.85em; opacity:0.8;'>(Prueba)</span>";
-                        
-                        badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
-                        
-                        // Limpiamos estilos inline por si antes fue VIP (SPA navigation)
-                        badge.style.backgroundColor = '';
-                        badge.style.border = '';
-                        badge.style.color = '';
-                        badge.style.boxShadow = '';
-                    }
+                if (isVip) {
+                    // MODO VIP: Aplicamos la clase CSS definida en style.css
+                    badge.classList.add('vip-active');
+                    badge.innerHTML = `Plan <strong class="vip-text">VIP</strong> 🌟`;
+                } else {
+                    // MODO NORMAL: Renderizado estándar
+                    let displayPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
+                    
+                    // Corrección de tilde
+                    if(displayPlan === 'Basico') displayPlan = 'Básico';
+                    
+                    // Indicador de prueba
+                    if (isTrial) displayPlan += " <span style='font-size:0.85em; opacity:0.8;'>(Prueba)</span>";
+                    
+                    badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
                 }
 
-                // 4. LÓGICA DE BLOQUEO DEL PRECALIFICADOR
+                // 6. GESTIÓN DEL BOTÓN PRECALIFICADOR (Bloqueo/Desbloqueo)
                 const btnPre = document.getElementById('nav-precalificador');
                 if (btnPre) {
-                    // Si es básico (y NO es VIP, porque arriba forzamos premium si es vip), bloqueamos
                     if (planKey === 'basico') {
-                        // ESTILO BLOQUEADO
+                        // --- CASO BLOQUEADO (Solo Plan Básico No-VIP) ---
                         btnPre.innerHTML = `
                             <span style="font-size: 1.1em;">🔒</span> 
                             <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>
                         `;
+                        // Añadimos clase visual de bloqueo
+                        btnPre.classList.add('locked-feature');
+                        
+                        // Mantenemos el cursor pointer para que el usuario pueda hacer clic y ver el modal
                         btnPre.style.cursor = 'pointer'; 
                         btnPre.title = "Haz clic para desbloquear esta función";
-                        btnPre.classList.add('locked-feature');
 
+                        // Sobrescribimos el evento click para abrir el modal de upgrade
                         btnPre.onclick = (e) => {
-                            e.preventDefault();
+                            e.preventDefault(); 
                             e.stopPropagation();
                             const modal = document.getElementById('pida-upgrade-modal');
                             if (modal) {
                                 modal.style.display = 'flex';
+                                // Pequeño delay para permitir la transición de opacidad
                                 setTimeout(() => modal.classList.add('active'), 10);
                             }
                         };
                     } else {
-                        // ESTILO DESBLOQUEADO (Avanzado, Premium o VIP)
+                        // --- CASO DESBLOQUEADO (Avanzado, Premium o VIP) ---
                         btnPre.innerHTML = `
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg>
                             <span>Precalificador</span>
                         `;
+                        // Quitamos clase de bloqueo
+                        btnPre.classList.remove('locked-feature');
                         btnPre.style.cursor = 'pointer';
                         btnPre.title = "";
-                        btnPre.classList.remove('locked-feature');
                         
+                        // Restauramos la navegación normal
                         btnPre.onclick = () => setView('precalificador');
                     }
                 }
@@ -2161,30 +2173,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     toggleChatButtons(false);
 
-                    // --- INICIO DE NUEVA BURBUJA DE BIENVENIDA PERSONALIZADA ---
+                    // --- INICIO DE NUEVA BURBUJA DE BIENVENIDA (LIMPIA / CSS CLASS) ---
                     const welcomeDiv = document.createElement('div');
                     welcomeDiv.className = 'pida-bubble pida-message-bubble';
-                    // Estilo inline para asegurar que se vea bien en móviles y escritorio
+                    
                     welcomeDiv.innerHTML = `
-                        <div style="display: flex; flex-direction: row; gap: 20px; align-items: flex-start;">
-                            <img src="img/PIDA-Productos_Stripe.png" alt="PIDA" style="width: 85px; height: auto; flex-shrink: 0; object-fit: contain;">
-                            
-                            <div>
-                                <h3 style="margin-top: 0; font-size: 1.1rem; color: var(--pida-primary); line-height: 1.3; border-bottom: none; padding-bottom: 0;">
-                                    ¡Hola! Soy PIDA, tu asistente experto en Derechos Humanos y temas afines.
-                                </h3>
-                                <p style="margin: 10px 0; line-height: 1.5; color: #374151;">
-                                    Estoy para apoyarte y responder cualquier pregunta que me hagas, incluyendo investigaciones, análisis de casos, búsqueda de jurisprudencia y redacción legal de todo tipo de documentos, cartas, informes, elaboración de proyectos y seguimiento y monitoreo.
-                                </p>
-                                <strong style="color: var(--pida-accent);">¿Qué te gustaría pedirme ahora?</strong>
+                        <div class="pida-welcome-content">
+                            <img src="img/PIDA-Productos_Stripe.png" alt="PIDA Robot" class="pida-welcome-robot">
+                            <div class="pida-welcome-text">
+                                <h3>¡Hola! Soy PIDA, tu asistente experto en Derechos Humanos y temas afines.</h3>
+                                <p>Estoy para apoyarte y responder cualquier pregunta que me hagas, incluyendo investigaciones, análisis de casos, búsqueda de jurisprudencia y redacción legal de todo tipo de documentos, cartas, informes, elaboración de proyectos y seguimiento y monitoreo.</p>
+                                <strong>¿Qué te gustaría pedirme ahora?</strong>
                             </div>
                         </div>
-                        <style>
-                            @media (max-width: 600px) {
-                                .pida-message-bubble > div { flex-direction: column !important; align-items: center !important; text-align: center !important; }
-                                .pida-message-bubble img { width: 70px !important; margin-bottom: 10px; }
-                            }
-                        </style>
                     `;
                     dom.chatBox.appendChild(welcomeDiv);
                     // --- FIN DE NUEVA BURBUJA ---
