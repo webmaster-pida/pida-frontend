@@ -1977,41 +1977,57 @@ document.addEventListener('DOMContentLoaded', function () {
                         method: 'POST', headers: h, body: JSON.stringify({ prompt: txt })
                     });
 
-                    // --- AQUÍ ESTÁ LA MAGIA PARA DETECTAR EL 429 ---
+                    // --- MANEJO DE ERRORES DE LÍMITE (Production Grade) ---
                     if (!r.ok) {
-                        // Si el estatus es 429 (Límite), 402 o 403
                         if (r.status === 429 || r.status === 402 || r.status === 403) {
                             
-                            // Recuperamos el plan de forma segura
+                            // 1. Determinar el mensaje exacto según el plan
                             const currentPlan = (typeof userPlan !== 'undefined' && userPlan) ? userPlan : 'demo';
                             
-                            let limitMsg = "Has alcanzado tu límite de consultas diarias.";
-                            if (currentPlan === 'basico') limitMsg = "Has agotado tus 5 consultas diarias del Plan Básico.";
-                            if (currentPlan === 'avanzado') limitMsg = "Has agotado tus 20 consultas diarias del Plan Avanzado.";
-                            if (currentPlan === 'demo') limitMsg = "Has agotado tu consulta de prueba diaria.";
+                            const messages = {
+                                'basico': "Has agotado tus 5 consultas diarias del Plan Básico.",
+                                'avanzado': "Has agotado tus 20 consultas diarias del Plan Avanzado.",
+                                'premium': "Has alcanzado tu límite diario.",
+                                'demo': "Has agotado tu consulta de prueba diaria."
+                            };
 
-                            // Quitamos los puntos y ponemos la tarjeta roja
+                            const limitMsg = messages[currentPlan] || "Has alcanzado tu límite de consultas diarias.";
+
+                            // 2. Renderizado limpio (Solo clases CSS)
+                            // Usamos la ruta img/PIDA-Señal_de_ALTO-256.png
                             botBubble.innerHTML = `
-                                <div class="limit-warning-card">
-                                    <div style="font-size: 2rem; margin-bottom: 10px;">🛑</div>
-                                    <h3 style="color: #B91C1C; margin: 0 0 5px 0; font-weight: 800;">Límite Diario Alcanzado</h3>
-                                    <p style="color: #7F1D1D; font-size: 0.95rem; margin-bottom: 15px;">${limitMsg}</p>
-                                    <button class="upgrade-limit-btn" id="btn-upgrade-limit-action">
+                                <div class="pida-limit-card">
+                                    <img src="img/PIDA-Señal_de_ALTO-256.png" 
+                                         alt="Alto PIDA" 
+                                         class="pida-limit-img">
+                                    
+                                    <h3 class="pida-limit-title">
+                                        Límite Diario Alcanzado
+                                    </h3>
+                                    
+                                    <p class="pida-limit-desc">
+                                        ${limitMsg}
+                                    </p>
+                                    
+                                    <button id="btn-upgrade-limit-action" class="pida-limit-btn">
                                         Mejorar mi Plan ⭐
                                     </button>
                                 </div>
                             `;
                             
-                            // Activamos el botón
+                            // 3. Binding del evento (Desacoplado)
+                            // Usamos un pequeño timeout para asegurar que el DOM se renderizó
                             setTimeout(() => {
                                 const btn = document.getElementById('btn-upgrade-limit-action');
-                                if(btn) btn.onclick = (e) => {
-                                    e.preventDefault();
-                                    if(dom.accBilling) dom.accBilling.click();
-                                };
-                            }, 100);
+                                if(btn && dom.accBilling) {
+                                    btn.onclick = (e) => {
+                                        e.preventDefault();
+                                        dom.accBilling.click(); // Redirige al flujo de facturación existente
+                                    };
+                                }
+                            }, 50);
 
-                            return; // DETENEMOS AQUÍ PARA QUE NO SIGA PENSANDO
+                            return; // Interrumpimos el flujo para no mostrar 'escribiendo...'
                         }
                         
                         throw new Error(`Error del servidor (${r.status})`);

@@ -845,66 +845,91 @@ input:checked + .slider:before { transform: translateX(24px); }
         /* ... tus otros estilos ... */
     }
 
-    /* =========================================
-   ESTILOS DE ALERTA DE LÍMITE (CHAT)
+/* =========================================
+   COMPONENTE: TARJETA DE LÍMITE (CLEAN WHITE)
    ========================================= */
-.limit-warning-card {
-    background-color: #FEF2F2; /* Fondo rojo muy suave */
-    border: 1px solid #FECACA; /* Borde rojo sutil */
-    border-radius: 16px;       /* Bordes redondeados modernos */
-    padding: 30px 20px;
+
+.pida-limit-card {
+    background: #ffffff;
+    border: 1px solid #E2E8F0; /* Borde gris muy suave */
+    border-radius: 24px;       /* Bordes más redondeados y modernos */
+    padding: 40px 30px;
     text-align: center;
-    margin: 20px 0;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); /* Sombra suave */
-    animation: slideInDown 0.4s ease-out; /* Animación de entrada */
+    margin: 30px auto;
+    max-width: 440px;
+    /* Sombra elegante y difuminada (Glassmorphism inspired shadow) */
+    box-shadow: 0 20px 40px -5px rgba(29, 53, 87, 0.08), 
+                0 10px 15px -3px rgba(0, 0, 0, 0.03);
+    position: relative;
+    overflow: hidden;
+    animation: pidaSlideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* Título de la tarjeta */
-.limit-warning-card h3 {
-    color: #991B1B; /* Rojo oscuro */
-    margin: 10px 0 5px 0;
-    font-weight: 800;
-    font-size: 1.2rem;
+/* Animación de entrada profesional */
+@keyframes pidaSlideUpFade {
+    0% { opacity: 0; transform: translateY(20px) scale(0.98); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pida-limit-img {
+    width: 140px; /* Tamaño ideal para el robot */
+    height: auto;
+    margin-bottom: 24px;
+    /* Sombra específica para que el robot "flote" */
+    filter: drop-shadow(0 8px 12px rgba(29, 53, 87, 0.15));
+    transition: transform 0.3s ease;
+}
+
+.pida-limit-card:hover .pida-limit-img {
+    transform: scale(1.05) rotate(-2deg); /* Micro-interacción al pasar el mouse */
+}
+
+.pida-limit-title {
+    color: var(--pida-primary); /* #1D3557 */
     font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 1.5rem;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
 }
 
-/* Texto descriptivo */
-.limit-warning-card p {
-    color: #7F1D1D; /* Rojo texto */
+.pida-limit-desc {
+    color: #64748B; /* Slate 500 para buena lectura */
     font-size: 1rem;
-    margin-bottom: 20px;
-    line-height: 1.5;
+    line-height: 1.6;
+    margin-bottom: 32px;
+    padding: 0 10px;
 }
 
-/* EL BOTÓN MEJORADO */
-.upgrade-limit-btn {
-    background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); /* Degradado Rojo Profesional */
-    color: white;
-    border: none;
-    padding: 12px 30px;
-    border-radius: 50px; /* Estilo píldora */
-    font-weight: 700;
-    font-size: 1rem;
-    cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Transición fluida */
-    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); /* Resplandor rojo */
+/* Botón de Acción Principal (CTA) */
+.pida-limit-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 8px; /* Espacio entre texto y estrella */
+    gap: 8px;
+    background: linear-gradient(135deg, #EF4444 0%, #B91C1C 100%); /* Tu degradado rojo */
+    color: white;
+    border: none;
+    padding: 16px 36px;
+    border-radius: 50px; /* Full Pill Shape */
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 8px 20px rgba(239, 68, 68, 0.25);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    text-decoration: none;
 }
 
-/* Efecto Hover (al pasar el mouse) */
-.upgrade-limit-btn:hover {
-    transform: translateY(-2px); /* Se levanta un poco */
-    box-shadow: 0 8px 20px rgba(220, 38, 38, 0.45); /* Sombra más intensa */
-    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); /* Se vuelve más brillante */
+.pida-limit-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 25px rgba(239, 68, 68, 0.35);
+    background: linear-gradient(135deg, #ff5f5f 0%, #d62222 100%);
 }
 
-/* Efecto Click */
-.upgrade-limit-btn:active {
-    transform: translateY(0);
-    box-shadow: 0 2px 5px rgba(220, 38, 38, 0.2);
+.pida-limit-btn:active {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25);
 }
