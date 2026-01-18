@@ -844,3 +844,67 @@ input:checked + .slider:before { transform: translateX(24px); }
         align-items: center;
         /* ... tus otros estilos ... */
     }
+
+    /* =========================================
+   ESTILOS DE ALERTA DE LÍMITE (CHAT)
+   ========================================= */
+.limit-warning-card {
+    background-color: #FEF2F2; /* Fondo rojo muy suave */
+    border: 1px solid #FECACA; /* Borde rojo sutil */
+    border-radius: 16px;       /* Bordes redondeados modernos */
+    padding: 30px 20px;
+    text-align: center;
+    margin: 20px 0;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05); /* Sombra suave */
+    animation: slideInDown 0.4s ease-out; /* Animación de entrada */
+}
+
+/* Título de la tarjeta */
+.limit-warning-card h3 {
+    color: #991B1B; /* Rojo oscuro */
+    margin: 10px 0 5px 0;
+    font-weight: 800;
+    font-size: 1.2rem;
+    font-family: var(--font-display);
+}
+
+/* Texto descriptivo */
+.limit-warning-card p {
+    color: #7F1D1D; /* Rojo texto */
+    font-size: 1rem;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+/* EL BOTÓN MEJORADO */
+.upgrade-limit-btn {
+    background: linear-gradient(135deg, #DC2626 0%, #B91C1C 100%); /* Degradado Rojo Profesional */
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    border-radius: 50px; /* Estilo píldora */
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Transición fluida */
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3); /* Resplandor rojo */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px; /* Espacio entre texto y estrella */
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Efecto Hover (al pasar el mouse) */
+.upgrade-limit-btn:hover {
+    transform: translateY(-2px); /* Se levanta un poco */
+    box-shadow: 0 8px 20px rgba(220, 38, 38, 0.45); /* Sombra más intensa */
+    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%); /* Se vuelve más brillante */
+}
+
+/* Efecto Click */
+.upgrade-limit-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 5px rgba(220, 38, 38, 0.2);
+}
