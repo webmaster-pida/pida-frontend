@@ -1458,23 +1458,26 @@ document.addEventListener('DOMContentLoaded', function () {
                                         <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>
                                     `;
                                     
-                                    // --- SOLUCIÓN VISUAL ---
-                                    btnPre.style.cursor = 'pointer';
+                                    // --- CORRECCIÓN DEFINITIVA ---
+                                    // 1. Forzamos visualmente que parezca cliqueable
+                                    btnPre.style.cursor = 'pointer'; 
                                     btnPre.style.pointerEvents = 'auto';
                                     btnPre.title = "Haz clic para desbloquear esta función";
                                     btnPre.classList.add('locked-feature');
 
-                                    // --- SOLUCIÓN LÓGICA (NUEVO) ---
-                                    // Forzamos la apertura del modal directamente aquí
+                                    // 2. Forzamos la acción del clic AQUÍ MISMO
+                                    // Esto garantiza que el modal se abra sí o sí al detectar el plan básico
                                     btnPre.onclick = (e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
                                         const modal = document.getElementById('pida-upgrade-modal');
-                                        if (modal) modal.classList.remove('hidden');
+                                        if (modal) {
+                                            modal.classList.remove('hidden');
+                                        }
                                     };
 
                                 } else {
-                                    // ESTILO NORMAL (Restaurar por si acaso)
+                                    // ESTILO NORMAL (Usuario Avanzado/Premium)
                                     btnPre.innerHTML = `
                                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg>
                                         <span>Precalificador</span>
