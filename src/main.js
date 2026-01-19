@@ -2439,6 +2439,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     if (!facts) { alert("Narra los hechos."); return; }
 
+                    // 1. Preparar UI
                     dom.preWelcome.style.display = 'none';
                     dom.preResultsBox.style.display = 'block'; 
                     dom.preLoader.style.display = 'block';     
@@ -2451,11 +2452,51 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     try {
                         const token = await user.getIdToken();
+                        
+                        // 2. Petición al Backend
                         const response = await fetch(`${PIDA_CONFIG.API_PRE}/analyze`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                             body: JSON.stringify({ title, facts, country_code: country })
                         });
+
+                        // --- MANEJO DE ERRORES (PRECALIFICADOR) ---
+                        if (!response.ok) {
+                            // Restaurar estado UI si falla
+                            dom.preBtn.disabled = false;
+                            dom.preLoader.style.display = 'none';
+                            // Mostramos el contenedor vacío para evitar saltos visuales bruscos
+                            dom.preResponseCont.style.display = 'block'; 
+                            
+                            if (response.status === 429 || response.status === 403 || response.status === 402) {
+                                let limitMsg = "No se pudo realizar el análisis.";
+                                try {
+                                    const errData = await response.json();
+                                    const detail = (errData.detail || "").toLowerCase();
+                                    
+                                    // Mapeo inteligente de mensajes
+                                    if (detail.includes('límite diario')) {
+                                        if (detail.includes('basico')) limitMsg = "Tu Plan Básico no incluye precalificaciones.";
+                                        else if (detail.includes('avanzado')) limitMsg = "Has agotado tus 20 precalificaciones diarias.";
+                                        else if (detail.includes('premium')) limitMsg = "Has alcanzado tu límite diario (Premium).";
+                                        else limitMsg = "Has alcanzado tu límite diario.";
+                                    } else if (detail.includes('no incluye acceso') || detail.includes('plan')) {
+                                        // Caso específico Plan Básico (Límite 0)
+                                        limitMsg = errData.detail;
+                                    } else {
+                                        limitMsg = errData.detail || limitMsg;
+                                    }
+                                } catch (e) {
+                                    console.error("Error parsing prequalifier error:", e);
+                                }
+                                
+                                // Abrir el modal unificado de límites
+                                openLimitModal(limitMsg);
+                                return;
+                            }
+                            throw new Error(`Error del servidor (${response.status})`);
+                        }
+                        // ---------------------------------------------
 
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
@@ -2481,15 +2522,20 @@ document.addEventListener('DOMContentLoaded', function () {
                                         } else if (data.event === "done") {
                                             state.preText = fullText;
                                             dom.preControls.style.display = 'flex';
+                                            loadPreHistory(); // Recargar historial al terminar
                                         }
                                     } catch (e) { }
                                 }
                             }
                         }
                     } catch (error) {
+                        console.error("Error precalificador:", error);
                         dom.preLoader.style.display = 'none';
                         dom.preResponseCont.style.display = 'block';
-                        dom.preResultTxt.innerHTML = `<span style='color:red'>Error: ${error.message}</span>`;
+                        // Solo mostramos error en rojo si NO fue un error de límites (ya manejado arriba)
+                        if (!document.getElementById('pida-limit-modal').classList.contains('active')) {
+                            dom.preResultTxt.innerHTML = `<div style='color:#EF4444; padding:20px;'>❌ Ocurrió un error: ${error.message}</div>`;
+                        }
                     } finally {
                         dom.preBtn.disabled = false;
                     }
