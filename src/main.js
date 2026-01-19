@@ -1388,75 +1388,80 @@ document.addEventListener('DOMContentLoaded', function () {
     async function runApp(user) {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
-        let userPlan = null;
-
-        // ... (Listener del botón logout overlay se queda igual) ...
-        const btnLogoutOverlay = document.getElementById('logout-from-overlay');
-        if (btnLogoutOverlay) { /* ... código existente ... */ }
+        
+        // Referencia al loader global para controlar la pantalla blanca
+        const globalLoader = document.getElementById('pida-global-loader');
 
         try {
             // ============================================================
-            // 1. VERIFICACIÓN DE PERMISOS INTELIGENTE (MODIFICADO)
+            // 1. VERIFICACIÓN DE ACCESO OPTIMIZADA
             // ============================================================
             let hasAccess = false;
             const isOnboarding = sessionStorage.getItem('pida_is_onboarding');
             const setupOverlay = document.getElementById('pida-setup-overlay');
             const subOverlay = document.getElementById('pida-subscription-overlay');
 
-            // Si es un usuario recién suscrito, mostramos "Preparando..." INMEDIATAMENTE
+            // Función de verificación interna
+            const performCheck = async () => {
+                // A. Check Rápido (Documento Cliente)
+                try {
+                    const userDoc = await db.collection('customers').doc(user.uid).get();
+                    if (userDoc.exists && userDoc.data().status === 'active') return true;
+                } catch (e) { console.warn("Error check rápido:", e); }
+
+                // B. Check Subcolección (Stripe Extension)
+                try {
+                    const subRef = db.collection('customers').doc(user.uid).collection('subscriptions');
+                    const snap = await subRef.where('status', 'in', ['active', 'trialing']).limit(1).get();
+                    if (!snap.empty) return true;
+                } catch (e) { }
+
+                // C. Check VIP (Solo si fallan los anteriores, para no esperar cold-start)
+                try {
+                    const h = await Utils.getHeaders(user);
+                    const res = await fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h });
+                    if (res.ok) { const r = await res.json(); if (r.is_vip_user) return true; }
+                } catch (e) { }
+
+                return false;
+            };
+
+            // Lógica de Onboarding (Reintento) vs Usuario Normal
             if (isOnboarding) {
                 if (setupOverlay) setupOverlay.classList.remove('hidden');
-                if (subOverlay) subOverlay.classList.add('hidden'); // Aseguramos que el otro no salga
-                hideLoader(); // Quitamos el loader genérico
+                if (subOverlay) subOverlay.classList.add('hidden');
+                if (globalLoader) globalLoader.style.display = 'none'; // Quitamos loader global para mostrar overlay de setup
 
-                // Reintentamos hasta 5 veces (5 segundos extra) para asegurar que Firestore se actualizó
                 for (let i = 0; i < 5; i++) {
-                    hasAccess = await checkAccessAuthorization(user);
-                    if (hasAccess) break; // ¡Ya tiene acceso!
-                    await new Promise(r => setTimeout(r, 1000)); // Esperamos 1 seg
+                    hasAccess = await performCheck();
+                    if (hasAccess) break;
+                    await new Promise(r => setTimeout(r, 1000));
                 }
-
-                // Si al final tuvo éxito, limpiamos la bandera
                 if (hasAccess) sessionStorage.removeItem('pida_is_onboarding');
             } else {
-                // Usuario normal: verificación estándar
-                hasAccess = await checkAccessAuthorization(user);
+                hasAccess = await performCheck();
             }
 
-            // 2. Lógica de Enrutamiento Visual
+            // 2. ENRUTAMIENTO VISUAL
             if (!hasAccess) {
-                // CASO A: NO AUTORIZADO
-                if (appRoot) appRoot.style.display = 'block';
-                hideLoader();
+                if (appRoot) appRoot.style.display = 'block'; // Mostramos estructura base
+                if (subOverlay) subOverlay.classList.remove('hidden'); // Mostramos bloqueo
+                if (setupOverlay) setupOverlay.classList.add('hidden');
+                hideLoader(); // Quitamos loader para ver el mensaje de bloqueo
+                return; // DETENEMOS LA CARGA AQUÍ
+            } 
 
-                // SI AÚN ESTAMOS EN MODO ONBOARDING (falló la verificación tras reintentos)
-                // Mantenemos el modal de "Preparando" o mostramos error, pero NO el de "un paso".
-                if (sessionStorage.getItem('pida_is_onboarding') && setupOverlay) {
-                    setupOverlay.classList.remove('hidden'); 
-                    // Opcional: Podrías cambiar el texto aquí a "Hubo una demora, recarga la página."
-                } else {
-                    // Si no es onboarding, ahí sí mostramos "Estás a un paso"
-                    if (subOverlay) subOverlay.classList.remove('hidden');
-                    if (setupOverlay) setupOverlay.classList.add('hidden');
-                }
-                
-                return; // Detenemos la carga
-            } else {
-                // CASO B: AUTORIZADO (VIP o Suscriptor)
-                if (subOverlay) subOverlay.classList.add('hidden');
-                if (setupOverlay) setupOverlay.classList.add('hidden'); // Ocultamos el de preparando
-                if (appRoot) appRoot.style.display = 'block';
-                if (landingRoot) landingRoot.style.display = 'none';
-                sessionStorage.removeItem('pida_pending_plan');
-                hideLoader(); 
-            }
-                
-                // --- CORRECCIÓN CRÍTICA: ELIMINAR EL LOADER EN ÉXITO ---
-                hideLoader(); 
-                // -------------------------------------------------------
+            // --- ACCESO CONCEDIDO ---
+            if (subOverlay) subOverlay.classList.add('hidden');
+            if (setupOverlay) setupOverlay.classList.add('hidden');
+            if (landingRoot) landingRoot.style.display = 'none';
+            if (appRoot) appRoot.style.display = 'block';
+            sessionStorage.removeItem('pida_pending_plan');
             
+            // Quitamos el loader inmediatamente para dar sensación de velocidad
+            hideLoader(); 
 
-            // 3. Referencias del DOM (Solo se cargan si hay acceso)
+            // 3. REFERENCIAS DOM (Carga completa)
             const dom = {
                 navInv: document.getElementById('nav-investigador'),
                 navAna: document.getElementById('nav-analizador'),
@@ -1511,9 +1516,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 const badge = document.getElementById('user-plan-badge');
                 const btnPre = document.getElementById('nav-precalificador');
                 
-                // Si el DOM no está listo, esperamos un poco y reintentamos (máximo 1 vez por llamada recursiva no controlada)
+                // Si el DOM no está listo, esperamos un poco y reintentamos
                 if (!badge || !btnPre) {
-                    console.warn("DOM no listo para badge, reintentando en 500ms...");
                     setTimeout(loadUserPlanBadge, 500);
                     return;
                 }
@@ -1522,33 +1526,28 @@ document.addEventListener('DOMContentLoaded', function () {
                 badge.classList.remove('vip-active', 'hidden');
                 badge.removeAttribute('style'); 
                 
-                // POR DEFECTO: Asumimos Básico (Lock) hasta demostrar lo contrario (Seguridad por defecto)
                 let planKey = 'basico'; 
                 let isTrial = false;
                 let isVip = false;
 
                 try {
-                    // 2. VERIFICACIÓN VIP
+                    // 2. VERIFICACIÓN VIP (Con timeout para no bloquear UI)
                     const h = await Utils.getHeaders(currentUser);
-                    // Usamos Promise.race para que no se quede colgado si el backend tarda
-                    const vipCheck = fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h })
+                    const vipPromise = fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h })
                                     .then(r => r.json())
                                     .then(d => d.is_vip_user)
                                     .catch(() => false);
                     
-                    // Damos 2 segundos máximo al chequeo VIP
-                    const timeout = new Promise(resolve => setTimeout(() => resolve(false), 2000));
-                    isVip = await Promise.race([vipCheck, timeout]);
+                    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(false), 2000));
+                    isVip = await Promise.race([vipPromise, timeoutPromise]);
 
                 } catch (e) { console.warn("Check VIP error:", e); }
 
                 try {
                     // 3. OBTENER DATOS DE FIRESTORE
-                    // Usamos currentUser.uid directo
                     const userDoc = await db.collection('customers').doc(currentUser.uid).get();
                     if (userDoc.exists) {
                         const data = userDoc.data();
-                        // Solo si está activo o trialing tomamos el plan, si no, se queda en básico (default)
                         if (data.status === 'active' || data.status === 'trialing') {
                             planKey = data.plan || 'basico';
                             isTrial = data.has_trial || false;
@@ -1558,7 +1557,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // 4. LÓGICA DE PRIORIDAD
                 if (isVip) planKey = 'premium';
-                userPlan = planKey; // Variable global actualizada
+                userPlan = planKey; 
 
                 // 5. RENDERIZADO BADGE
                 badge.classList.remove('hidden');
@@ -1574,20 +1573,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 // 6. GESTIÓN DEL BOTÓN PRECALIFICADOR (Bloqueo Visual)
                 if (planKey === 'basico' && !isVip) {
-                    // BLOQUEADO
                     btnPre.innerHTML = `<span style="font-size: 1.1em;">🔒</span> <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>`;
                     btnPre.classList.add('locked-feature');
                     btnPre.style.cursor = 'pointer';
                     btnPre.title = "Función exclusiva para planes Avanzado y Premium";
-                    // Sobrescribimos evento para mostrar modal
                     btnPre.onclick = (e) => {
                         e.preventDefault(); e.stopPropagation();
                         const modal = document.getElementById('pida-upgrade-modal');
                         if (modal) { modal.style.display = 'flex'; setTimeout(() => modal.classList.add('active'), 10); }
                     };
                 } else {
-                    // DESBLOQUEADO
-                    // Solo redibujamos si estaba bloqueado o sucio
+                    // Solo restauramos si estaba bloqueado
                     if (btnPre.classList.contains('locked-feature') || btnPre.textContent.includes('🔒')) {
                         btnPre.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg><span>Precalificador</span>`;
                         btnPre.classList.remove('locked-feature');
@@ -1597,9 +1593,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
 
-            // EJECUTAR LA CARGA DEL BADGE (Estrategia de doble ejecución)
-            loadUserPlanBadge(); 
-            // Reintento de seguridad a los 1.5 segundos para garantizar sincronización visual
+            // EJECUTAR LA CARGA DEL BADGE (Doble check para seguridad)
+            loadUserPlanBadge();
             setTimeout(loadUserPlanBadge, 1500);
 
             // Estado Global
@@ -1648,7 +1643,7 @@ document.addEventListener('DOMContentLoaded', function () {
             function setView(view) {
                 state.currentView = view;
                 
-                // 1. Navbar (Solo estilos visuales, NO lógica de clicks)
+                // 1. Navbar
                 if(dom.navInv) dom.navInv.classList.toggle('active', view === 'investigador');
                 if(dom.navAna) dom.navAna.classList.toggle('active', view === 'analizador');
                 if(dom.navPre) dom.navPre.classList.toggle('active', view === 'precalificador');
@@ -1670,46 +1665,29 @@ document.addEventListener('DOMContentLoaded', function () {
                 if(preCtrls) preCtrls.classList.toggle('hidden', view !== 'precalificador');
                 if(accCtrls) accCtrls.classList.toggle('hidden', view !== 'cuenta');
 
-                // 4. Lazy Load de historiales
+                // 4. Lazy Load (No bloqueante)
                 if (view === 'investigador') loadChatHistory();
                 if (view === 'analizador') loadAnaHistory();
                 if (view === 'precalificador') loadPreHistory();
             }
 
-            // ------------------------------------------------------------
-            // NUEVO: LÓGICA DEL MODAL PREMIUM (ESTILO ROBOT)
-            // ------------------------------------------------------------
+            // MODAL PREMIUM (ESTILO ROBOT)
             const upgradeModal = document.getElementById('pida-upgrade-modal');
             const btnUpgradeAction = document.getElementById('btn-upgrade-action');
             const btnCloseUpgrade = document.getElementById('close-upgrade-modal-btn');
 
-            // Función para cerrar suavemente
             const closeUpgradeModal = () => {
                 if (upgradeModal) {
                     upgradeModal.classList.remove('active');
-                    setTimeout(() => {
-                        upgradeModal.style.display = 'none';
-                    }, 300); // Espera la transición CSS
+                    setTimeout(() => { upgradeModal.style.display = 'none'; }, 300);
                 }
             };
-
-            // Acción del botón principal "Mejorar mi Plan"
             if (btnUpgradeAction) {
-                btnUpgradeAction.onclick = () => {
-                    closeUpgradeModal();
-                    // Al dar clic en mejorar, simulamos ir al botón de facturación
-                    if (dom.accBilling) dom.accBilling.click();
-                };
+                btnUpgradeAction.onclick = () => { closeUpgradeModal(); if (dom.accBilling) dom.accBilling.click(); };
             }
-
-            // Acción del botón "X"
             if (btnCloseUpgrade) {
-                btnCloseUpgrade.onclick = (e) => {
-                    e.preventDefault();
-                    closeUpgradeModal();
-                };
+                btnCloseUpgrade.onclick = (e) => { e.preventDefault(); closeUpgradeModal(); };
             }
-            // ------------------------------------------------------------
 
             // Listeners de Navegación
             if(dom.navInv) dom.navInv.onclick = () => setView('investigador');
@@ -1720,19 +1698,11 @@ document.addEventListener('DOMContentLoaded', function () {
             if(userInfoBtn) userInfoBtn.onclick = () => setView('cuenta');
 
             // Menú Móvil
-            if (dom.mobileMenuBtn) dom.mobileMenuBtn.onclick = (e) => { 
-                e.stopPropagation(); 
-                dom.mobileMenuOverlay.classList.toggle('hidden'); 
-            };
-            if (dom.mobileMenuOverlay) dom.mobileMenuOverlay.onclick = (e) => { 
-                if (e.target === dom.mobileMenuOverlay) dom.mobileMenuOverlay.classList.add('hidden'); 
-            };
-            if (dom.mobileMenuProfile) dom.mobileMenuProfile.onclick = () => { 
-                setView('cuenta'); 
-                dom.mobileMenuOverlay.classList.add('hidden'); 
-            };
+            if (dom.mobileMenuBtn) dom.mobileMenuBtn.onclick = (e) => { e.stopPropagation(); dom.mobileMenuOverlay.classList.toggle('hidden'); };
+            if (dom.mobileMenuOverlay) dom.mobileMenuOverlay.onclick = (e) => { if (e.target === dom.mobileMenuOverlay) dom.mobileMenuOverlay.classList.add('hidden'); };
+            if (dom.mobileMenuProfile) dom.mobileMenuProfile.onclick = () => { setView('cuenta'); dom.mobileMenuOverlay.classList.add('hidden'); };
 
-            // --- LÓGICA DE HISTORIALES (MISMA LÓGICA PREVIA, SOLO REFERENCIADA) ---
+            // --- HISTORIALES ---
             
             // 1. ANALIZADOR
             async function loadAnaHistory() {
@@ -1742,19 +1712,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 try {
                     list.innerHTML = '<div style="padding:15px; text-align:center; color:#666;">Cargando...</div>';
-                    
-                    // CORRECCIÓN IMPORTANTE: He quitado la barra '/' al final de la URL
-                    // Antes: .../analysis-history/  (Daba error 403)
-                    // Ahora: .../analysis-history   (Correcto)
                     const r = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/`, { headers: h });
-                    
-                    if (!r.ok) {
-                        throw new Error(`Error del servidor: ${r.status}`);
-                    }
+                    if (!r.ok) throw new Error(`Error: ${r.status}`);
 
                     const data = await r.json();
-
-                    // VALIDACIÓN: Aseguramos que sea un array antes de asignarlo
                     state.anaHistory = Array.isArray(data) ? data : [];
                     
                     list.innerHTML = ''; 
@@ -1791,9 +1752,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 
                                 const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
                                 if(anaHistContent) anaHistContent.classList.remove('show');
-                            } catch (errDetalle) {
-                                alert("No se pudo cargar el detalle de este análisis.");
-                            }
+                            } catch (errDetalle) { alert("No se pudo cargar el detalle."); }
                         };
                         
                         const delBtn = document.createElement('button');
@@ -1802,7 +1761,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         delBtn.style.color = '#EF4444'; 
                         delBtn.onclick = async (e) => {
                             e.stopPropagation();
-                            // Eliminación directa sin confirmación
                             await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
                             loadAnaHistory(); 
                         };
@@ -1813,8 +1771,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     });
 
                 } catch(e) { 
-                    console.error("Error historial:", e); 
-                    list.innerHTML = `<div style="padding:10px; color:red; font-size:0.8em;">Error cargando historial.<br><span style="color:#999;font-size:0.9em;">(Código: 403 Solucionado)</span></div>`; 
+                    list.innerHTML = `<div style="padding:10px; color:red; font-size:0.8em;">Error cargando historial.</div>`; 
                 }
             }
 
@@ -1826,16 +1783,15 @@ document.addEventListener('DOMContentLoaded', function () {
                     const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations`, { headers: h });
                     if (!r.ok) return; 
 
-                    const data = await r.json();
-                    if (!Array.isArray(data)) return;
-                    state.conversations = data;
+                    const history = await r.json();
+                    if (!Array.isArray(history)) return;
+                    state.conversations = history;
 
                     const list = document.getElementById('pida-history-list');
                     if(list) {
                         list.innerHTML = '';
-                        
-                        // --- ESTADO VACÍO (CHAT) ---
-                        if (state.conversations.length === 0) {
+                        // ESTADO VACÍO CHAT
+                        if (history.length === 0) {
                             list.innerHTML = `
                                 <div style="text-align: center; color: #9CA3AF; padding: 30px 10px; font-size: 0.9em;">
                                     No hay consultas previas.
@@ -1864,7 +1820,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             delBtn.innerHTML = '✕';
                             delBtn.onclick = async (e) => {
                                 e.stopPropagation();
-                                // Eliminación directa sin confirmación
                                 await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${c.id}`, { method: 'DELETE', headers: h });
                                 loadChatHistory();
                             };
@@ -1887,6 +1842,8 @@ document.addEventListener('DOMContentLoaded', function () {
                                             .orderBy('created_at', 'desc').limit(20).get();
 
                     dom.preHistList.innerHTML = '';
+                    
+                    // ESTADO VACÍO PRECALIFICADOR
                     if (snapshot.empty) {
                         dom.preHistList.innerHTML = `
                             <div style="text-align: center; color: #9CA3AF; padding: 30px 10px; font-size: 0.9em;">
@@ -1910,7 +1867,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         
                         titleSpan.onclick = (e) => {
                             e.stopPropagation();
-                            // Load Pre Item
                             if(dom.preTitle) dom.preTitle.value = data.title || "";
                             if(dom.preCountry) dom.preCountry.value = data.country_code || "";
                             if(dom.preFacts) dom.preFacts.value = data.facts || "";
@@ -1931,7 +1887,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         delBtn.innerHTML = `✕`;
                         delBtn.onclick = async (e) => {
                             e.stopPropagation();
-                            // Eliminación directa sin confirmación
                             await doc.ref.delete();
                             loadPreHistory();
                         };
@@ -1956,8 +1911,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 anaHistContent.classList.toggle('show');
                 histContent.classList.remove('show'); 
             };
-            
-            // Dropdown Precalificador
             if (dom.preHistBtn) {
                 dom.preHistBtn.onclick = (e) => {
                     e.stopPropagation();
@@ -2044,19 +1997,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 const txt = dom.input.value.trim();
                 if (!txt) return;
 
-                // Validar sesión
                 if (!state.currentChat.id) {
                     const success = await startBackendSession();
                     if (!success) { alert("Error de conexión al iniciar sesión."); return; }
                     toggleChatButtons(true);
                 }
                 
-                // 1. Renderizar mensaje del usuario
                 renderChat({ role: 'user', content: txt });
                 state.currentChat.messages.push({ role: 'user', content: txt });
                 dom.input.value = '';
 
-                // 2. Crear burbuja del bot (Loading)
                 const botBubble = document.createElement('div');
                 botBubble.className = 'pida-bubble pida-message-bubble';
                 botBubble.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
@@ -2065,67 +2015,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 try {
                     const h = await Utils.getHeaders(user);
-                    
-                    // Petición al Backend
                     const r = await fetch(`${PIDA_CONFIG.API_CHAT}/chat-stream/${state.currentChat.id}`, {
                         method: 'POST', headers: h, body: JSON.stringify({ prompt: txt })
                     });
 
-                    // --- MANEJO DE ERRORES: LECTURA DIRECTA DEL BACKEND (CÓDIGO COMPLETO) ---
                     if (!r.ok) {
-                        // Capturamos códigos de límite (429) o permisos (402, 403)
                         if (r.status === 429 || r.status === 402 || r.status === 403) {
-                            
-                            // 1. Eliminar la burbuja de "escribiendo..." para limpiar la UI
                             if(botBubble) botBubble.remove();
-
-                            // Mensaje por defecto (por seguridad)
                             let limitMsg = "Has alcanzado tu límite de consultas diarias.";
-
                             try {
-                                // 2. LEER LA VERDAD DEL SERVIDOR
-                                // El backend envía un JSON: { "detail": "Límite diario alcanzado para el plan basico" }
                                 const errData = await r.json();
                                 const detail = (errData.detail || "").toLowerCase();
-
-                                // 3. ASIGNAR EL MENSAJE CORRECTO SEGÚN EL DETALLE DEL SERVIDOR
-                                if (detail.includes('basico') || detail.includes('básico')) {
-                                    limitMsg = "Has agotado tus 5 consultas diarias del Plan Básico.";
-                                } else if (detail.includes('avanzado')) {
-                                    limitMsg = "Has agotado tus 20 consultas diarias del Plan Avanzado.";
-                                } else if (detail.includes('premium')) {
-                                    limitMsg = "Has alcanzado tu límite diario (Premium).";
-                                } else if (detail.includes('vip')) {
-                                    limitMsg = "Has alcanzado un límite de seguridad.";
-                                } else if (detail) {
-                                    // Si el servidor mandó otro mensaje, lo usamos
-                                    limitMsg = errData.detail;
-                                }
-                            } catch (e) {
-                                console.error("No se pudo leer el detalle del error JSON:", e);
-                                // Fallback COMPLETO: Si el JSON falla, usamos la variable local para todos los casos
-                                const currentPlan = (typeof userPlan !== 'undefined' && userPlan) ? userPlan : 'none';
-                                
-                                if (currentPlan === 'basico') {
-                                    limitMsg = "Has agotado tus 5 consultas diarias del Plan Básico.";
-                                } else if (currentPlan === 'avanzado') {
-                                    limitMsg = "Has agotado tus 20 consultas diarias del Plan Avanzado.";
-                                } else if (currentPlan === 'premium') {
-                                    limitMsg = "Has alcanzado tu límite diario.";
-                                }
-                            }
-
-                            // 4. ABRIR EL MODAL CON EL TEXTO CORRECTO
+                                if (detail.includes('basico')) limitMsg = "Has agotado tus 5 consultas diarias del Plan Básico.";
+                                else if (detail.includes('avanzado')) limitMsg = "Has agotado tus 20 consultas diarias del Plan Avanzado.";
+                                else if (detail.includes('premium')) limitMsg = "Has alcanzado tu límite diario (Premium).";
+                                else if (detail) limitMsg = errData.detail;
+                            } catch (e) { }
                             openLimitModal(limitMsg);
-
-                            return; // IMPORTANTE: Detenemos la ejecución aquí
+                            return;
                         }
-                        
-                        // Si es otro tipo de error (500, etc), lanzamos excepción genérica
                         throw new Error(`Error del servidor (${r.status})`);
                     }
 
-                    // --- PROCESAMIENTO DEL STREAM (ÉXITO) ---
                     const reader = r.body.getReader();
                     const decoder = new TextDecoder();
                     let fullText = "";
@@ -2141,15 +2052,10 @@ document.addEventListener('DOMContentLoaded', function () {
                                 try {
                                     const d = JSON.parse(l.substring(6));
                                     if (d.error) { throw new Error(d.error); }
-
                                     if (d.text) {
-                                        if (isFirstChunk) { 
-                                            botBubble.innerHTML = ''; 
-                                            isFirstChunk = false; 
-                                        }
+                                        if (isFirstChunk) { botBubble.innerHTML = ''; isFirstChunk = false; }
                                         fullText += d.text;
-                                        let safeContent = Utils.prepareMarkdown(fullText);
-                                        botBubble.innerHTML = Utils.sanitize(marked.parse(safeContent));
+                                        botBubble.innerHTML = Utils.sanitize(marked.parse(Utils.prepareMarkdown(fullText)));
                                         dom.chatBox.parentElement.scrollTop = dom.chatBox.parentElement.scrollHeight;
                                     }
                                 } catch (e) { }
@@ -2165,10 +2071,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         }).catch(e => console.error(e));
                         loadChatHistory();
                     }
-
                 } catch (error) {
-                    console.error("Error en sendChat:", error);
-                    // Si falló y sigue mostrando los puntos, mostramos error genérico
                     if (botBubble.innerHTML.includes('typing-indicator')) {
                         botBubble.innerHTML = `<span style='color:#EF4444; font-weight:bold;'>⚠️ Ocurrió un error de conexión.</span>`;
                     }
@@ -2181,16 +2084,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     dom.chatBox.innerHTML = ''; 
                     if(dom.input) dom.input.value = ''; 
                     state.currentChat = { id: null, title: '', messages: [] };
-                    
                     const items = document.querySelectorAll('.pida-history-item');
                     if(items) items.forEach(el => el.classList.remove('active'));
-
                     toggleChatButtons(false);
 
-                    // --- INICIO DE NUEVA BURBUJA DE BIENVENIDA (LIMPIA / CSS CLASS) ---
                     const welcomeDiv = document.createElement('div');
                     welcomeDiv.className = 'pida-bubble pida-message-bubble';
-                    
                     welcomeDiv.innerHTML = `
                         <div class="pida-welcome-content">
                             <img src="img/PIDA-Productos_Stripe.png" alt="PIDA Robot" class="pida-welcome-robot">
@@ -2202,14 +2101,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         </div>
                     `;
                     dom.chatBox.appendChild(welcomeDiv);
-                    // --- FIN DE NUEVA BURBUJA ---
                 }
             }
 
-            // Manejadores Chat
             const pidaForm = document.getElementById('pida-form');
             if (pidaForm) pidaForm.onsubmit = (e) => { e.preventDefault(); sendChat(); };
-
             const onNewChatClick = (e) => { e.preventDefault(); handleNewChat(true); };
             const btnSidebar = document.getElementById('pida-new-chat-btn');
             if (btnSidebar) btnSidebar.onclick = onNewChatClick;
@@ -2219,19 +2115,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if (dom.sendBtn) dom.sendBtn.onclick = (e) => { e.preventDefault(); sendChat(); };
             if (dom.input) dom.input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } };
 
-            // Descargas Chat
-            document.getElementById('chat-download-txt-btn').onclick = () => {
-                const name = getTimestampedName("Experto-PIDA");
-                Exporter.downloadTXT(name, "Reporte Experto Jurídico", state.currentChat.messages);
-            };
-            document.getElementById('chat-download-pdf-btn').onclick = () => {
-                const name = getTimestampedName("Experto-PIDA");
-                Exporter.downloadPDF(name, "Reporte Experto Jurídico", state.currentChat.messages);
-            };
-            document.getElementById('chat-download-docx-btn').onclick = () => {
-                const name = getTimestampedName("Experto-PIDA");
-                Exporter.downloadDOCX(name, "Reporte Experto Jurídico", state.currentChat.messages);
-            };
+            document.getElementById('chat-download-txt-btn').onclick = () => { const name = getTimestampedName("Experto-PIDA"); Exporter.downloadTXT(name, "Reporte Experto Jurídico", state.currentChat.messages); };
+            document.getElementById('chat-download-pdf-btn').onclick = () => { const name = getTimestampedName("Experto-PIDA"); Exporter.downloadPDF(name, "Reporte Experto Jurídico", state.currentChat.messages); };
+            document.getElementById('chat-download-docx-btn').onclick = () => { const name = getTimestampedName("Experto-PIDA"); Exporter.downloadDOCX(name, "Reporte Experto Jurídico", state.currentChat.messages); };
 
             // --- ANALIZADOR (RESTO DE LA LÓGICA) ---
             const anaUploadBtn = document.getElementById('analyzer-upload-btn');
@@ -2254,15 +2140,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('analyzer-response-container').style.display = 'block';
                 dom.anaControls.style.display = 'none'; 
                 dom.anaLoader.style.display = 'none';
-                
-                // Texto EXACTO solicitado con formato limpio (sin robot)
                 dom.anaResTxt.innerHTML = `
                     <div class="pida-bubble pida-message-bubble">
                         <div class="pida-welcome-content">
                             <div class="pida-welcome-text" style="padding-left: 0;">
                                 <h3>Analizador de Documentos</h3>
                                 <p>Sube tus archivos (PDF, DOCX) y escribe una instrucción clara. PIDA leerá, resumirá y sitematizará el documento por ti.</p>
-                                
                                 <p style="margin-top: 15px; font-weight: bold; color: #1D3557;">Ejemplos de lo que puedes pedir:</p>
                                 <ul style="margin: 8px 0 0 20px; padding: 0; list-style-type: disc; color: #374151;">
                                     <li style="margin-bottom: 6px;">"Haz un resumen ejecutivo de este documento (contrato, sentencia, tesis, etc)."</li>
@@ -2278,82 +2161,59 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if(dom.anaBtn) {
                 dom.anaBtn.onclick = async () => {
-                    // 1. Validar que haya archivos
                     if (!state.anaFiles.length) { alert("Sube al menos un documento."); return; }
-                    
-                    // 2. PREPARAR UI (Mostrar Loader y Limpiar)
                     dom.anaLoader.style.display = 'flex';
                     dom.anaResBox.style.display = 'block';
-                    // Ocultamos el contenedor de texto/bienvenida mientras carga
                     document.getElementById('analyzer-response-container').style.display = 'none';
                     dom.anaControls.style.display = 'none';
                     dom.anaResTxt.innerHTML = '';
                     state.anaText = "";
                     
-                    // 3. Preparar Datos
                     const fd = new FormData();
                     state.anaFiles.forEach(f => fd.append('files', f));
-                    // CORRECCIÓN ERROR 422: Enviar instrucciones (o texto por defecto)
                     fd.append('instructions', dom.anaInst.value.trim() || "Realizar un análisis jurídico detallado de estos documentos, identificando puntos clave, riesgos y conclusiones.");
 
                     try {
                         const token = await user.getIdToken();
-                        
-                        // 4. Petición al Backend
                         const r = await fetch(`${PIDA_CONFIG.API_ANA}/analyze/`, {
                             method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd
                         });
                         
-                        // --- MANEJO DE ERRORES (LÍMITES Y PERMISOS) ---
                         if (!r.ok) {
-                            // Ocultamos loader y restauramos bienvenida/error si falla
                             dom.anaLoader.style.display = 'none';
                             document.getElementById('analyzer-response-container').style.display = 'block';
-                            
                             if (r.status === 429 || r.status === 403 || r.status === 402) {
                                 let limitMsg = "No se pudo realizar el análisis.";
                                 try {
                                     const errData = await r.json();
                                     const detail = (errData.detail || "").toLowerCase();
-                                    
                                     if (detail.includes('límite diario')) {
                                         if (detail.includes('basico')) limitMsg = "Has agotado tus 3 análisis diarios del Plan Básico.";
                                         else if (detail.includes('avanzado')) limitMsg = "Has agotado tus 15 análisis diarios del Plan Avanzado.";
                                         else limitMsg = "Has alcanzado tu límite diario de análisis.";
-                                    } else if (detail.includes('documento')) {
-                                        limitMsg = errData.detail; // Error de cantidad de archivos
-                                    } else {
-                                        limitMsg = errData.detail || limitMsg;
-                                    }
-                                } catch (e) {
-                                    console.error("Error parsing analyzer error:", e);
-                                }
+                                    } else if (detail.includes('documento')) { limitMsg = errData.detail; } 
+                                    else { limitMsg = errData.detail || limitMsg; }
+                                } catch (e) { }
                                 openLimitModal(limitMsg);
                                 return;
                             }
                             throw new Error(`Error del servidor (${r.status})`);
                         }
 
-                        // --- PROCESAMIENTO DEL STREAM (ÉXITO) ---
                         const reader = r.body.getReader();
                         const decoder = new TextDecoder();
                         let fullText = "";
-                        
                         while (true) {
                             const { value, done } = await reader.read();
                             if (done) break;
                             const chunk = decoder.decode(value);
                             const lines = chunk.split('\n\n');
-                            
                             for (const line of lines) {
                                 if (line.startsWith('data:')) {
                                     try {
                                         const d = JSON.parse(line.substring(6));
-                                        
                                         if (d.error) throw new Error(d.error);
-
                                         if (d.text) {
-                                            // Al recibir el primer texto, ocultamos loader y mostramos resultado
                                             if (dom.anaLoader.style.display !== 'none') { 
                                                 dom.anaLoader.style.display = 'none'; 
                                                 document.getElementById('analyzer-response-container').style.display = 'block'; 
@@ -2361,19 +2221,16 @@ document.addEventListener('DOMContentLoaded', function () {
                                             fullText += d.text;
                                             dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
                                         }
-                                        
                                         if (d.done) {
                                             state.anaText = fullText;
-                                            dom.anaControls.style.display = 'flex'; // Mostrar botones de descarga
-                                            loadAnaHistory(); // Recargar historial
+                                            dom.anaControls.style.display = 'flex';
+                                            loadAnaHistory();
                                         }
-                                    } catch (e) { console.error(e); }
+                                    } catch (e) { }
                                 }
                             }
                         }
-
                     } catch (e) {
-                        console.error("Error en análisis:", e);
                         dom.anaLoader.style.display = 'none';
                         document.getElementById('analyzer-response-container').style.display = 'block';
                         dom.anaResTxt.innerHTML = `<div style="color:#EF4444; padding:20px;">❌ Ocurrió un error al procesar los documentos: ${e.message}</div>`;
@@ -2384,17 +2241,15 @@ document.addEventListener('DOMContentLoaded', function () {
             if (dom.anaInst) { dom.anaInst.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); dom.anaBtn.click(); } }; }
             if(dom.analyzerClearBtn) { dom.analyzerClearBtn.onclick = () => { state.anaFiles = []; state.anaText = ""; renderFiles(); dom.anaInst.value = ''; showAnalyzerWelcome(); }; }
             
-            // Descargas Analizador
             document.getElementById('analyzer-download-txt-btn').onclick = () => { if(!state.anaText) return; const name = getTimestampedName("Analizador-PIDA"); Exporter.downloadTXT(name, "Reporte Análisis", state.anaText); };
             document.getElementById('analyzer-download-pdf-btn').onclick = () => { if(!state.anaText) return; const name = getTimestampedName("Analizador-PIDA"); Exporter.downloadPDF(name, "Reporte Análisis", state.anaText); };
             document.getElementById('analyzer-download-docx-btn').onclick = () => { if(!state.anaText) return; const name = getTimestampedName("Analizador-PIDA"); Exporter.downloadDOCX(name, "Reporte Análisis", state.anaText); };
 
-            // --- PRECALIFICADOR (Manejadores y Reset) ---
+            // --- PRECALIFICADOR ---
             function resetPrecalifier() {
                 if(dom.preFacts) dom.preFacts.value = '';
                 if(dom.preCountry) dom.preCountry.value = '';
                 if(dom.preTitle) dom.preTitle.value = '';
-                
                 dom.preWelcome.style.display = 'flex';
                 dom.preResultsBox.style.display = 'none';
                 dom.preLoader.style.display = 'none';
@@ -2416,7 +2271,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     if (!facts) { alert("Narra los hechos."); return; }
 
-                    // 1. Preparar UI
                     dom.preWelcome.style.display = 'none';
                     dom.preResultsBox.style.display = 'block'; 
                     dom.preLoader.style.display = 'block';     
@@ -2429,20 +2283,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     try {
                         const token = await user.getIdToken();
-                        
-                        // 2. Petición al Backend
                         const response = await fetch(`${PIDA_CONFIG.API_PRE}/analyze`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                             body: JSON.stringify({ title, facts, country_code: country })
                         });
 
-                        // --- MANEJO DE ERRORES (PRECALIFICADOR) ---
                         if (!response.ok) {
-                            // Restaurar estado UI si falla
                             dom.preBtn.disabled = false;
                             dom.preLoader.style.display = 'none';
-                            // Mostramos el contenedor vacío para evitar saltos visuales bruscos
                             dom.preResponseCont.style.display = 'block'; 
                             
                             if (response.status === 429 || response.status === 403 || response.status === 402) {
@@ -2450,35 +2299,24 @@ document.addEventListener('DOMContentLoaded', function () {
                                 try {
                                     const errData = await response.json();
                                     const detail = (errData.detail || "").toLowerCase();
-                                    
-                                    // Mapeo inteligente de mensajes
                                     if (detail.includes('límite diario')) {
                                         if (detail.includes('basico')) limitMsg = "Tu Plan Básico no incluye precalificaciones.";
                                         else if (detail.includes('avanzado')) limitMsg = "Has agotado tus 20 precalificaciones diarias.";
                                         else if (detail.includes('premium')) limitMsg = "Has alcanzado tu límite diario (Premium).";
                                         else limitMsg = "Has alcanzado tu límite diario.";
                                     } else if (detail.includes('no incluye acceso') || detail.includes('plan')) {
-                                        // Caso específico Plan Básico (Límite 0)
                                         limitMsg = errData.detail;
-                                    } else {
-                                        limitMsg = errData.detail || limitMsg;
-                                    }
-                                } catch (e) {
-                                    console.error("Error parsing prequalifier error:", e);
-                                }
-                                
-                                // Abrir el modal unificado de límites
+                                    } else { limitMsg = errData.detail || limitMsg; }
+                                } catch (e) { }
                                 openLimitModal(limitMsg);
                                 return;
                             }
                             throw new Error(`Error del servidor (${response.status})`);
                         }
-                        // ---------------------------------------------
 
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
                         let fullText = "";
-
                         while (true) {
                             const { done, value } = await reader.read();
                             if (done) break;
@@ -2499,17 +2337,15 @@ document.addEventListener('DOMContentLoaded', function () {
                                         } else if (data.event === "done") {
                                             state.preText = fullText;
                                             dom.preControls.style.display = 'flex';
-                                            loadPreHistory(); // Recargar historial al terminar
+                                            loadPreHistory();
                                         }
                                     } catch (e) { }
                                 }
                             }
                         }
                     } catch (error) {
-                        console.error("Error precalificador:", error);
                         dom.preLoader.style.display = 'none';
                         dom.preResponseCont.style.display = 'block';
-                        // Solo mostramos error en rojo si NO fue un error de límites (ya manejado arriba)
                         if (!document.getElementById('pida-limit-modal').classList.contains('active')) {
                             dom.preResultTxt.innerHTML = `<div style='color:#EF4444; padding:20px;'>❌ Ocurrió un error: ${error.message}</div>`;
                         }
@@ -2519,7 +2355,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 };
             }
 
-            // Descargas Precalificador
             document.getElementById('pre-download-txt-btn').onclick = () => { if(!state.preText) return; const name = getTimestampedName("Precalificador-PIDA"); Exporter.downloadTXT(name, "Precalificación de Caso", state.preText); };
             document.getElementById('pre-download-pdf-btn').onclick = () => { if(!state.preText) return; const name = getTimestampedName("Precalificador-PIDA"); Exporter.downloadPDF(name, "Precalificación de Caso", state.preText); };
             document.getElementById('pre-download-docx-btn').onclick = () => { if(!state.preText) return; const name = getTimestampedName("Precalificador-PIDA"); Exporter.downloadDOCX(name, "Precalificación de Caso", state.preText); };
@@ -2536,7 +2371,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         } catch (error) {
             console.error("Error crítico en runApp:", error);
-            // Si algo falla catastróficamente, al menos quitamos el loader y mostramos el error
             hideLoader();
             alert("Hubo un problema al cargar la aplicación. Por favor, recarga la página.");
         }
