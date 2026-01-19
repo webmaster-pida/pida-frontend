@@ -1825,11 +1825,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         delBtn.style.color = '#EF4444'; 
                         delBtn.onclick = async (e) => {
                             e.stopPropagation();
-                            const conf = await showCustomConfirm('Se eliminará este análisis.');
-                            if(conf) {
-                                await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
-                                loadAnaHistory(); 
-                            }
+                            // Eliminación directa sin confirmación
+                            await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
+                            loadAnaHistory(); 
                         };
 
                         item.appendChild(titleSpan);
@@ -1889,10 +1887,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             delBtn.innerHTML = '✕';
                             delBtn.onclick = async (e) => {
                                 e.stopPropagation();
-                                if(await showCustomConfirm('¿Eliminar chat?')) {
-                                    await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${c.id}`, { method: 'DELETE', headers: h });
-                                    loadChatHistory();
-                                }
+                                // Eliminación directa sin confirmación
+                                await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${c.id}`, { method: 'DELETE', headers: h });
+                                loadChatHistory();
                             };
 
                             item.appendChild(titleSpan);
@@ -1957,10 +1954,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         delBtn.innerHTML = `✕`;
                         delBtn.onclick = async (e) => {
                             e.stopPropagation();
-                            if(await showCustomConfirm('¿Eliminar registro?')) {
-                                await doc.ref.delete();
-                                loadPreHistory();
-                            }
+                            // Eliminación directa sin confirmación
+                            await doc.ref.delete();
+                            loadPreHistory();
                         };
 
                         item.appendChild(titleSpan);
@@ -2281,10 +2277,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('analyzer-response-container').style.display = 'block';
                 dom.anaControls.style.display = 'none'; 
                 dom.anaLoader.style.display = 'none';
+                
+                // Diseño tipo Chat pero sin robot y enfocado al Analizador
                 dom.anaResTxt.innerHTML = `
                     <div class="pida-bubble pida-message-bubble">
-                        <h3>📑 Analizador de Documentos</h3>
-                        <p>Sube tus archivos (PDF, DOCX) y recibe un análisis sistemático.</p>
+                        <div class="pida-welcome-content">
+                            <div class="pida-welcome-text" style="padding-left: 0;">
+                                <h3>¡Hola! Soy el Analizador de Documentos PIDA.</h3>
+                                <p>Sube tus archivos (PDF o DOCX) para que pueda procesarlos, extraer la información clave y entregarte un análisis jurídico sistemático y detallado.</p>
+                                <strong>¿Qué documentos revisaremos hoy?</strong>
+                            </div>
+                        </div>
                     </div>`;
             }
             showAnalyzerWelcome();
