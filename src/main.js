@@ -1702,7 +1702,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // --- HISTORIALES ---
             
-            // 1. ANALIZADOR
+            // 1. ANALIZADOR (Función Corregida)
             async function loadAnaHistory() {
                 const h = await Utils.getHeaders(user);
                 const list = document.getElementById('analyzer-history-list');
@@ -1710,8 +1710,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 try {
                     list.innerHTML = '<div style="padding:15px; text-align:center; color:#666;">Cargando...</div>';
+                    // Nota: Aquí SÍ suele ir la barra si es la raíz de la colección, pero verifiquemos consistencia
                     const r = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/`, { headers: h });
-                    if (!r.ok) throw new Error(`Error: ${r.status}`);
+                    if (!r.ok) throw new Error(`Error lista: ${r.status}`);
 
                     const data = await r.json();
                     state.anaHistory = Array.isArray(data) ? data : [];
@@ -1730,11 +1731,15 @@ document.addEventListener('DOMContentLoaded', function () {
                         titleSpan.textContent = a.title || "Sin título";
                         titleSpan.style.flex = "1";
                         titleSpan.style.cursor = "pointer";
+                        
+                        // --- AQUÍ ESTABA EL ERROR ---
                         titleSpan.onclick = async (e) => {
                             e.stopPropagation();
                             try {
-                                const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}/`, { headers: h });
-                                if(!r2.ok) throw new Error("Error cargando detalle");
+                                // CORRECCIÓN: Quitamos la barra "/" al final de ${a.id}
+                                const r2 = await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { headers: h });
+                                
+                                if(!r2.ok) throw new Error(`Error ${r2.status}`); // Mensaje más detallado
                                 const d2 = await r2.json();
                                 state.anaText = d2.analysis;
                                 
@@ -1748,8 +1753,12 @@ document.addEventListener('DOMContentLoaded', function () {
                                 dom.anaControls.style.display = 'flex';
                                 const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
                                 if(anaHistContent) anaHistContent.classList.remove('show');
-                            } catch (errDetalle) { alert("No se pudo cargar el detalle."); }
+                            } catch (errDetalle) { 
+                                console.error(errDetalle);
+                                alert(`No se pudo cargar el detalle. (${errDetalle.message})`); 
+                            }
                         };
+                        // -----------------------------
                         
                         const delBtn = document.createElement('button');
                         delBtn.className = 'delete-icon-btn';
