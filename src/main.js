@@ -1389,67 +1389,74 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
         
-        // Referencia al loader global para controlar la pantalla blanca
+        // Referencia al loader global
         const globalLoader = document.getElementById('pida-global-loader');
 
         try {
             // ============================================================
-            // 1. VERIFICACIÓN DE ACCESO OPTIMIZADA
+            // 1. VERIFICACIÓN DE ACCESO (PARALELA Y RÁPIDA)
             // ============================================================
             let hasAccess = false;
             const isOnboarding = sessionStorage.getItem('pida_is_onboarding');
             const setupOverlay = document.getElementById('pida-setup-overlay');
             const subOverlay = document.getElementById('pida-subscription-overlay');
 
-            // Función de verificación interna
-            const performCheck = async () => {
-                // A. Check Rápido (Documento Cliente)
-                try {
-                    const userDoc = await db.collection('customers').doc(user.uid).get();
-                    if (userDoc.exists && userDoc.data().status === 'active') return true;
-                } catch (e) { console.warn("Error check rápido:", e); }
+            // Función que lanza todas las verificaciones a la vez (Gana la más rápida)
+            const performFastCheck = async () => {
+                const checks = [];
 
-                // B. Check Subcolección (Stripe Extension)
-                try {
-                    const subRef = db.collection('customers').doc(user.uid).collection('subscriptions');
-                    const snap = await subRef.where('status', 'in', ['active', 'trialing']).limit(1).get();
-                    if (!snap.empty) return true;
-                } catch (e) { }
+                // A. Check Firestore Directo (El más rápido)
+                checks.push(db.collection('customers').doc(user.uid).get()
+                    .then(doc => doc.exists && doc.data().status === 'active')
+                    .catch(() => false)
+                );
 
-                // C. Check VIP (Solo si fallan los anteriores, para no esperar cold-start)
-                try {
-                    const h = await Utils.getHeaders(user);
-                    const res = await fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h });
-                    if (res.ok) { const r = await res.json(); if (r.is_vip_user) return true; }
-                } catch (e) { }
+                // B. Check Subcolección (Stripe)
+                checks.push(db.collection('customers').doc(user.uid).collection('subscriptions')
+                    .where('status', 'in', ['active', 'trialing']).limit(1).get()
+                    .then(snap => !snap.empty)
+                    .catch(() => false)
+                );
 
-                return false;
+                // C. Check VIP (Backend) - Solo si es necesario, pero lo lanzamos en paralelo
+                checks.push(Utils.getHeaders(user)
+                    .then(h => fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h }))
+                    .then(r => r.ok ? r.json() : { is_vip_user: false })
+                    .then(d => d.is_vip_user)
+                    .catch(() => false)
+                );
+
+                // Esperamos a que TODAS terminen y vemos si ALGUNA es verdadera
+                // (Usamos Promise.all para simplificar compatibilidad)
+                const results = await Promise.all(checks);
+                return results.includes(true); 
             };
 
-            // Lógica de Onboarding (Reintento) vs Usuario Normal
+            // Lógica de Onboarding vs Usuario Normal
             if (isOnboarding) {
                 if (setupOverlay) setupOverlay.classList.remove('hidden');
                 if (subOverlay) subOverlay.classList.add('hidden');
-                if (globalLoader) globalLoader.style.display = 'none'; // Quitamos loader global para mostrar overlay de setup
+                if (globalLoader) globalLoader.style.display = 'none';
 
+                // Reintentos agresivos para onboarding
                 for (let i = 0; i < 5; i++) {
-                    hasAccess = await performCheck();
+                    hasAccess = await performFastCheck();
                     if (hasAccess) break;
                     await new Promise(r => setTimeout(r, 1000));
                 }
                 if (hasAccess) sessionStorage.removeItem('pida_is_onboarding');
             } else {
-                hasAccess = await performCheck();
+                hasAccess = await performFastCheck();
             }
 
-            // 2. ENRUTAMIENTO VISUAL
+            // 2. ENRUTAMIENTO INMEDIATO
             if (!hasAccess) {
-                if (appRoot) appRoot.style.display = 'block'; // Mostramos estructura base
-                if (subOverlay) subOverlay.classList.remove('hidden'); // Mostramos bloqueo
+                if (appRoot) appRoot.style.display = 'block';
+                if (subOverlay) subOverlay.classList.remove('hidden');
                 if (setupOverlay) setupOverlay.classList.add('hidden');
-                hideLoader(); // Quitamos loader para ver el mensaje de bloqueo
-                return; // DETENEMOS LA CARGA AQUÍ
-            } 
+                hideLoader();
+                return;
+            }
 
             // --- ACCESO CONCEDIDO ---
             if (subOverlay) subOverlay.classList.add('hidden');
@@ -1458,10 +1465,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (appRoot) appRoot.style.display = 'block';
             sessionStorage.removeItem('pida_pending_plan');
             
-            // Quitamos el loader inmediatamente para dar sensación de velocidad
+            // ¡QUITAR LOADER YA!
             hideLoader(); 
 
-            // 3. REFERENCIAS DOM (Carga completa)
+            // 3. REFERENCIAS DOM
             const dom = {
                 navInv: document.getElementById('nav-investigador'),
                 navAna: document.getElementById('nav-analizador'),
@@ -1511,91 +1518,96 @@ document.addEventListener('DOMContentLoaded', function () {
                 mobileMenuLogout: document.getElementById('mobile-nav-logout')
             };
 
-            // --- FUNCIÓN PARA MOSTRAR EL PLAN Y GESTIONAR PERMISOS UI (BLINDADA) ---
+            // 4. FUNCIONES AUXILIARES
+            
+            // --- FUNCIÓN BADGE INSTANTÁNEA (OPTIMISTIC UI) ---
             async function loadUserPlanBadge() {
                 const badge = document.getElementById('user-plan-badge');
                 const btnPre = document.getElementById('nav-precalificador');
                 
-                // Si el DOM no está listo, esperamos un poco y reintentamos
                 if (!badge || !btnPre) {
                     setTimeout(loadUserPlanBadge, 500);
                     return;
                 }
 
-                // 1. LIMPIEZA
+                // 1. RENDERIZADO INMEDIATO (Elimina "Plan Cargando..." al instante)
                 badge.classList.remove('vip-active', 'hidden');
-                badge.removeAttribute('style'); 
+                badge.removeAttribute('style');
                 
-                let planKey = 'basico'; 
+                // Asumimos Básico por defecto para pintar la UI ya
+                let planKey = userPlan || 'basico'; 
+                let displayPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
+                if(displayPlan === 'Basico' || displayPlan === 'Basic') displayPlan = 'Básico';
+                badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
+                badge.classList.remove('hidden');
+
+                // Aplicamos bloqueo visual preventivo si es básico
+                if (planKey === 'basico') {
+                     btnPre.innerHTML = `<span style="font-size: 1.1em;">🔒</span> <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>`;
+                     btnPre.classList.add('locked-feature');
+                }
+
+                // 2. VERIFICACIÓN REAL (Segundo Plano)
+                // Esto se ejecuta después de pintar, así que el usuario no espera
                 let isTrial = false;
                 let isVip = false;
+                let realPlan = 'basico';
 
                 try {
-                    // 2. VERIFICACIÓN VIP (Con timeout para no bloquear UI)
+                    // Check VIP
                     const h = await Utils.getHeaders(currentUser);
-                    const vipPromise = fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h })
-                                    .then(r => r.json())
-                                    .then(d => d.is_vip_user)
-                                    .catch(() => false);
-                    
-                    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(false), 2000));
-                    isVip = await Promise.race([vipPromise, timeoutPromise]);
-
-                } catch (e) { console.warn("Check VIP error:", e); }
+                    // Timeout corto para VIP check
+                    const vipCheck = fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h })
+                                    .then(r => r.json()).then(d => d.is_vip_user).catch(() => false);
+                    isVip = await Promise.race([vipCheck, new Promise(r => setTimeout(() => r(false), 2000))]);
+                } catch (e) { }
 
                 try {
-                    // 3. OBTENER DATOS DE FIRESTORE
+                    // Check Firestore
                     const userDoc = await db.collection('customers').doc(currentUser.uid).get();
                     if (userDoc.exists) {
                         const data = userDoc.data();
                         if (data.status === 'active' || data.status === 'trialing') {
-                            planKey = data.plan || 'basico';
+                            realPlan = data.plan || 'basico';
                             isTrial = data.has_trial || false;
                         }
                     }
-                } catch (e) { console.error("Error getting plan:", e); }
+                } catch (e) { }
 
-                // 4. LÓGICA DE PRIORIDAD
-                if (isVip) planKey = 'premium';
-                userPlan = planKey; 
+                // 3. ACTUALIZACIÓN FINAL (Si cambió algo)
+                if (isVip) realPlan = 'premium';
+                userPlan = realPlan; // Actualizar global
 
-                // 5. RENDERIZADO BADGE
-                badge.classList.remove('hidden');
                 if (isVip) {
                     badge.classList.add('vip-active');
                     badge.innerHTML = `Plan <strong class="vip-text">VIP</strong> 🌟`;
                 } else {
-                    let displayPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
-                    if(displayPlan === 'Basico' || displayPlan === 'Basic') displayPlan = 'Básico';
-                    if (isTrial) displayPlan += " <span style='font-size:0.85em; opacity:0.8;'>(Prueba)</span>";
-                    badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
+                    let finalDisplay = realPlan.charAt(0).toUpperCase() + realPlan.slice(1);
+                    if(finalDisplay === 'Basico' || finalDisplay === 'Basic') finalDisplay = 'Básico';
+                    if (isTrial) finalDisplay += " <span style='font-size:0.85em; opacity:0.8;'>(Prueba)</span>";
+                    badge.innerHTML = `Plan <strong>${finalDisplay}</strong>`;
                 }
 
-                // 6. GESTIÓN DEL BOTÓN PRECALIFICADOR (Bloqueo Visual)
-                if (planKey === 'basico' && !isVip) {
-                    btnPre.innerHTML = `<span style="font-size: 1.1em;">🔒</span> <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>`;
-                    btnPre.classList.add('locked-feature');
-                    btnPre.style.cursor = 'pointer';
-                    btnPre.title = "Función exclusiva para planes Avanzado y Premium";
+                // Actualizar Botón Precalificador
+                if (realPlan === 'basico' && !isVip) {
+                    if (!btnPre.classList.contains('locked-feature')) {
+                        btnPre.innerHTML = `<span style="font-size: 1.1em;">🔒</span> <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>`;
+                        btnPre.classList.add('locked-feature');
+                    }
                     btnPre.onclick = (e) => {
                         e.preventDefault(); e.stopPropagation();
                         const modal = document.getElementById('pida-upgrade-modal');
                         if (modal) { modal.style.display = 'flex'; setTimeout(() => modal.classList.add('active'), 10); }
                     };
                 } else {
-                    // Solo restauramos si estaba bloqueado
-                    if (btnPre.classList.contains('locked-feature') || btnPre.textContent.includes('🔒')) {
+                    // Desbloquear
+                    if (btnPre.classList.contains('locked-feature')) {
                         btnPre.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg><span>Precalificador</span>`;
                         btnPre.classList.remove('locked-feature');
-                        btnPre.title = "";
                         btnPre.onclick = () => setView('precalificador');
                     }
                 }
             }
-
-            // EJECUTAR LA CARGA DEL BADGE (Doble check para seguridad)
-            loadUserPlanBadge();
-            setTimeout(loadUserPlanBadge, 1500);
 
             // Estado Global
             let state = { currentView: 'investigador', conversations: [], currentChat: { id: null, title: '', messages: [] }, anaFiles: [], anaText: "", anaHistory: [], preText: "" };
@@ -1618,20 +1630,16 @@ document.addEventListener('DOMContentLoaded', function () {
             // --- CONTROL DE INACTIVIDAD ---
             function setupInactivityTimer() {
                 let inactivityTimer;
-                const INACTIVITY_LIMIT = 3 * 60 * 60 * 1000; // 3 Horas
+                const INACTIVITY_LIMIT = 3 * 60 * 60 * 1000; 
 
                 const resetTimer = () => {
                     clearTimeout(inactivityTimer);
                     inactivityTimer = setTimeout(() => {
-                        console.warn("Cerrando sesión por inactividad prolongada.");
-                        alert("Tu sesión ha expirado por inactividad. Por seguridad, debes ingresar nuevamente.");
+                        console.warn("Cerrando sesión por inactividad.");
                         doLogout(); 
                     }, INACTIVITY_LIMIT);
                 };
-
-                ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'].forEach(evt => {
-                    window.addEventListener(evt, resetTimer, true);
-                });
+                ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart', 'click'].forEach(evt => window.addEventListener(evt, resetTimer, true));
                 resetTimer();
             }
             setupInactivityTimer();
@@ -1665,34 +1673,23 @@ document.addEventListener('DOMContentLoaded', function () {
                 if(preCtrls) preCtrls.classList.toggle('hidden', view !== 'precalificador');
                 if(accCtrls) accCtrls.classList.toggle('hidden', view !== 'cuenta');
 
-                // 4. Lazy Load (No bloqueante)
+                // 4. Lazy Load
                 if (view === 'investigador') loadChatHistory();
                 if (view === 'analizador') loadAnaHistory();
                 if (view === 'precalificador') loadPreHistory();
             }
 
-            // MODAL PREMIUM (ESTILO ROBOT)
+            // MODAL PREMIUM
             const upgradeModal = document.getElementById('pida-upgrade-modal');
             const btnUpgradeAction = document.getElementById('btn-upgrade-action');
             const btnCloseUpgrade = document.getElementById('close-upgrade-modal-btn');
+            const closeUpgradeModal = () => { if (upgradeModal) { upgradeModal.classList.remove('active'); setTimeout(() => { upgradeModal.style.display = 'none'; }, 300); } };
+            if (btnUpgradeAction) btnUpgradeAction.onclick = () => { closeUpgradeModal(); if (dom.accBilling) dom.accBilling.click(); };
+            if (btnCloseUpgrade) btnCloseUpgrade.onclick = (e) => { e.preventDefault(); closeUpgradeModal(); };
 
-            const closeUpgradeModal = () => {
-                if (upgradeModal) {
-                    upgradeModal.classList.remove('active');
-                    setTimeout(() => { upgradeModal.style.display = 'none'; }, 300);
-                }
-            };
-            if (btnUpgradeAction) {
-                btnUpgradeAction.onclick = () => { closeUpgradeModal(); if (dom.accBilling) dom.accBilling.click(); };
-            }
-            if (btnCloseUpgrade) {
-                btnCloseUpgrade.onclick = (e) => { e.preventDefault(); closeUpgradeModal(); };
-            }
-
-            // Listeners de Navegación
+            // Listeners
             if(dom.navInv) dom.navInv.onclick = () => setView('investigador');
             if(dom.navAna) dom.navAna.onclick = () => setView('analizador');
-
             if(dom.pAvatar) dom.pAvatar.onclick = () => setView('cuenta');
             const userInfoBtn = document.getElementById('sidebar-user-info-click');
             if(userInfoBtn) userInfoBtn.onclick = () => setView('cuenta');
@@ -1717,7 +1714,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     const data = await r.json();
                     state.anaHistory = Array.isArray(data) ? data : [];
-                    
                     list.innerHTML = ''; 
 
                     if (state.anaHistory.length === 0) {
@@ -1749,7 +1745,6 @@ document.addEventListener('DOMContentLoaded', function () {
                                 document.getElementById('analyzer-response-container').style.display = 'block';
                                 dom.anaResBox.style.display = 'block';
                                 dom.anaControls.style.display = 'flex';
-                                
                                 const anaHistContent = document.getElementById('analyzer-history-dropdown-content');
                                 if(anaHistContent) anaHistContent.classList.remove('show');
                             } catch (errDetalle) { alert("No se pudo cargar el detalle."); }
@@ -1764,15 +1759,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
                             loadAnaHistory(); 
                         };
-
                         item.appendChild(titleSpan);
                         item.appendChild(delBtn);
                         list.appendChild(item);
                     });
-
-                } catch(e) { 
-                    list.innerHTML = `<div style="padding:10px; color:red; font-size:0.8em;">Error cargando historial.</div>`; 
-                }
+                } catch(e) { list.innerHTML = `<div style="padding:10px; color:red; font-size:0.8em;">Error cargando historial.</div>`; }
             }
 
             // 2. CHAT
@@ -1782,7 +1773,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 try {
                     const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations`, { headers: h });
                     if (!r.ok) return; 
-
                     const history = await r.json();
                     if (!Array.isArray(history)) return;
                     state.conversations = history;
@@ -1790,30 +1780,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     const list = document.getElementById('pida-history-list');
                     if(list) {
                         list.innerHTML = '';
-                        // ESTADO VACÍO CHAT
                         if (history.length === 0) {
-                            list.innerHTML = `
-                                <div style="text-align: center; color: #9CA3AF; padding: 30px 10px; font-size: 0.9em;">
-                                    No hay consultas previas.
-                                </div>
-                            `;
+                            list.innerHTML = `<div style="text-align: center; color: #9CA3AF; padding: 30px 10px; font-size: 0.9em;">No hay consultas previas.</div>`;
                             return;
                         }
-
                         state.conversations.forEach(c => {
                             const item = document.createElement('div');
                             item.className = `pida-history-item ${c.id === state.currentChat.id ? 'active' : ''}`;
-                            
                             const titleSpan = document.createElement('span');
                             titleSpan.className = 'pida-history-item-title';
                             titleSpan.textContent = c.title || "Sin título";
                             titleSpan.style.flex = "1";
-                            titleSpan.onclick = (e) => { 
-                                e.stopPropagation(); 
-                                loadChat(c.id); 
-                                const histContent = document.getElementById('history-dropdown-content');
-                                if(histContent) histContent.classList.remove('show'); 
-                            };
+                            titleSpan.onclick = (e) => { e.stopPropagation(); loadChat(c.id); const histContent = document.getElementById('history-dropdown-content'); if(histContent) histContent.classList.remove('show'); };
                             
                             const delBtn = document.createElement('button');
                             delBtn.className = 'delete-icon-btn';
@@ -1823,13 +1801,12 @@ document.addEventListener('DOMContentLoaded', function () {
                                 await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${c.id}`, { method: 'DELETE', headers: h });
                                 loadChatHistory();
                             };
-
                             item.appendChild(titleSpan);
                             item.appendChild(delBtn);
                             list.appendChild(item);
                         });
                     }
-                } catch (e) { console.error("Error cargando historial de chat:", e); }
+                } catch (e) { console.error("Error historial chat:", e); }
             }
 
             // 3. PRECALIFICADOR
@@ -1837,29 +1814,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!dom.preHistList) return;
                 try {
                     dom.preHistList.innerHTML = '<div style="padding:15px; text-align:center; color:#666;">Cargando...</div>';
-                    
-                    const snapshot = await db.collection('users').doc(user.uid).collection('prequalifications')
-                                            .orderBy('created_at', 'desc').limit(20).get();
-
+                    const snapshot = await db.collection('users').doc(user.uid).collection('prequalifications').orderBy('created_at', 'desc').limit(20).get();
                     dom.preHistList.innerHTML = '';
                     
-                    // ESTADO VACÍO PRECALIFICADOR
                     if (snapshot.empty) {
-                        dom.preHistList.innerHTML = `
-                            <div style="text-align: center; color: #9CA3AF; padding: 30px 10px; font-size: 0.9em;">
-                                No hay precalificaciones previas.
-                            </div>
-                        `;
+                        dom.preHistList.innerHTML = `<div style="text-align: center; color: #9CA3AF; padding: 30px 10px; font-size: 0.9em;">No hay precalificaciones previas.</div>`;
                         return;
                     }
-
                     snapshot.forEach(doc => {
                         const data = doc.data();
                         const displayTitle = data.title || "Sin título"; 
-                        
                         const item = document.createElement('div');
                         item.className = 'pida-history-item';
-                        
                         const titleSpan = document.createElement('span');
                         titleSpan.textContent = displayTitle;
                         titleSpan.style.flex = "1";
@@ -1870,7 +1836,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             if(dom.preTitle) dom.preTitle.value = data.title || "";
                             if(dom.preCountry) dom.preCountry.value = data.country_code || "";
                             if(dom.preFacts) dom.preFacts.value = data.facts || "";
-
                             dom.preWelcome.style.display = 'none';
                             dom.preResultsBox.style.display = 'block';
                             dom.preLoader.style.display = 'none';
@@ -1880,17 +1845,11 @@ document.addEventListener('DOMContentLoaded', function () {
                             dom.preResultTxt.innerHTML = Utils.sanitize(marked.parse(data.analysis));
                             dom.preHistContent.classList.remove('show');
                         };
-                        
                         const delBtn = document.createElement('button');
                         delBtn.className = 'delete-icon-btn';
                         delBtn.style.color = '#EF4444'; 
                         delBtn.innerHTML = `✕`;
-                        delBtn.onclick = async (e) => {
-                            e.stopPropagation();
-                            await doc.ref.delete();
-                            loadPreHistory();
-                        };
-
+                        delBtn.onclick = async (e) => { e.stopPropagation(); await doc.ref.delete(); loadPreHistory(); };
                         item.appendChild(titleSpan);
                         item.appendChild(delBtn);
                         dom.preHistList.appendChild(item);
@@ -1926,14 +1885,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 if(dom.preHistContent) dom.preHistContent.classList.remove('show');
             };
 
-            // --- CHAT: RENDER Y LOGICA ---
+            // CHAT FUNCIONES
             function toggleChatButtons(show) {
                 ['chat-download-txt-btn', 'chat-download-pdf-btn', 'chat-download-docx-btn'].forEach(id => {
                     const el = document.getElementById(id);
                     if (el) el.style.display = show ? 'inline-flex' : 'none';
                 });
             }
-
             function renderChat(msg) {
                 const d = document.createElement('div');
                 d.className = `pida-bubble ${msg.role === 'user' ? 'user-message-bubble' : 'pida-message-bubble'}`;
@@ -1943,7 +1901,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (msg.role === 'model') renderFollowUpQuestions(d);
                 dom.chatBox.parentElement.scrollTop = dom.chatBox.parentElement.scrollHeight;
             }
-
             function renderFollowUpQuestions(element) {
                 const headings = Array.from(element.querySelectorAll("h2, h3"));
                 const followUpHeading = headings.find(h => h.textContent.includes("Preguntas de Seguimiento"));
@@ -1965,7 +1922,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
             }
-
             async function loadChat(id) {
                 const h = await Utils.getHeaders(user);
                 const r = await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${id}/messages`, { headers: h });
@@ -1977,7 +1933,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 msgs.forEach(renderChat);
                 loadChatHistory();
             }
-
             async function startBackendSession() {
                 const h = await Utils.getHeaders(user);
                 try {
@@ -1992,21 +1947,17 @@ document.addEventListener('DOMContentLoaded', function () {
                     return true;
                 } catch (e) { return false; }
             }
-
             async function sendChat() {
                 const txt = dom.input.value.trim();
                 if (!txt) return;
-
                 if (!state.currentChat.id) {
                     const success = await startBackendSession();
                     if (!success) { alert("Error de conexión al iniciar sesión."); return; }
                     toggleChatButtons(true);
                 }
-                
                 renderChat({ role: 'user', content: txt });
                 state.currentChat.messages.push({ role: 'user', content: txt });
                 dom.input.value = '';
-
                 const botBubble = document.createElement('div');
                 botBubble.className = 'pida-bubble pida-message-bubble';
                 botBubble.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
@@ -2018,7 +1969,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     const r = await fetch(`${PIDA_CONFIG.API_CHAT}/chat-stream/${state.currentChat.id}`, {
                         method: 'POST', headers: h, body: JSON.stringify({ prompt: txt })
                     });
-
                     if (!r.ok) {
                         if (r.status === 429 || r.status === 402 || r.status === 403) {
                             if(botBubble) botBubble.remove();
@@ -2036,12 +1986,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         }
                         throw new Error(`Error del servidor (${r.status})`);
                     }
-
                     const reader = r.body.getReader();
                     const decoder = new TextDecoder();
                     let fullText = "";
                     let isFirstChunk = true;
-                    
                     while (true) {
                         const { value, done } = await reader.read();
                         if (done) break;
@@ -2064,7 +2012,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                     state.currentChat.messages.push({ role: 'model', content: fullText });
                     renderFollowUpQuestions(botBubble);
-                    
                     if (state.currentChat.messages.length === 2) {
                         fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${state.currentChat.id}/title`, {
                             method: 'PATCH', headers: h, body: JSON.stringify({ title: txt.substring(0, 30) })
@@ -2087,7 +2034,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     const items = document.querySelectorAll('.pida-history-item');
                     if(items) items.forEach(el => el.classList.remove('active'));
                     toggleChatButtons(false);
-
                     const welcomeDiv = document.createElement('div');
                     welcomeDiv.className = 'pida-bubble pida-message-bubble';
                     welcomeDiv.innerHTML = `
@@ -2098,8 +2044,7 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <p>Estoy para apoyarte y responder cualquier pregunta que me hagas, incluyendo investigaciones, análisis de casos, búsqueda de jurisprudencia y redacción legal de todo tipo de documentos, cartas, informes, elaboración de proyectos y seguimiento y monitoreo.</p>
                                 <strong>¿Qué te gustaría pedirme ahora?</strong>
                             </div>
-                        </div>
-                    `;
+                        </div>`;
                     dom.chatBox.appendChild(welcomeDiv);
                 }
             }
@@ -2119,7 +2064,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('chat-download-pdf-btn').onclick = () => { const name = getTimestampedName("Experto-PIDA"); Exporter.downloadPDF(name, "Reporte Experto Jurídico", state.currentChat.messages); };
             document.getElementById('chat-download-docx-btn').onclick = () => { const name = getTimestampedName("Experto-PIDA"); Exporter.downloadDOCX(name, "Reporte Experto Jurídico", state.currentChat.messages); };
 
-            // --- ANALIZADOR (RESTO DE LA LÓGICA) ---
+            // ANALIZADOR
             const anaUploadBtn = document.getElementById('analyzer-upload-btn');
             if(anaUploadBtn) anaUploadBtn.onclick = () => dom.anaInput.click();
             if(dom.anaInput) dom.anaInput.onchange = (e) => { state.anaFiles.push(...e.target.files); renderFiles(); };
@@ -2134,7 +2079,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     dom.anaFiles.appendChild(d);
                 });
             }
-
             function showAnalyzerWelcome() {
                 dom.anaResBox.style.display = 'block'; 
                 document.getElementById('analyzer-response-container').style.display = 'block';
@@ -2168,7 +2112,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     dom.anaControls.style.display = 'none';
                     dom.anaResTxt.innerHTML = '';
                     state.anaText = "";
-                    
                     const fd = new FormData();
                     state.anaFiles.forEach(f => fd.append('files', f));
                     fd.append('instructions', dom.anaInst.value.trim() || "Realizar un análisis jurídico detallado de estos documentos, identificando puntos clave, riesgos y conclusiones.");
@@ -2178,7 +2121,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         const r = await fetch(`${PIDA_CONFIG.API_ANA}/analyze/`, {
                             method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd
                         });
-                        
                         if (!r.ok) {
                             dom.anaLoader.style.display = 'none';
                             document.getElementById('analyzer-response-container').style.display = 'block';
@@ -2199,7 +2141,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                             throw new Error(`Error del servidor (${r.status})`);
                         }
-
                         const reader = r.body.getReader();
                         const decoder = new TextDecoder();
                         let fullText = "";
@@ -2237,15 +2178,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 };
             }
-            
             if (dom.anaInst) { dom.anaInst.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); dom.anaBtn.click(); } }; }
             if(dom.analyzerClearBtn) { dom.analyzerClearBtn.onclick = () => { state.anaFiles = []; state.anaText = ""; renderFiles(); dom.anaInst.value = ''; showAnalyzerWelcome(); }; }
-            
             document.getElementById('analyzer-download-txt-btn').onclick = () => { if(!state.anaText) return; const name = getTimestampedName("Analizador-PIDA"); Exporter.downloadTXT(name, "Reporte Análisis", state.anaText); };
             document.getElementById('analyzer-download-pdf-btn').onclick = () => { if(!state.anaText) return; const name = getTimestampedName("Analizador-PIDA"); Exporter.downloadPDF(name, "Reporte Análisis", state.anaText); };
             document.getElementById('analyzer-download-docx-btn').onclick = () => { if(!state.anaText) return; const name = getTimestampedName("Analizador-PIDA"); Exporter.downloadDOCX(name, "Reporte Análisis", state.anaText); };
 
-            // --- PRECALIFICADOR ---
+            // PRECALIFICADOR
             function resetPrecalifier() {
                 if(dom.preFacts) dom.preFacts.value = '';
                 if(dom.preCountry) dom.preCountry.value = '';
@@ -2268,7 +2207,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (!title) title = `Caso ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`;
                     const facts = dom.preFacts.value.trim();
                     const country = dom.preCountry.value || null;
-
                     if (!facts) { alert("Narra los hechos."); return; }
 
                     dom.preWelcome.style.display = 'none';
@@ -2288,7 +2226,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                             body: JSON.stringify({ title, facts, country_code: country })
                         });
-
                         if (!response.ok) {
                             dom.preBtn.disabled = false;
                             dom.preLoader.style.display = 'none';
@@ -2313,7 +2250,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                             throw new Error(`Error del servidor (${response.status})`);
                         }
-
                         const reader = response.body.getReader();
                         const decoder = new TextDecoder();
                         let fullText = "";
@@ -2354,12 +2290,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 };
             }
-
             document.getElementById('pre-download-txt-btn').onclick = () => { if(!state.preText) return; const name = getTimestampedName("Precalificador-PIDA"); Exporter.downloadTXT(name, "Precalificación de Caso", state.preText); };
             document.getElementById('pre-download-pdf-btn').onclick = () => { if(!state.preText) return; const name = getTimestampedName("Precalificador-PIDA"); Exporter.downloadPDF(name, "Precalificación de Caso", state.preText); };
             document.getElementById('pre-download-docx-btn').onclick = () => { if(!state.preText) return; const name = getTimestampedName("Precalificador-PIDA"); Exporter.downloadDOCX(name, "Precalificación de Caso", state.preText); };
 
-            // --- CUENTA ---
             if(dom.accUpdate) { dom.accUpdate.onclick = async () => { const f = document.getElementById('acc-firstname').value; const l = document.getElementById('acc-lastname').value; if(f || l) { await user.updateProfile({ displayName: `${f} ${l}` }); dom.pName.textContent = `${f} ${l}`; alert('Actualizado'); } }; }
             if(dom.accBilling){dom.accBilling.onclick=async()=>{try{const h=await Utils.getHeaders(currentUser);const r=await fetch(`${PIDA_CONFIG.API_CHAT}/create-portal-session`,{method:'POST',headers:h,body:JSON.stringify({return_url:window.location.origin})});const d=await r.json();if(d.url)window.location.href=d.url;else alert("No se recibió URL del portal");}catch(e){console.error(e);alert("Error al abrir portal de facturación.");}};}
             if(dom.accReset) { dom.accReset.onclick = () => auth.sendPasswordResetEmail(user.email).then(()=>alert('Correo enviado')); }
@@ -2367,12 +2301,17 @@ document.addEventListener('DOMContentLoaded', function () {
             // INICIO
             setView('investigador');
             handleNewChat(true); 
+            
+            // CARGA EN SEGUNDO PLANO
             loadChatHistory();
+            loadAnaHistory();
+            loadPreHistory();
+            loadUserPlanBadge(); // Ejecutamos badge optimista
 
         } catch (error) {
             console.error("Error crítico en runApp:", error);
             hideLoader();
-            alert("Hubo un problema al cargar la aplicación. Por favor, recarga la página.");
+            alert("Hubo un problema al cargar. Recarga la página.");
         }
     }
 
