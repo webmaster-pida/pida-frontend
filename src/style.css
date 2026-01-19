@@ -1009,3 +1009,27 @@ input:checked + .slider:before { transform: translateX(24px); }
 .plan-badge strong.vip-text {
     color: #D97706;
 }
+
+/* =========================================
+   UNIFORMIDAD DE BOTONES SUPERIORES
+   ========================================= */
+
+/* 1. Botones de Acción Principal (+ Nuevo Chat, + Subir, + Nueva) */
+#pida-new-chat-btn,
+#analyzer-upload-btn,
+#pre-new-btn {
+    width: 250px !important;       /* Ancho fijo suficiente para el título más largo */
+    justify-content: flex-start !important;   /* Alineados a la izquierda */
+    padding-left: 20px !important;            /* Margen interno uniforme */
+    box-sizing: border-box !important;
+}
+
+/* 2. Botones de Historial (Dropdowns) */
+#history-dropdown-btn,
+#analyzer-history-dropdown-btn,
+#pre-history-dropdown-btn {
+    width: 250px !important;       /* Mismo ancho que los botones de arriba */
+    justify-content: space-between !important; /* Texto a la izq, flecha a la der */
+    padding: 8px 15px !important;
+    box-sizing: border-box !important;
+}
