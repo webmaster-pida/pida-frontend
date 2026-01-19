@@ -1389,17 +1389,13 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
         
-        // VARIABLE GLOBAL DE PLAN (Se actualiza en tiempo real)
         let userPlan = null; 
-        
-        // Variable para controlar el listener y evitar duplicados
         let unsubscribePlanListener = null;
-
         const globalLoader = document.getElementById('pida-global-loader');
 
         try {
             // ============================================================
-            // 1. VERIFICACIÓN DE ACCESO DE ALTA VELOCIDAD (PARALELA)
+            // 1. VERIFICACIÓN DE ACCESO
             // ============================================================
             let hasAccess = false;
             const isOnboarding = sessionStorage.getItem('pida_is_onboarding');
@@ -1444,7 +1440,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 hasAccess = await performFastCheck();
             }
 
-            // 2. ENRUTAMIENTO INMEDIATO
+            // 2. ENRUTAMIENTO
             if (!hasAccess) {
                 if (appRoot) appRoot.style.display = 'block';
                 if (subOverlay) subOverlay.classList.remove('hidden');
@@ -1514,18 +1510,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // 4. FUNCIONES AUXILIARES
             
-            // --- FUNCIÓN DE ESCUCHA DE PLAN EN TIEMPO REAL (NUEVO) ---
+            // --- FUNCIÓN DE ESCUCHA DE PLAN (CORREGIDA) ---
             async function setupPlanListener() {
                 const badge = document.getElementById('user-plan-badge');
                 const btnPre = document.getElementById('nav-precalificador');
                 
-                // Si el DOM no está listo, reintentamos brevemente
                 if (!badge) {
                     setTimeout(setupPlanListener, 500);
                     return;
                 }
 
-                // A. PINTADO INICIAL OPTIMISTA (Para que no se vea vacío)
+                // A. PINTADO INICIAL OPTIMISTA
                 badge.classList.remove('vip-active', 'hidden');
                 badge.removeAttribute('style');
                 let initialPlan = userPlan || 'basico';
@@ -1534,7 +1529,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
                 badge.classList.remove('hidden');
 
-                // B. OBTENER ESTADO VIP (Una sola vez, ya que no cambia por webhook)
+                // Si es la carga inicial y es básico, bloqueamos preventivamente
+                if (initialPlan === 'basico' && btnPre && !btnPre.classList.contains('locked-feature')) {
+                     btnPre.innerHTML = `<span style="font-size: 1.1em;">🔒</span> <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>`;
+                     btnPre.classList.add('locked-feature');
+                }
+
+                // B. OBTENER ESTADO VIP
                 let isVip = false;
                 try {
                     const h = await Utils.getHeaders(currentUser);
@@ -1542,8 +1543,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (res.ok) { const r = await res.json(); isVip = r.is_vip_user; }
                 } catch (e) { }
 
-                // C. ACTIVAR LISTENER DE FIRESTORE (Aquí ocurre la magia del tiempo real)
-                if (unsubscribePlanListener) unsubscribePlanListener(); // Limpiar anterior si existe
+                // C. LISTENER DE FIRESTORE
+                if (unsubscribePlanListener) unsubscribePlanListener();
 
                 unsubscribePlanListener = db.collection('customers').doc(currentUser.uid)
                     .onSnapshot((doc) => {
@@ -1558,11 +1559,10 @@ document.addEventListener('DOMContentLoaded', function () {
                             }
                         }
 
-                        // Lógica final de plan (VIP manda)
                         if (isVip) realPlan = 'premium';
-                        userPlan = realPlan; // Actualizar variable global para el resto de la app
+                        userPlan = realPlan; 
 
-                        // --- ACTUALIZACIÓN DE UI (BADGE) ---
+                        // 1. Actualizar Badge
                         badge.classList.remove('vip-active');
                         badge.removeAttribute('style');
                         
@@ -1576,25 +1576,30 @@ document.addEventListener('DOMContentLoaded', function () {
                             badge.innerHTML = `Plan <strong>${finalDisplay}</strong>`;
                         }
 
-                        // --- ACTUALIZACIÓN DE UI (BOTÓN PRECALIFICADOR) ---
+                        // 2. Actualizar Botón Precalificador
                         if (btnPre) {
                             if (realPlan === 'basico' && !isVip) {
-                                // BLOQUEAR (Si cambió a básico)
+                                // --- CASO BLOQUEADO ---
+                                // Solo actualizamos visuales si es necesario para evitar parpadeo
                                 if (!btnPre.classList.contains('locked-feature')) {
                                     btnPre.innerHTML = `<span style="font-size: 1.1em;">🔒</span> <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>`;
                                     btnPre.classList.add('locked-feature');
                                 }
+                                // SIEMPRE asignamos el evento de bloqueo
                                 btnPre.onclick = (e) => {
                                     e.preventDefault(); e.stopPropagation();
                                     const modal = document.getElementById('pida-upgrade-modal');
                                     if (modal) { modal.style.display = 'flex'; setTimeout(() => modal.classList.add('active'), 10); }
                                 };
                             } else {
-                                // DESBLOQUEAR (Si cambió a avanzado/premium)
+                                // --- CASO DESBLOQUEADO (Avanzado/VIP) ---
+                                // 1. Asignamos el evento de funcionamiento PRIMERO y SIEMPRE
+                                btnPre.onclick = () => setView('precalificador');
+
+                                // 2. Actualizamos visuales si estaba bloqueado
                                 if (btnPre.classList.contains('locked-feature')) {
                                     btnPre.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg><span>Precalificador</span>`;
                                     btnPre.classList.remove('locked-feature');
-                                    btnPre.onclick = () => setView('precalificador');
                                 }
                             }
                         }
@@ -2289,7 +2294,7 @@ document.addEventListener('DOMContentLoaded', function () {
             setView('investigador');
             handleNewChat(true); 
             
-            // CARGA EN SEGUNDO PLANO (Fire and Forget)
+            // CARGA EN SEGUNDO PLANO
             loadChatHistory();
             loadAnaHistory();
             loadPreHistory();
@@ -2300,7 +2305,7 @@ document.addEventListener('DOMContentLoaded', function () {
         } catch (error) {
             console.error("Error crítico en runApp:", error);
             hideLoader();
-            alert("Hubo un problema al cargar la aplicación. Por favor, recarga la página.");
+            alert("Hubo un problema al cargar. Recarga la página.");
         }
     }
 
