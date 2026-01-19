@@ -1389,9 +1389,9 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
         
-        // VARIABLE CRÍTICA PARA EL BADGE
+        // --- VARIABLE CRÍTICA GLOBAL PARA EL SCOPE DE RUNAPP ---
         let userPlan = null; 
-
+        
         const globalLoader = document.getElementById('pida-global-loader');
 
         try {
@@ -1403,43 +1403,35 @@ document.addEventListener('DOMContentLoaded', function () {
             const setupOverlay = document.getElementById('pida-setup-overlay');
             const subOverlay = document.getElementById('pida-subscription-overlay');
 
-            // Función que lanza todas las verificaciones a la vez (Gana la más rápida)
+            // Función de verificación paralela (Gana la más rápida)
             const performFastCheck = async () => {
                 const checks = [];
-
-                // A. Check Firestore Directo (El más rápido y común)
+                // A. Check Firestore Directo
                 checks.push(db.collection('customers').doc(user.uid).get()
                     .then(doc => doc.exists && doc.data().status === 'active')
                     .catch(() => false)
                 );
-
-                // B. Check Subcolección (Stripe Extension - Compatibilidad)
+                // B. Check Subcolección (Stripe)
                 checks.push(db.collection('customers').doc(user.uid).collection('subscriptions')
                     .where('status', 'in', ['active', 'trialing']).limit(1).get()
                     .then(snap => !snap.empty)
                     .catch(() => false)
                 );
-
-                // C. Check VIP (Backend) - Lo lanzamos en paralelo para no bloquear
+                // C. Check VIP (Backend)
                 checks.push(Utils.getHeaders(user)
                     .then(h => fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h }))
                     .then(r => r.ok ? r.json() : { is_vip_user: false })
                     .then(d => d.is_vip_user)
                     .catch(() => false)
                 );
-
-                // Esperamos a que TODAS terminen y vemos si ALGUNA es verdadera
                 const results = await Promise.all(checks);
                 return results.includes(true); 
             };
 
-            // Lógica de Onboarding vs Usuario Normal
             if (isOnboarding) {
                 if (setupOverlay) setupOverlay.classList.remove('hidden');
                 if (subOverlay) subOverlay.classList.add('hidden');
-                if (globalLoader) globalLoader.style.display = 'none'; // Quitamos loader global para mostrar overlay
-
-                // Reintentos agresivos para onboarding (5 segundos máx)
+                if (globalLoader) globalLoader.style.display = 'none';
                 for (let i = 0; i < 5; i++) {
                     hasAccess = await performFastCheck();
                     if (hasAccess) break;
@@ -1450,13 +1442,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 hasAccess = await performFastCheck();
             }
 
-            // 2. ENRUTAMIENTO INMEDIATO (UX FIRST)
+            // 2. ENRUTAMIENTO INMEDIATO
             if (!hasAccess) {
                 if (appRoot) appRoot.style.display = 'block';
                 if (subOverlay) subOverlay.classList.remove('hidden');
                 if (setupOverlay) setupOverlay.classList.add('hidden');
                 hideLoader();
-                return; // DETENEMOS AQUÍ SI NO HAY ACCESO
+                return;
             }
 
             // --- ACCESO CONCEDIDO ---
@@ -1466,10 +1458,10 @@ document.addEventListener('DOMContentLoaded', function () {
             if (appRoot) appRoot.style.display = 'block';
             sessionStorage.removeItem('pida_pending_plan');
             
-            // ¡QUITAMOS EL LOADER YA! 
+            // QUITAMOS LOADER DE INMEDIATO
             hideLoader(); 
 
-            // 3. REFERENCIAS DOM (Carga completa)
+            // 3. REFERENCIAS DOM
             const dom = {
                 navInv: document.getElementById('nav-investigador'),
                 navAna: document.getElementById('nav-analizador'),
@@ -1521,103 +1513,108 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // 4. FUNCIONES AUXILIARES
             
-            // --- FUNCIÓN BADGE INSTANTÁNEA (OPTIMISTIC UI) ---
+            // --- FUNCIÓN BADGE BLINDADA (OPTIMISTIC UI) ---
             async function loadUserPlanBadge() {
                 const badge = document.getElementById('user-plan-badge');
                 const btnPre = document.getElementById('nav-precalificador');
                 
+                // Si no hay badge, reintentamos un par de veces y salimos
                 if (!badge) {
                     setTimeout(loadUserPlanBadge, 500);
                     return;
                 }
 
-                // 1. RENDERIZADO INMEDIATO (Elimina "Plan Cargando..." al instante)
-                badge.classList.remove('vip-active', 'hidden');
-                badge.removeAttribute('style');
-                
-                // Asumimos Básico por defecto para pintar la UI ya
-                let currentPlanKey = userPlan || 'basico'; 
-                let displayPlan = currentPlanKey.charAt(0).toUpperCase() + currentPlanKey.slice(1);
-                if(displayPlan === 'Basico' || displayPlan === 'Basic') displayPlan = 'Básico';
-                badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
-                badge.classList.remove('hidden');
-
-                // Bloqueo preventivo visual si es básico (y existe el botón)
-                if (currentPlanKey === 'basico' && btnPre) {
-                     if (!btnPre.classList.contains('locked-feature')) {
-                         btnPre.innerHTML = `<span style="font-size: 1.1em;">🔒</span> <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>`;
-                         btnPre.classList.add('locked-feature');
-                     }
-                     // Asignamos el click del modal por si acaso
-                     btnPre.onclick = (e) => {
-                        e.preventDefault(); e.stopPropagation();
-                        const modal = document.getElementById('pida-upgrade-modal');
-                        if (modal) { modal.style.display = 'flex'; setTimeout(() => modal.classList.add('active'), 10); }
-                    };
-                }
-
-                // 2. VERIFICACIÓN REAL (Segundo Plano)
-                let isTrial = false;
-                let isVip = false;
-                let realPlan = 'basico';
-
                 try {
-                    // Check VIP
-                    const h = await Utils.getHeaders(currentUser);
-                    // Timeout corto para VIP check
-                    const vipCheck = fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h })
-                                    .then(r => r.json()).then(d => d.is_vip_user).catch(() => false);
-                    isVip = await Promise.race([vipCheck, new Promise(r => setTimeout(() => r(false), 2000))]);
-                } catch (e) { }
+                    // 1. RENDERIZADO INMEDIATO (Elimina "Plan Cargando...")
+                    badge.classList.remove('vip-active', 'hidden');
+                    badge.removeAttribute('style');
+                    
+                    // Asumimos Básico por defecto para pintar YA
+                    let currentPlanKey = userPlan || 'basico'; 
+                    let displayPlan = currentPlanKey.charAt(0).toUpperCase() + currentPlanKey.slice(1);
+                    if(displayPlan === 'Basico' || displayPlan === 'Basic') displayPlan = 'Básico';
+                    
+                    // Pintamos HTML
+                    badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
+                    badge.classList.remove('hidden');
 
-                try {
-                    // Check Firestore
-                    const userDoc = await db.collection('customers').doc(currentUser.uid).get();
-                    if (userDoc.exists) {
-                        const data = userDoc.data();
-                        if (data.status === 'active' || data.status === 'trialing') {
-                            realPlan = data.plan || 'basico';
-                            isTrial = data.has_trial || false;
-                        }
-                    }
-                } catch (e) { }
-
-                // 3. ACTUALIZACIÓN FINAL (Si cambió algo)
-                if (isVip) realPlan = 'premium';
-                userPlan = realPlan; // Actualizar variable global para el resto de la app
-
-                // Repintar Badge
-                if (isVip) {
-                    badge.classList.add('vip-active');
-                    badge.innerHTML = `Plan <strong class="vip-text">VIP</strong> 🌟`;
-                } else {
-                    let finalDisplay = realPlan.charAt(0).toUpperCase() + realPlan.slice(1);
-                    if(finalDisplay === 'Basico' || finalDisplay === 'Basic') finalDisplay = 'Básico';
-                    if (isTrial) finalDisplay += " <span style='font-size:0.85em; opacity:0.8;'>(Prueba)</span>";
-                    badge.innerHTML = `Plan <strong>${finalDisplay}</strong>`;
-                }
-
-                // Actualizar Botón Precalificador (Desbloquear si aplica)
-                if (btnPre) {
-                    if (realPlan === 'basico' && !isVip) {
-                        // Mantener bloqueo
+                    // Bloqueo preventivo visual si es básico (y existe el botón)
+                    if (currentPlanKey === 'basico' && btnPre) {
                         if (!btnPre.classList.contains('locked-feature')) {
                             btnPre.innerHTML = `<span style="font-size: 1.1em;">🔒</span> <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>`;
                             btnPre.classList.add('locked-feature');
-                            btnPre.onclick = (e) => {
-                                e.preventDefault(); e.stopPropagation();
-                                const modal = document.getElementById('pida-upgrade-modal');
-                                if (modal) { modal.style.display = 'flex'; setTimeout(() => modal.classList.add('active'), 10); }
-                            };
                         }
+                        btnPre.onclick = (e) => {
+                            e.preventDefault(); e.stopPropagation();
+                            const modal = document.getElementById('pida-upgrade-modal');
+                            if (modal) { modal.style.display = 'flex'; setTimeout(() => modal.classList.add('active'), 10); }
+                        };
+                    }
+
+                    // 2. VERIFICACIÓN REAL (Segundo Plano)
+                    let isTrial = false;
+                    let isVip = false;
+                    let realPlan = 'basico';
+
+                    // Check VIP
+                    try {
+                        const h = await Utils.getHeaders(currentUser);
+                        const vipCheck = fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h })
+                                        .then(r => r.json()).then(d => d.is_vip_user).catch(() => false);
+                        isVip = await Promise.race([vipCheck, new Promise(r => setTimeout(() => r(false), 2000))]);
+                    } catch (e) {}
+
+                    // Check Firestore
+                    try {
+                        const userDoc = await db.collection('customers').doc(currentUser.uid).get();
+                        if (userDoc.exists) {
+                            const data = userDoc.data();
+                            if (data.status === 'active' || data.status === 'trialing') {
+                                realPlan = data.plan || 'basico';
+                                isTrial = data.has_trial || false;
+                            }
+                        }
+                    } catch (e) {}
+
+                    // 3. ACTUALIZACIÓN FINAL
+                    if (isVip) realPlan = 'premium';
+                    userPlan = realPlan; // Actualizar variable global
+
+                    // Repintar Badge con datos finales
+                    if (isVip) {
+                        badge.classList.add('vip-active');
+                        badge.innerHTML = `Plan <strong class="vip-text">VIP</strong> 🌟`;
                     } else {
-                        // Desbloquear
-                        if (btnPre.classList.contains('locked-feature')) {
-                            btnPre.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg><span>Precalificador</span>`;
-                            btnPre.classList.remove('locked-feature');
-                            btnPre.onclick = () => setView('precalificador');
+                        let finalDisplay = realPlan.charAt(0).toUpperCase() + realPlan.slice(1);
+                        if(finalDisplay === 'Basico' || finalDisplay === 'Basic') finalDisplay = 'Básico';
+                        if (isTrial) finalDisplay += " <span style='font-size:0.85em; opacity:0.8;'>(Prueba)</span>";
+                        badge.innerHTML = `Plan <strong>${finalDisplay}</strong>`;
+                    }
+
+                    // Actualizar Botón Precalificador
+                    if (btnPre) {
+                        if (realPlan === 'basico' && !isVip) {
+                            // Bloqueado
+                            if (!btnPre.classList.contains('locked-feature')) {
+                                btnPre.innerHTML = `<span style="font-size: 1.1em;">🔒</span> <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>`;
+                                btnPre.classList.add('locked-feature');
+                                btnPre.onclick = (e) => {
+                                    e.preventDefault(); e.stopPropagation();
+                                    const modal = document.getElementById('pida-upgrade-modal');
+                                    if (modal) { modal.style.display = 'flex'; setTimeout(() => modal.classList.add('active'), 10); }
+                                };
+                            }
+                        } else {
+                            // Desbloqueado
+                            if (btnPre.classList.contains('locked-feature')) {
+                                btnPre.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg><span>Precalificador</span>`;
+                                btnPre.classList.remove('locked-feature');
+                                btnPre.onclick = () => setView('precalificador');
+                            }
                         }
                     }
+                } catch (e) {
+                    console.error("Error cargando badge:", e);
                 }
             }
 
@@ -1662,33 +1659,25 @@ document.addEventListener('DOMContentLoaded', function () {
             // --- GESTIÓN DE VISTAS ---
             function setView(view) {
                 state.currentView = view;
-                
-                // 1. Navbar
                 if(dom.navInv) dom.navInv.classList.toggle('active', view === 'investigador');
                 if(dom.navAna) dom.navAna.classList.toggle('active', view === 'analizador');
                 if(dom.navPre) dom.navPre.classList.toggle('active', view === 'precalificador');
-
-                // 2. Secciones
                 if(dom.viewInv) dom.viewInv.classList.toggle('hidden', view !== 'investigador');
                 if(dom.viewAna) dom.viewAna.classList.toggle('hidden', view !== 'analizador');
                 if(dom.viewPre) dom.viewPre.classList.toggle('hidden', view !== 'precalificador');
                 if(dom.viewAcc) dom.viewAcc.classList.toggle('hidden', view !== 'cuenta');
                 
-                // 3. Controles del Header
-                const chatCtrls = document.getElementById('chat-controls');
-                const anaCtrls = document.getElementById('analyzer-controls');
-                const preCtrls = document.getElementById('precalifier-controls');
-                const accCtrls = document.getElementById('account-controls');
+                if(view === 'investigador') { loadChatHistory(); document.getElementById('chat-controls').classList.remove('hidden'); }
+                else document.getElementById('chat-controls').classList.add('hidden');
                 
-                if(chatCtrls) chatCtrls.classList.toggle('hidden', view !== 'investigador');
-                if(anaCtrls) anaCtrls.classList.toggle('hidden', view !== 'analizador');
-                if(preCtrls) preCtrls.classList.toggle('hidden', view !== 'precalificador');
-                if(accCtrls) accCtrls.classList.toggle('hidden', view !== 'cuenta');
-
-                // 4. Lazy Load (Carga silenciosa)
-                if (view === 'investigador') loadChatHistory();
-                if (view === 'analizador') loadAnaHistory();
-                if (view === 'precalificador') loadPreHistory();
+                if(view === 'analizador') { loadAnaHistory(); document.getElementById('analyzer-controls').classList.remove('hidden'); }
+                else document.getElementById('analyzer-controls').classList.add('hidden');
+                
+                if(view === 'precalificador') { loadPreHistory(); document.getElementById('precalifier-controls').classList.remove('hidden'); }
+                else document.getElementById('precalifier-controls').classList.add('hidden');
+                
+                if(view === 'cuenta') document.getElementById('account-controls').classList.remove('hidden');
+                else document.getElementById('account-controls').classList.add('hidden');
             }
 
             // MODAL PREMIUM
@@ -1699,7 +1688,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (btnUpgradeAction) btnUpgradeAction.onclick = () => { closeUpgradeModal(); if (dom.accBilling) dom.accBilling.click(); };
             if (btnCloseUpgrade) btnCloseUpgrade.onclick = (e) => { e.preventDefault(); closeUpgradeModal(); };
 
-            // Listeners de Navegación
+            // Listeners
             if(dom.navInv) dom.navInv.onclick = () => setView('investigador');
             if(dom.navAna) dom.navAna.onclick = () => setView('analizador');
             if(dom.pAvatar) dom.pAvatar.onclick = () => setView('cuenta');
@@ -1768,7 +1757,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         delBtn.style.color = '#EF4444'; 
                         delBtn.onclick = async (e) => {
                             e.stopPropagation();
-                            // ELIMINACIÓN DIRECTA (Sin confirmación)
                             await fetch(`${PIDA_CONFIG.API_ANA}/analysis-history/${a.id}`, { method: 'DELETE', headers: h });
                             loadAnaHistory(); 
                         };
@@ -1811,7 +1799,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             delBtn.innerHTML = '✕';
                             delBtn.onclick = async (e) => {
                                 e.stopPropagation();
-                                // ELIMINACIÓN DIRECTA (Sin confirmación)
                                 await fetch(`${PIDA_CONFIG.API_CHAT}/conversations/${c.id}`, { method: 'DELETE', headers: h });
                                 loadChatHistory();
                             };
@@ -1863,12 +1850,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         delBtn.className = 'delete-icon-btn';
                         delBtn.style.color = '#EF4444'; 
                         delBtn.innerHTML = `✕`;
-                        delBtn.onclick = async (e) => { 
-                            e.stopPropagation(); 
-                            // ELIMINACIÓN DIRECTA (Sin confirmación)
-                            await doc.ref.delete(); 
-                            loadPreHistory(); 
-                        };
+                        delBtn.onclick = async (e) => { e.stopPropagation(); await doc.ref.delete(); loadPreHistory(); };
                         item.appendChild(titleSpan);
                         item.appendChild(delBtn);
                         dom.preHistList.appendChild(item);
@@ -2248,7 +2230,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         if (!response.ok) {
                             dom.preBtn.disabled = false;
                             dom.preLoader.style.display = 'none';
-                            // Mostramos el contenedor vacío para evitar saltos
                             dom.preResponseCont.style.display = 'block'; 
                             
                             if (response.status === 429 || response.status === 403 || response.status === 402) {
