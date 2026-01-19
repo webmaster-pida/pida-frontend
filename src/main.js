@@ -1389,9 +1389,12 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
         
-        // --- VARIABLE CRÍTICA GLOBAL PARA EL SCOPE DE RUNAPP ---
+        // VARIABLE GLOBAL DE PLAN (Se actualiza en tiempo real)
         let userPlan = null; 
         
+        // Variable para controlar el listener y evitar duplicados
+        let unsubscribePlanListener = null;
+
         const globalLoader = document.getElementById('pida-global-loader');
 
         try {
@@ -1403,7 +1406,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const setupOverlay = document.getElementById('pida-setup-overlay');
             const subOverlay = document.getElementById('pida-subscription-overlay');
 
-            // Función de verificación paralela (Gana la más rápida)
             const performFastCheck = async () => {
                 const checks = [];
                 // A. Check Firestore Directo
@@ -1458,7 +1460,6 @@ document.addEventListener('DOMContentLoaded', function () {
             if (appRoot) appRoot.style.display = 'block';
             sessionStorage.removeItem('pida_pending_plan');
             
-            // QUITAMOS LOADER DE INMEDIATO
             hideLoader(); 
 
             // 3. REFERENCIAS DOM
@@ -1513,109 +1514,94 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // 4. FUNCIONES AUXILIARES
             
-            // --- FUNCIÓN BADGE BLINDADA (OPTIMISTIC UI) ---
-            async function loadUserPlanBadge() {
+            // --- FUNCIÓN DE ESCUCHA DE PLAN EN TIEMPO REAL (NUEVO) ---
+            async function setupPlanListener() {
                 const badge = document.getElementById('user-plan-badge');
                 const btnPre = document.getElementById('nav-precalificador');
                 
-                // Si no hay badge, reintentamos un par de veces y salimos
+                // Si el DOM no está listo, reintentamos brevemente
                 if (!badge) {
-                    setTimeout(loadUserPlanBadge, 500);
+                    setTimeout(setupPlanListener, 500);
                     return;
                 }
 
+                // A. PINTADO INICIAL OPTIMISTA (Para que no se vea vacío)
+                badge.classList.remove('vip-active', 'hidden');
+                badge.removeAttribute('style');
+                let initialPlan = userPlan || 'basico';
+                let displayPlan = initialPlan.charAt(0).toUpperCase() + initialPlan.slice(1);
+                if(displayPlan === 'Basico' || displayPlan === 'Basic') displayPlan = 'Básico';
+                badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
+                badge.classList.remove('hidden');
+
+                // B. OBTENER ESTADO VIP (Una sola vez, ya que no cambia por webhook)
+                let isVip = false;
                 try {
-                    // 1. RENDERIZADO INMEDIATO (Elimina "Plan Cargando...")
-                    badge.classList.remove('vip-active', 'hidden');
-                    badge.removeAttribute('style');
-                    
-                    // Asumimos Básico por defecto para pintar YA
-                    let currentPlanKey = userPlan || 'basico'; 
-                    let displayPlan = currentPlanKey.charAt(0).toUpperCase() + currentPlanKey.slice(1);
-                    if(displayPlan === 'Basico' || displayPlan === 'Basic') displayPlan = 'Básico';
-                    
-                    // Pintamos HTML
-                    badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
-                    badge.classList.remove('hidden');
+                    const h = await Utils.getHeaders(currentUser);
+                    const res = await fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h });
+                    if (res.ok) { const r = await res.json(); isVip = r.is_vip_user; }
+                } catch (e) { }
 
-                    // Bloqueo preventivo visual si es básico (y existe el botón)
-                    if (currentPlanKey === 'basico' && btnPre) {
-                        if (!btnPre.classList.contains('locked-feature')) {
-                            btnPre.innerHTML = `<span style="font-size: 1.1em;">🔒</span> <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>`;
-                            btnPre.classList.add('locked-feature');
-                        }
-                        btnPre.onclick = (e) => {
-                            e.preventDefault(); e.stopPropagation();
-                            const modal = document.getElementById('pida-upgrade-modal');
-                            if (modal) { modal.style.display = 'flex'; setTimeout(() => modal.classList.add('active'), 10); }
-                        };
-                    }
+                // C. ACTIVAR LISTENER DE FIRESTORE (Aquí ocurre la magia del tiempo real)
+                if (unsubscribePlanListener) unsubscribePlanListener(); // Limpiar anterior si existe
 
-                    // 2. VERIFICACIÓN REAL (Segundo Plano)
-                    let isTrial = false;
-                    let isVip = false;
-                    let realPlan = 'basico';
+                unsubscribePlanListener = db.collection('customers').doc(currentUser.uid)
+                    .onSnapshot((doc) => {
+                        let realPlan = 'basico';
+                        let isTrial = false;
 
-                    // Check VIP
-                    try {
-                        const h = await Utils.getHeaders(currentUser);
-                        const vipCheck = fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h })
-                                        .then(r => r.json()).then(d => d.is_vip_user).catch(() => false);
-                        isVip = await Promise.race([vipCheck, new Promise(r => setTimeout(() => r(false), 2000))]);
-                    } catch (e) {}
-
-                    // Check Firestore
-                    try {
-                        const userDoc = await db.collection('customers').doc(currentUser.uid).get();
-                        if (userDoc.exists) {
-                            const data = userDoc.data();
+                        if (doc.exists) {
+                            const data = doc.data();
                             if (data.status === 'active' || data.status === 'trialing') {
                                 realPlan = data.plan || 'basico';
                                 isTrial = data.has_trial || false;
                             }
                         }
-                    } catch (e) {}
 
-                    // 3. ACTUALIZACIÓN FINAL
-                    if (isVip) realPlan = 'premium';
-                    userPlan = realPlan; // Actualizar variable global
+                        // Lógica final de plan (VIP manda)
+                        if (isVip) realPlan = 'premium';
+                        userPlan = realPlan; // Actualizar variable global para el resto de la app
 
-                    // Repintar Badge con datos finales
-                    if (isVip) {
-                        badge.classList.add('vip-active');
-                        badge.innerHTML = `Plan <strong class="vip-text">VIP</strong> 🌟`;
-                    } else {
-                        let finalDisplay = realPlan.charAt(0).toUpperCase() + realPlan.slice(1);
-                        if(finalDisplay === 'Basico' || finalDisplay === 'Basic') finalDisplay = 'Básico';
-                        if (isTrial) finalDisplay += " <span style='font-size:0.85em; opacity:0.8;'>(Prueba)</span>";
-                        badge.innerHTML = `Plan <strong>${finalDisplay}</strong>`;
-                    }
+                        // --- ACTUALIZACIÓN DE UI (BADGE) ---
+                        badge.classList.remove('vip-active');
+                        badge.removeAttribute('style');
+                        
+                        if (isVip) {
+                            badge.classList.add('vip-active');
+                            badge.innerHTML = `Plan <strong class="vip-text">VIP</strong> 🌟`;
+                        } else {
+                            let finalDisplay = realPlan.charAt(0).toUpperCase() + realPlan.slice(1);
+                            if(finalDisplay === 'Basico' || finalDisplay === 'Basic') finalDisplay = 'Básico';
+                            if (isTrial) finalDisplay += " <span style='font-size:0.85em; opacity:0.8;'>(Prueba)</span>";
+                            badge.innerHTML = `Plan <strong>${finalDisplay}</strong>`;
+                        }
 
-                    // Actualizar Botón Precalificador
-                    if (btnPre) {
-                        if (realPlan === 'basico' && !isVip) {
-                            // Bloqueado
-                            if (!btnPre.classList.contains('locked-feature')) {
-                                btnPre.innerHTML = `<span style="font-size: 1.1em;">🔒</span> <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>`;
-                                btnPre.classList.add('locked-feature');
+                        // --- ACTUALIZACIÓN DE UI (BOTÓN PRECALIFICADOR) ---
+                        if (btnPre) {
+                            if (realPlan === 'basico' && !isVip) {
+                                // BLOQUEAR (Si cambió a básico)
+                                if (!btnPre.classList.contains('locked-feature')) {
+                                    btnPre.innerHTML = `<span style="font-size: 1.1em;">🔒</span> <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>`;
+                                    btnPre.classList.add('locked-feature');
+                                }
                                 btnPre.onclick = (e) => {
                                     e.preventDefault(); e.stopPropagation();
                                     const modal = document.getElementById('pida-upgrade-modal');
                                     if (modal) { modal.style.display = 'flex'; setTimeout(() => modal.classList.add('active'), 10); }
                                 };
-                            }
-                        } else {
-                            // Desbloqueado
-                            if (btnPre.classList.contains('locked-feature')) {
-                                btnPre.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg><span>Precalificador</span>`;
-                                btnPre.classList.remove('locked-feature');
-                                btnPre.onclick = () => setView('precalificador');
+                            } else {
+                                // DESBLOQUEAR (Si cambió a avanzado/premium)
+                                if (btnPre.classList.contains('locked-feature')) {
+                                    btnPre.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg><span>Precalificador</span>`;
+                                    btnPre.classList.remove('locked-feature');
+                                    btnPre.onclick = () => setView('precalificador');
+                                }
                             }
                         }
-                    }
-                } catch (e) {
-                    console.error("Error cargando badge:", e);
-                }
+                        
+                    }, (error) => {
+                        console.error("Error escuchando cambios de plan:", error);
+                    });
             }
 
             // Estado Global
@@ -2307,7 +2293,9 @@ document.addEventListener('DOMContentLoaded', function () {
             loadChatHistory();
             loadAnaHistory();
             loadPreHistory();
-            loadUserPlanBadge(); 
+            
+            // ACTIVAR ESCUCHA EN TIEMPO REAL
+            setupPlanListener(); 
 
         } catch (error) {
             console.error("Error crítico en runApp:", error);
