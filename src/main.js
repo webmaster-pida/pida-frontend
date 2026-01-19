@@ -1506,124 +1506,101 @@ document.addEventListener('DOMContentLoaded', function () {
                 mobileMenuLogout: document.getElementById('mobile-nav-logout')
             };
 
-            // --- FUNCIÓN PARA MOSTRAR EL PLAN Y GESTIONAR PERMISOS UI (VERSIÓN FINAL BLINDADA) ---
+            // --- FUNCIÓN PARA MOSTRAR EL PLAN Y GESTIONAR PERMISOS UI (BLINDADA) ---
             async function loadUserPlanBadge() {
                 const badge = document.getElementById('user-plan-badge');
-                // Si el elemento no existe en el DOM, salimos para evitar errores
-                if (!badge) return;
-
-                // 1. LIMPIEZA TOTAL DE ESTILOS (CRÍTICO)
-                // Esto garantiza que si vienes de una cuenta VIP, se borren los estilos dorados
-                badge.classList.remove('vip-active');
-                badge.removeAttribute('style'); 
+                const btnPre = document.getElementById('nav-precalificador');
                 
-                let planKey = 'basico'; 
-                let isTrial = false;
-                
-                // 2. VERIFICACIÓN VIP (Backend Check)
-                let isVip = false;
-                try {
-                    const h = await Utils.getHeaders(currentUser);
-                    const res = await fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h });
-                    if (res.ok) {
-                        const r = await res.json();
-                        isVip = r.is_vip_user;
-                    }
-                } catch (e) { 
-                    console.error("Error checking VIP:", e); 
+                // Si el DOM no está listo, esperamos un poco y reintentamos (máximo 1 vez por llamada recursiva no controlada)
+                if (!badge || !btnPre) {
+                    console.warn("DOM no listo para badge, reintentando en 500ms...");
+                    setTimeout(loadUserPlanBadge, 500);
+                    return;
                 }
 
-                // 3. OBTENER DATOS DE FIRESTORE (Plan normal de suscripción)
+                // 1. LIMPIEZA
+                badge.classList.remove('vip-active', 'hidden');
+                badge.removeAttribute('style'); 
+                
+                // POR DEFECTO: Asumimos Básico (Lock) hasta demostrar lo contrario (Seguridad por defecto)
+                let planKey = 'basico'; 
+                let isTrial = false;
+                let isVip = false;
+
                 try {
-                    // Usamos currentUser.uid para asegurar que leemos el usuario actual
+                    // 2. VERIFICACIÓN VIP
+                    const h = await Utils.getHeaders(currentUser);
+                    // Usamos Promise.race para que no se quede colgado si el backend tarda
+                    const vipCheck = fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h })
+                                    .then(r => r.json())
+                                    .then(d => d.is_vip_user)
+                                    .catch(() => false);
+                    
+                    // Damos 2 segundos máximo al chequeo VIP
+                    const timeout = new Promise(resolve => setTimeout(() => resolve(false), 2000));
+                    isVip = await Promise.race([vipCheck, timeout]);
+
+                } catch (e) { console.warn("Check VIP error:", e); }
+
+                try {
+                    // 3. OBTENER DATOS DE FIRESTORE
+                    // Usamos currentUser.uid directo
                     const userDoc = await db.collection('customers').doc(currentUser.uid).get();
                     if (userDoc.exists) {
                         const data = userDoc.data();
-                        if (data.status === 'active') {
+                        // Solo si está activo o trialing tomamos el plan, si no, se queda en básico (default)
+                        if (data.status === 'active' || data.status === 'trialing') {
                             planKey = data.plan || 'basico';
                             isTrial = data.has_trial || false;
                         }
                     }
-                } catch (e) { 
-                    console.error("Error getting plan:", e); 
-                }
+                } catch (e) { console.error("Error getting plan:", e); }
 
-                // 4. LÓGICA DE NEGOCIO (Fuerza Mayor)
-                // Si el backend confirma que es VIP, ignoramos el plan de la BD y forzamos 'premium'
-                // para desbloquear funcionalmente todas las herramientas en el frontend.
-                if (isVip) {
-                    planKey = 'premium';
-                }
-                
-                // Actualizamos la variable global userPlan
-                userPlan = planKey; 
+                // 4. LÓGICA DE PRIORIDAD
+                if (isVip) planKey = 'premium';
+                userPlan = planKey; // Variable global actualizada
 
-                // 5. RENDERIZADO VISUAL DEL BADGE
+                // 5. RENDERIZADO BADGE
                 badge.classList.remove('hidden');
-
                 if (isVip) {
-                    // MODO VIP: Aplicamos la clase CSS definida en style.css
                     badge.classList.add('vip-active');
                     badge.innerHTML = `Plan <strong class="vip-text">VIP</strong> 🌟`;
                 } else {
-                    // MODO NORMAL: Renderizado estándar
                     let displayPlan = planKey.charAt(0).toUpperCase() + planKey.slice(1);
-                    
-                    // Corrección de tilde
-                    if(displayPlan === 'Basico') displayPlan = 'Básico';
-                    
-                    // Indicador de prueba
+                    if(displayPlan === 'Basico' || displayPlan === 'Basic') displayPlan = 'Básico';
                     if (isTrial) displayPlan += " <span style='font-size:0.85em; opacity:0.8;'>(Prueba)</span>";
-                    
                     badge.innerHTML = `Plan <strong>${displayPlan}</strong>`;
                 }
 
-                // 6. GESTIÓN DEL BOTÓN PRECALIFICADOR (Bloqueo/Desbloqueo)
-                const btnPre = document.getElementById('nav-precalificador');
-                if (btnPre) {
-                    if (planKey === 'basico') {
-                        // --- CASO BLOQUEADO (Solo Plan Básico No-VIP) ---
-                        btnPre.innerHTML = `
-                            <span style="font-size: 1.1em;">🔒</span> 
-                            <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>
-                        `;
-                        // Añadimos clase visual de bloqueo
-                        btnPre.classList.add('locked-feature');
-                        
-                        // Mantenemos el cursor pointer para que el usuario pueda hacer clic y ver el modal
-                        btnPre.style.cursor = 'pointer'; 
-                        btnPre.title = "Haz clic para desbloquear esta función";
-
-                        // Sobrescribimos el evento click para abrir el modal de upgrade
-                        btnPre.onclick = (e) => {
-                            e.preventDefault(); 
-                            e.stopPropagation();
-                            const modal = document.getElementById('pida-upgrade-modal');
-                            if (modal) {
-                                modal.style.display = 'flex';
-                                // Pequeño delay para permitir la transición de opacidad
-                                setTimeout(() => modal.classList.add('active'), 10);
-                            }
-                        };
-                    } else {
-                        // --- CASO DESBLOQUEADO (Avanzado, Premium o VIP) ---
-                        btnPre.innerHTML = `
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg>
-                            <span>Precalificador</span>
-                        `;
-                        // Quitamos clase de bloqueo
+                // 6. GESTIÓN DEL BOTÓN PRECALIFICADOR (Bloqueo Visual)
+                if (planKey === 'basico' && !isVip) {
+                    // BLOQUEADO
+                    btnPre.innerHTML = `<span style="font-size: 1.1em;">🔒</span> <span style="text-decoration: line-through; opacity: 0.6;">Precalificador</span>`;
+                    btnPre.classList.add('locked-feature');
+                    btnPre.style.cursor = 'pointer';
+                    btnPre.title = "Función exclusiva para planes Avanzado y Premium";
+                    // Sobrescribimos evento para mostrar modal
+                    btnPre.onclick = (e) => {
+                        e.preventDefault(); e.stopPropagation();
+                        const modal = document.getElementById('pida-upgrade-modal');
+                        if (modal) { modal.style.display = 'flex'; setTimeout(() => modal.classList.add('active'), 10); }
+                    };
+                } else {
+                    // DESBLOQUEADO
+                    // Solo redibujamos si estaba bloqueado o sucio
+                    if (btnPre.classList.contains('locked-feature') || btnPre.textContent.includes('🔒')) {
+                        btnPre.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6C5.44772 2 5 2.44772 5 3V21C5 21.5523 5.44772 22 6 22H18C18.5523 22 19 21.5523 19 21V7L14 2ZM15 8V4L18 7H15ZM12 18C10.3431 18 9 16.6569 9 15C9 13.3431 10.3431 12 12 12C13.6569 12 15 13.3431 15 15C15 16.6569 13.6569 18 12 18ZM12 16C12.5523 16 13 15.5523 13 15C13 14.4477 12.5523 14 12 14C11.4477 14 11 14.4477 11 15C11 15.5523 11.4477 16 12 16Z"></path></svg><span>Precalificador</span>`;
                         btnPre.classList.remove('locked-feature');
-                        btnPre.style.cursor = 'pointer';
                         btnPre.title = "";
-                        
-                        // Restauramos la navegación normal
                         btnPre.onclick = () => setView('precalificador');
                     }
                 }
             }
 
-            // EJECUTAR LA CARGA DEL BADGE
-            loadUserPlanBadge();
+            // EJECUTAR LA CARGA DEL BADGE (Estrategia de doble ejecución)
+            loadUserPlanBadge(); 
+            // Reintento de seguridad a los 1.5 segundos para garantizar sincronización visual
+            setTimeout(loadUserPlanBadge, 1500);
 
             // Estado Global
             let state = { currentView: 'investigador', conversations: [], currentChat: { id: null, title: '', messages: [] }, anaFiles: [], anaText: "", anaHistory: [], preText: "" };
