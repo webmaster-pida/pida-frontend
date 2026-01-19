@@ -2278,14 +2278,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 dom.anaControls.style.display = 'none'; 
                 dom.anaLoader.style.display = 'none';
                 
-                // Diseño tipo Chat pero sin robot y enfocado al Analizador
+                // Texto EXACTO solicitado con formato limpio (sin robot)
                 dom.anaResTxt.innerHTML = `
                     <div class="pida-bubble pida-message-bubble">
                         <div class="pida-welcome-content">
                             <div class="pida-welcome-text" style="padding-left: 0;">
-                                <h3>¡Hola! Soy el Analizador de Documentos PIDA.</h3>
-                                <p>Sube tus archivos (PDF o DOCX) para que pueda procesarlos, extraer la información clave y entregarte un análisis jurídico sistemático y detallado.</p>
-                                <strong>¿Qué documentos revisaremos hoy?</strong>
+                                <h3>Analizador de Documentos</h3>
+                                <p>Sube tus archivos (PDF, DOCX) y escribe una instrucción clara. PIDA leerá, resumirá y sitematizará el documento por ti.</p>
+                                
+                                <p style="margin-top: 15px; font-weight: bold; color: #1D3557;">Ejemplos de lo que puedes pedir:</p>
+                                <ul style="margin: 8px 0 0 20px; padding: 0; list-style-type: disc; color: #374151;">
+                                    <li style="margin-bottom: 6px;">"Haz un resumen ejecutivo de este documento (contrato, sentencia, tesis, etc)."</li>
+                                    <li style="margin-bottom: 6px;">"Identifica las cláusulas de rescisión y sus penalizaciones."</li>
+                                    <li style="margin-bottom: 6px;">"Extrae una lista cronológica de los hechos en esta sentencia y prepara un borrador de recurso de impugnación confirme a la legislación del país que se trate."</li>
+                                    <li>"¿Existen riesgos legales para mi cliente en este documento?"</li>
+                                </ul>
                             </div>
                         </div>
                     </div>`;
@@ -2294,60 +2301,105 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if(dom.anaBtn) {
                 dom.anaBtn.onclick = async () => {
+                    // 1. Validar que haya archivos
                     if (!state.anaFiles.length) { alert("Sube al menos un documento."); return; }
                     
-                    // ... (código de UI loading igual que antes) ...
+                    // 2. PREPARAR UI (Mostrar Loader y Limpiar)
+                    dom.anaLoader.style.display = 'flex';
+                    dom.anaResBox.style.display = 'block';
+                    // Ocultamos el contenedor de texto/bienvenida mientras carga
+                    document.getElementById('analyzer-response-container').style.display = 'none';
+                    dom.anaControls.style.display = 'none';
+                    dom.anaResTxt.innerHTML = '';
+                    state.anaText = "";
                     
+                    // 3. Preparar Datos
                     const fd = new FormData();
                     state.anaFiles.forEach(f => fd.append('files', f));
-                    fd.append('instructions', dom.anaInst.value || "Analizar estos documentos");
+                    // CORRECCIÓN ERROR 422: Enviar instrucciones (o texto por defecto)
+                    fd.append('instructions', dom.anaInst.value.trim() || "Realizar un análisis jurídico detallado de estos documentos, identificando puntos clave, riesgos y conclusiones.");
 
                     try {
                         const token = await user.getIdToken();
+                        
+                        // 4. Petición al Backend
                         const r = await fetch(`${PIDA_CONFIG.API_ANA}/analyze/`, {
                             method: 'POST', headers: { 'Authorization': 'Bearer ' + token }, body: fd
                         });
                         
-                        // --- NUEVO MANEJO DE ERRORES DEL ANALIZADOR ---
+                        // --- MANEJO DE ERRORES (LÍMITES Y PERMISOS) ---
                         if (!r.ok) {
+                            // Ocultamos loader y restauramos bienvenida/error si falla
+                            dom.anaLoader.style.display = 'none';
+                            document.getElementById('analyzer-response-container').style.display = 'block';
+                            
                             if (r.status === 429 || r.status === 403 || r.status === 402) {
-                                dom.anaLoader.style.display = 'none';
-                                document.getElementById('analyzer-response-container').style.display = 'block';
-                                
                                 let limitMsg = "No se pudo realizar el análisis.";
-                                
                                 try {
                                     const errData = await r.json();
                                     const detail = (errData.detail || "").toLowerCase();
                                     
-                                    // Mapeo inteligente de mensajes
                                     if (detail.includes('límite diario')) {
                                         if (detail.includes('basico')) limitMsg = "Has agotado tus 3 análisis diarios del Plan Básico.";
                                         else if (detail.includes('avanzado')) limitMsg = "Has agotado tus 15 análisis diarios del Plan Avanzado.";
                                         else limitMsg = "Has alcanzado tu límite diario de análisis.";
                                     } else if (detail.includes('documento')) {
-                                        // Error de cantidad de archivos
-                                        limitMsg = errData.detail; // Usamos el mensaje directo del backend que ya es descriptivo
+                                        limitMsg = errData.detail; // Error de cantidad de archivos
                                     } else {
                                         limitMsg = errData.detail || limitMsg;
                                     }
                                 } catch (e) {
                                     console.error("Error parsing analyzer error:", e);
                                 }
-
-                                // Usamos el MISMO modal de límites del chat (Reutilización eficiente)
                                 openLimitModal(limitMsg);
                                 return;
                             }
                             throw new Error(`Error del servidor (${r.status})`);
                         }
-                        // ---------------------------------------------
 
-                        // ... (Resto del código de procesamiento del stream igual que antes) ...
+                        // --- PROCESAMIENTO DEL STREAM (ÉXITO) ---
+                        const reader = r.body.getReader();
+                        const decoder = new TextDecoder();
+                        let fullText = "";
+                        
+                        while (true) {
+                            const { value, done } = await reader.read();
+                            if (done) break;
+                            const chunk = decoder.decode(value);
+                            const lines = chunk.split('\n\n');
+                            
+                            for (const line of lines) {
+                                if (line.startsWith('data:')) {
+                                    try {
+                                        const d = JSON.parse(line.substring(6));
+                                        
+                                        if (d.error) throw new Error(d.error);
+
+                                        if (d.text) {
+                                            // Al recibir el primer texto, ocultamos loader y mostramos resultado
+                                            if (dom.anaLoader.style.display !== 'none') { 
+                                                dom.anaLoader.style.display = 'none'; 
+                                                document.getElementById('analyzer-response-container').style.display = 'block'; 
+                                            }
+                                            fullText += d.text;
+                                            dom.anaResTxt.innerHTML = Utils.sanitize(marked.parse(fullText));
+                                        }
+                                        
+                                        if (d.done) {
+                                            state.anaText = fullText;
+                                            dom.anaControls.style.display = 'flex'; // Mostrar botones de descarga
+                                            loadAnaHistory(); // Recargar historial
+                                        }
+                                    } catch (e) { console.error(e); }
+                                }
+                            }
+                        }
 
                     } catch (e) {
+                        console.error("Error en análisis:", e);
                         dom.anaLoader.style.display = 'none';
-                        // ... (Manejo de errores genéricos) ...
+                        document.getElementById('analyzer-response-container').style.display = 'block';
+                        dom.anaResTxt.innerHTML = `<div style="color:#EF4444; padding:20px;">❌ Ocurrió un error al procesar los documentos: ${e.message}</div>`;
                     }
                 };
             }
