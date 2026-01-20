@@ -1444,7 +1444,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             // 2. ENRUTAMIENTO INMEDIATO
+            // 2. ENRUTAMIENTO INMEDIATO
             if (!hasAccess) {
+                // --- CORRECCIÓN: Definimos las variables AQUÍ MISMO para evitar el ReferenceError ---
+                const setupOverlay = document.getElementById('pida-setup-overlay');
+                const subOverlay = document.getElementById('pida-subscription-overlay');
+                const appRoot = document.getElementById('pida-app-root');
+                
                 if (appRoot) appRoot.style.display = 'block';
                 hideLoader();
 
