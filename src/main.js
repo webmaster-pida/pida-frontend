@@ -1137,6 +1137,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     btn.disabled = true;
                     btn.textContent = "Creando cuenta...";
+                    btn.textContent = "Creando cuenta...";
+
+                    // ACTIVAMOS BANDERA AHORA para que runApp muestre el Robot y no el bloqueo
+                    sessionStorage.setItem('pida_is_onboarding', 'true'); 
 
                     // 4. Crear el usuario en Firebase
                     const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
@@ -1226,10 +1230,13 @@ document.addEventListener('DOMContentLoaded', function () {
                         };
 
                         const isActivated = await checkSub();
+
+                        // Forzamos la URL con el parámetro para asegurar que la recarga mantenga el Robot
+                        const successUrl = window.location.pathname + "?payment_status=success";
                         
                         if (isActivated) {
                             sessionStorage.setItem('pida_is_onboarding', 'true');
-                            window.location.href = successUrl; 
+                            window.location.href = successUrl;
                         } else {
                             sessionStorage.setItem('pida_is_onboarding', 'true');
                             alert("Pago recibido. Estamos activando tu cuenta, esto puede tardar unos segundos más. Si no accedes en 1 minuto, recarga la página.");
@@ -1239,6 +1246,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
             } catch (error) {
+                // Si falló, quitamos la bandera de onboarding para permitir reintentar
+                sessionStorage.removeItem('pida_is_onboarding');
+
                 btn.disabled = false;
                 let friendlyMessage = "Ocurrió un error. Intenta de nuevo.";
                 
