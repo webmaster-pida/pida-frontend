@@ -1033,3 +1033,68 @@ input:checked + .slider:before { transform: translateX(24px); }
     padding: 8px 15px !important;
     box-sizing: border-box !important;
 }
+
+Entendido. Tienes toda la razón, mantengamos el código limpio y profesional separando los estilos.
+
+Aquí tienes la solución ajustada a tus estándares:
+
+Paso 1: Actualizar style.css
+Agrega estas clases al final de tu archivo CSS. Esto definirá la apariencia de la tarjeta de "Preparando Cuenta" sin usar estilos en línea en el JS.
+
+CSS
+/* =========================================
+   TARJETA DE ONBOARDING (PREPARANDO CUENTA)
+   ========================================= */
+.pida-onboarding-card {
+    background: white;
+    padding: 40px;
+    border-radius: 16px;
+    text-align: center;
+    max-width: 500px;
+    width: 90%;
+    margin: auto;
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    border: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.pida-onboarding-icon {
+    font-size: 3rem;
+    margin-bottom: 15px;
+    line-height: 1;
+}
+
+.pida-onboarding-title {
+    color: #1D3557; /* var(--pida-primary) */
+    margin-bottom: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.pida-onboarding-desc {
+    color: #4B5563; /* Gris medio */
+    margin-bottom: 25px;
+    line-height: 1.5;
+    font-size: 1rem;
+}
+
+.pida-onboarding-btn {
+    background: #1D3557; /* var(--pida-primary) */
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background 0.2s ease;
+}
+
+.pida-onboarding-btn:hover {
+    background: #004494; /* var(--pida-accent) oscuro */
+    transform: translateY(-1px);
+}

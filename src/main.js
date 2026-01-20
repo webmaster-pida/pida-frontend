@@ -1445,9 +1445,32 @@ document.addEventListener('DOMContentLoaded', function () {
             // 2. ENRUTAMIENTO INMEDIATO
             if (!hasAccess) {
                 if (appRoot) appRoot.style.display = 'block';
-                if (subOverlay) subOverlay.classList.remove('hidden');
-                if (setupOverlay) setupOverlay.classList.add('hidden');
                 hideLoader();
+
+                // CASO A: ACABA DE PAGAR (Onboarding) -> Mostrar mensaje de "Preparando"
+                if (isOnboarding) {
+                    if (subOverlay) {
+                        // Usamos las clases CSS definidas en style.css
+                        subOverlay.innerHTML = `
+                            <div class="pida-onboarding-card">
+                                <div class="pida-onboarding-icon">🚀</div>
+                                <h2 class="pida-onboarding-title">Estamos preparando tu cuenta</h2>
+                                <p class="pida-onboarding-desc">Tu pago fue exitoso. Estamos terminando de configurar tu espacio de trabajo. Esto puede tomar unos segundos más.</p>
+                                <button class="pida-onboarding-btn" onclick="window.location.reload()">
+                                    Recargar Página
+                                </button>
+                            </div>
+                        `;
+                        // La clase .pida-overlay en tu CSS ya tiene flex/center, así que solo lo mostramos
+                        subOverlay.classList.remove('hidden');
+                    }
+                    if (setupOverlay) setupOverlay.classList.add('hidden');
+                } 
+                // CASO B: USUARIO SIN PAGO -> Mostrar modal de venta normal
+                else {
+                    if (subOverlay) subOverlay.classList.remove('hidden');
+                    if (setupOverlay) setupOverlay.classList.add('hidden');
+                }
                 return;
             }
 
