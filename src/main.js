@@ -903,8 +903,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 bannerText.innerText = "Hubo un problema con el pago.";
             }
             
-            // Limpiamos la URL visualmente (ahora es seguro hacerlo)
-            window.history.replaceState({}, document.title, window.location.pathname);
+            // No Limpiamos la URL visualmente (ahora es seguro hacerlo)
+            // Eliminado: window.history.replaceState({}, document.title, window.location.pathname);
             
             setTimeout(() => window.closeBanner(), 8000);
         }
@@ -1229,11 +1229,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         
                         if (isActivated) {
                             sessionStorage.setItem('pida_is_onboarding', 'true');
-                            window.location.href = successUrl; // CAMBIO: Redirección explícita
+                            window.location.href = successUrl; 
                         } else {
                             sessionStorage.setItem('pida_is_onboarding', 'true');
                             alert("Pago recibido. Estamos activando tu cuenta, esto puede tardar unos segundos más. Si no accedes en 1 minuto, recarga la página.");
-                            window.location.href = successUrl; // CAMBIO: Redirección explícita tras cerrar alerta
+                            window.location.href = successUrl;
                         }
                     }
                 }
@@ -1538,6 +1538,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // --- ACCESO CONCEDIDO (ÉXITO) ---
             console.log("✅ Acceso Concedido.");
+
+            // AHORA SÍ es seguro limpiar la URL, porque ya validamos el acceso
+            if (window.history.replaceState) {
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
             
             // Matamos cualquier modal que haya quedado vivo
             if (subOverlay) {
