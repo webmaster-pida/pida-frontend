@@ -1401,7 +1401,7 @@ document.addEventListener('DOMContentLoaded', function () {
         currentUser = user;
         
         // ============================================================
-        // 0. DEFINICIONES DOM (Referencias Absolutas)
+        // 0. DEFINICIONES DOM
         // ============================================================
         const setupOverlay = document.getElementById('pida-setup-overlay');        // Robot
         const subOverlay = document.getElementById('pida-subscription-overlay');   // Ventas
@@ -1409,6 +1409,8 @@ document.addEventListener('DOMContentLoaded', function () {
         const appRoot = document.getElementById('pida-app-root');
         const landingRoot = document.getElementById('landing-page-root');
         const globalLoader = document.getElementById('pida-global-loader');
+        const sysBanner = document.getElementById('system-alert-banner');
+        const sysBannerText = document.getElementById('system-alert-text');
 
         // VARIABLE GLOBAL DE PLAN
         let userPlan = null; 
@@ -1416,16 +1418,26 @@ document.addEventListener('DOMContentLoaded', function () {
 
         try {
             // ============================================================
-            // 1. DETECCIÓN DE ONBOARDING
+            // 1. DETECCIÓN DE ONBOARDING (PRIORIDAD ABSOLUTA)
             // ============================================================
-            // Ya no dependemos solo de la URL, sino de la memoria que aseguramos en el bloque anterior
+            const urlParams = new URLSearchParams(window.location.search);
+            let isPaymentSuccess = urlParams.get('payment_status') === 'success';
+
+            // FALLBACK: Si la URL ya se limpió, miramos si el banner verde está activo
+            if (!isPaymentSuccess && sysBanner && !sysBanner.classList.contains('hidden')) {
+                if (sysBannerText && sysBannerText.innerHTML.includes('activada')) {
+                    isPaymentSuccess = true;
+                }
+            }
+
+            // Persistencia
+            if (isPaymentSuccess) sessionStorage.setItem('pida_is_onboarding', 'true');
             const isOnboarding = sessionStorage.getItem('pida_is_onboarding') === 'true';
             console.log("Estado Onboarding Detectado:", isOnboarding);
 
             // ============================================================
-            // 2. LIMPIEZA VISUAL INICIAL (RESET TOTAL)
+            // 2. LIMPIEZA VISUAL INICIAL
             // ============================================================
-            // Ocultamos AMBOS modales usando display: none directo para anular cualquier CSS
             if (subOverlay) {
                 subOverlay.classList.add('hidden');
                 subOverlay.style.display = 'none'; 
@@ -1442,14 +1454,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const performFastCheck = async () => {
                 const checks = [];
-                // Check A: Firestore (Doc principal)
+                // Check A: Firestore
                 checks.push(db.collection('customers').doc(user.uid).get()
                     .then(doc => doc.exists && doc.data().status === 'active').catch(() => false));
-                // Check B: Subcolección (Stripe Extensión)
+                // Check B: Subcolección
                 checks.push(db.collection('customers').doc(user.uid).collection('subscriptions')
                     .where('status', 'in', ['active', 'trialing']).limit(1).get()
                     .then(snap => !snap.empty).catch(() => false));
-                // Check C: VIP (Backend)
+                // Check C: VIP
                 checks.push(Utils.getHeaders(user)
                     .then(h => fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h }))
                     .then(r => r.ok ? r.json() : { is_vip_user: false }).then(d => d.is_vip_user).catch(() => false));
@@ -1459,83 +1471,74 @@ document.addEventListener('DOMContentLoaded', function () {
             };
 
             // ============================================================
-            // 4. LÓGICA VISUAL DE CARGA
+            // 4. LÓGICA VISUAL DE CARGA (CON GUARDIA ACTIVA)
             // ============================================================
             if (isOnboarding) {
-                console.log("🤖 MODO: ACABA DE PAGAR -> Forzando Robot");
+                console.log("🤖 MODO: ACABA DE PAGAR -> Activando Guardia Visual");
 
-                // MOSTRAR ROBOT (Configurando)
-                if (setupOverlay) {
-                    setupOverlay.classList.remove('hidden');
-                    setupOverlay.style.display = 'flex'; // Forzamos Flex
-                    // TRUCO FINAL: Z-Index masivo para ganarle al CSS de ventas (100000)
-                    setupOverlay.style.zIndex = "2147483647"; 
-                }
-                
-                // ASEGURAR QUE VENTAS ESTÁ OCULTO
-                if (subOverlay) {
-                    subOverlay.classList.add('hidden');
-                    subOverlay.style.display = 'none'; // Importante
-                }
-                
-                // Mostrar fondo de app
-                if (appRoot) appRoot.style.display = 'block';
-                if (landingRoot) landingRoot.style.display = 'none';
-                if (globalLoader) globalLoader.style.display = 'none';
+                // --- GUARDIA ACTIVA: Forzamos la UI cada 50ms para evitar parpadeos ---
+                // Esto "aplasta" cualquier intento del CSS o scripts fantasmas de mostrar el modal de ventas
+                const visualGuard = setInterval(() => {
+                    if (subOverlay) {
+                        subOverlay.style.display = 'none'; // ¡TE QUEDAS OCULTO!
+                        subOverlay.classList.add('hidden');
+                    }
+                    if (setupOverlay) {
+                        setupOverlay.style.display = 'flex'; // ¡TU TE MUESTRAS!
+                        setupOverlay.classList.remove('hidden');
+                        setupOverlay.style.zIndex = '2147483647'; // Encima de Dios
+                    }
+                    if (appRoot) appRoot.style.display = 'block';
+                    if (globalLoader) globalLoader.style.display = 'none';
+                }, 50);
 
-                // Reintentos de verificación (Polling durante 5 seg)
+                // Reintentos de verificación (Polling)
                 for (let i = 0; i < 5; i++) {
                     hasAccess = await performFastCheck();
                     if (hasAccess) break;
                     await new Promise(r => setTimeout(r, 1000));
                 }
-                
-                // Si ya tiene acceso, limpiamos la bandera para la próxima vez
+
+                // DETENEMOS LA GUARDIA
+                clearInterval(visualGuard);
+
                 if (hasAccess) sessionStorage.removeItem('pida_is_onboarding');
 
             } else {
-                // MODO: USUARIO RECURRENTE (Carga normal)
+                // MODO: CARGA NORMAL
                 hasAccess = await performFastCheck();
             }
 
             // ============================================================
-            // 5. DECISIÓN FINAL (SI NO TIENE ACCESO TRAS CHEQUEOS)
+            // 5. DECISIÓN FINAL
             // ============================================================
             if (!hasAccess) {
                 if (appRoot) appRoot.style.display = 'block';
                 hideLoader();
 
                 if (isOnboarding) {
-                    // CASO A: Pagó hace segundos, pero Firestore es lento.
-                    // MANTENEMOS ROBOT VISIBLE y recargamos.
-                    console.log("⏳ Aún procesando pago... Recargando.");
+                    console.log("⏳ Aún procesando... Recargando página.");
+                    // Mantenemos visuales de Robot manualmente una última vez
+                    if (setupOverlay) setupOverlay.style.display = 'flex';
+                    if (subOverlay) subOverlay.style.display = 'none';
                     
-                    if (setupOverlay) {
-                        setupOverlay.style.display = 'flex';
-                        setupOverlay.style.zIndex = "2147483647";
-                    }
-                    if (subOverlay) subOverlay.style.display = 'none'; // Aseguramos que ventas no salga
-
                     setTimeout(() => window.location.reload(), 4500);
                 } else {
-                    // CASO B: No ha pagado.
-                    // MOSTRAMOS VENTAS ("Estás a un paso")
-                    console.log("⛔ Sin acceso. Mostrando Ventas.");
-                    
+                    console.log("⛔ Sin acceso: Mostrando Modal Ventas");
+                    // Ahora sí dejamos salir al modal de ventas
                     if (subOverlay) {
                         subOverlay.classList.remove('hidden'); 
                         subOverlay.style.display = 'flex';
                     }
-                    // Ocultamos Robot
                     if (setupOverlay) setupOverlay.style.display = 'none';
                 }
-                return; // 🛑 DETENEMOS AQUÍ (No cargamos chats si no pagó)
+                return; 
             }
 
             // --- ACCESO CONCEDIDO (ÉXITO) ---
             console.log("✅ Acceso Concedido.");
             
-            // Ocultar todo modal
+            // Matamos cualquier modal que haya quedado vivo
             if (subOverlay) {
                 subOverlay.classList.add('hidden');
                 subOverlay.style.display = 'none';
@@ -1547,11 +1550,10 @@ document.addEventListener('DOMContentLoaded', function () {
             
             if (landingRoot) landingRoot.style.display = 'none';
             if (appRoot) appRoot.style.display = 'block';
-            
-            // Limpieza final
             sessionStorage.removeItem('pida_pending_plan');
+            
             hideLoader();
-
+            
             // 6. REFERENCIAS DOM
             const dom = {
                 navInv: document.getElementById('nav-investigador'),
