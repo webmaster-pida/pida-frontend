@@ -791,7 +791,7 @@ input:checked + .slider:before { transform: translateX(24px); }
 input:checked + .slider { background-color: var(--pida-primary); }
 input:checked + .slider:before { transform: translateX(24px); }
 
-//* .discount-badge { background: #10B981; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; margin-left: 5px; } */
+/* .discount-badge { background: #10B981; color: white; font-size: 0.7rem; padding: 2px 8px; border-radius: 12px; margin-left: 5px; } */
 
 /* Grid de Precios */
 .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
