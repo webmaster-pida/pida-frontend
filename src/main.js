@@ -1400,8 +1400,9 @@ document.addEventListener('DOMContentLoaded', function () {
             // 1. VERIFICACIÓN DE ACCESO (PARALELA Y RÁPIDA)
             // ============================================================
             let hasAccess = false;
-            const isOnboarding = sessionStorage.getItem('pida_is_onboarding');
-            const setupOverlay = document.getElementById('pida-setup-overlay');
+            // CORRECCIÓN: Detectar si viene de Stripe (URL) o si estaba guardado en sesión
+            const urlParams = new URLSearchParams(window.location.search);
+            const isOnboarding = sessionStorage.getItem('pida_is_onboarding') || (urlParams.get('payment_status') === 'success');
             const subOverlay = document.getElementById('pida-subscription-overlay');
 
             const performFastCheck = async () => {
@@ -1447,26 +1448,18 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (appRoot) appRoot.style.display = 'block';
                 hideLoader();
 
-                // CASO A: ACABA DE PAGAR (Onboarding) -> Mostrar mensaje de "Preparando"
+                // CASO A: ACABA DE PAGAR (Onboarding) -> Mostrar mensaje de "Configurando"
                 if (isOnboarding) {
-                    if (subOverlay) {
-                        // Usamos las clases CSS definidas en style.css
-                        subOverlay.innerHTML = `
-                            <div class="pida-onboarding-card">
-                                <div class="pida-onboarding-icon">🚀</div>
-                                <h2 class="pida-onboarding-title">Estamos preparando tu cuenta</h2>
-                                <p class="pida-onboarding-desc">Tu pago fue exitoso. Estamos terminando de configurar tu espacio de trabajo. Esto puede tomar unos segundos más.</p>
-                                <button class="pida-onboarding-btn" onclick="window.location.reload()">
-                                    Recargar Página
-                                </button>
-                            </div>
-                        `;
-                        // La clase .pida-overlay en tu CSS ya tiene flex/center, así que solo lo mostramos
-                        subOverlay.classList.remove('hidden');
-                    }
-                    if (setupOverlay) setupOverlay.classList.add('hidden');
+                    // Mostrar el modal CORRECTO (setup-overlay) que ya tiene la animación del robot
+                    if (setupOverlay) setupOverlay.classList.remove('hidden');
+                    
+                    // Asegurarnos de ocultar el modal de "Estás a un paso"
+                    if (subOverlay) subOverlay.classList.add('hidden');
+                    
+                    // Opcional: Recargar automáticamente tras unos segundos para verificar acceso de nuevo
+                    setTimeout(() => window.location.reload(), 5000);
                 } 
-                // CASO B: USUARIO SIN PAGO -> Mostrar modal de venta normal
+                // CASO B: USUARIO SIN PAGO -> Mostrar modal de venta normal ("Estás a un paso")
                 else {
                     if (subOverlay) subOverlay.classList.remove('hidden');
                     if (setupOverlay) setupOverlay.classList.add('hidden');
