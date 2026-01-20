@@ -1389,36 +1389,50 @@ document.addEventListener('DOMContentLoaded', function () {
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
         
-        // VARIABLE GLOBAL DE PLAN
+        // ============================================================
+        // 0. DEFINICIONES DOM CRÍTICAS (PRIMERO QUE NADA)
+        // ============================================================
+        // Definimos esto AQUÍ ARRIBA para evitar el ReferenceError.
+        // Si el elemento no existe en el HTML, obtendremos null, pero no explotará el código.
+        const setupOverlay = document.getElementById('pida-setup-overlay');        // Modal Robot Configurando
+        const subOverlay = document.getElementById('pida-subscription-overlay');   // Modal "Estás a un paso"
+        const appRoot = document.getElementById('pida-app-root');
+        const landingRoot = document.getElementById('landing-page-root');
+        const globalLoader = document.getElementById('pida-global-loader');
+
+        // VARIABLE GLOBAL DE PLAN (Necesaria para el resto de la función)
         let userPlan = null; 
         let unsubscribePlanListener = null;
-        
-        const globalLoader = document.getElementById('pida-global-loader');
 
         try {
             // ============================================================
-            // 1. VERIFICACIÓN DE ACCESO (PARALELA Y RÁPIDA)
+            // 1. DETECCIÓN ROBUSTA DE ESTADO "ONBOARDING" (ACABA DE PAGAR)
+            // ============================================================
+            const urlParams = new URLSearchParams(window.location.search);
+            // Es onboarding si: Viene de Stripe (success) O si la sesión lo dice
+            const isPaymentSuccess = urlParams.get('payment_status') === 'success';
+            const sessionOnboarding = sessionStorage.getItem('pida_is_onboarding');
+            const isOnboarding = isPaymentSuccess || sessionOnboarding;
+
+            // ============================================================
+            // 2. VERIFICACIÓN DE ACCESO (PARALELA Y RÁPIDA)
             // ============================================================
             let hasAccess = false;
-            // CORRECCIÓN: Detectar si viene de Stripe (URL) o si estaba guardado en sesión
-            const urlParams = new URLSearchParams(window.location.search);
-            const isOnboarding = sessionStorage.getItem('pida_is_onboarding') || (urlParams.get('payment_status') === 'success');
-            const subOverlay = document.getElementById('pida-subscription-overlay');
 
             const performFastCheck = async () => {
                 const checks = [];
-                // A. Check Firestore Directo
+                // A. Check Firestore Directo (Documento principal)
                 checks.push(db.collection('customers').doc(user.uid).get()
                     .then(doc => doc.exists && doc.data().status === 'active')
                     .catch(() => false)
                 );
-                // B. Check Subcolección (Stripe)
+                // B. Check Subcolección (Compatibilidad Stripe Extension)
                 checks.push(db.collection('customers').doc(user.uid).collection('subscriptions')
                     .where('status', 'in', ['active', 'trialing']).limit(1).get()
                     .then(snap => !snap.empty)
                     .catch(() => false)
                 );
-                // C. Check VIP (Backend)
+                // C. Check VIP (Backend - Custom Claim check simulation)
                 checks.push(Utils.getHeaders(user)
                     .then(h => fetch(`${PIDA_CONFIG.API_CHAT}/check-vip-access`, { method: 'POST', headers: h }))
                     .then(r => r.ok ? r.json() : { is_vip_user: false })
@@ -1429,60 +1443,81 @@ document.addEventListener('DOMContentLoaded', function () {
                 return results.includes(true); 
             };
 
+            // LÓGICA VISUAL DURANTE LA CARGA
             if (isOnboarding) {
-                if (setupOverlay) setupOverlay.classList.remove('hidden');
-                if (subOverlay) subOverlay.classList.add('hidden');
+                // Si acaba de pagar, forzamos la vista del Robot y ocultamos ventas inmediatamente
+                if (setupOverlay) setupOverlay.classList.remove('hidden'); 
+                if (subOverlay) subOverlay.classList.add('hidden');        
+                if (appRoot) appRoot.style.display = 'block';              
+                if (landingRoot) landingRoot.style.display = 'none';
                 if (globalLoader) globalLoader.style.display = 'none';
+
+                // Intentamos verificar acceso 5 veces (Polling rápido)
                 for (let i = 0; i < 5; i++) {
                     hasAccess = await performFastCheck();
                     if (hasAccess) break;
                     await new Promise(r => setTimeout(r, 1000));
                 }
+                // Si logramos acceso, limpiamos la bandera
                 if (hasAccess) sessionStorage.removeItem('pida_is_onboarding');
             } else {
+                // Chequeo normal (Usuario recurrente)
                 hasAccess = await performFastCheck();
             }
 
-            // 2. ENRUTAMIENTO INMEDIATO
-            // 2. ENRUTAMIENTO INMEDIATO
+            // ============================================================
+            // 3. ENRUTAMIENTO FINAL (DECISIÓN DE PANTALLA)
+            // ============================================================
             if (!hasAccess) {
-                // --- CORRECCIÓN: Definimos las variables AQUÍ MISMO para evitar el ReferenceError ---
-                const setupOverlay = document.getElementById('pida-setup-overlay');
-                const subOverlay = document.getElementById('pida-subscription-overlay');
-                const appRoot = document.getElementById('pida-app-root');
-                
+                // Si llegamos aquí, NO tiene acceso activo tras los chequeos.
                 if (appRoot) appRoot.style.display = 'block';
                 hideLoader();
 
-                // CASO A: ACABA DE PAGAR (Onboarding) -> Mostrar mensaje de "Configurando"
                 if (isOnboarding) {
-                    // Mostrar el modal CORRECTO (setup-overlay) que ya tiene la animación del robot
-                    if (setupOverlay) setupOverlay.classList.remove('hidden');
+                    // CASO A: Pagó, pero Firebase aún no actualiza -> MANTENER ROBOT
+                    console.log("Usuario en Onboarding (Pago detectado), esperando activación...");
                     
-                    // Asegurarnos de ocultar el modal de "Estás a un paso"
-                    if (subOverlay) subOverlay.classList.add('hidden');
+                    if (setupOverlay) {
+                        setupOverlay.classList.remove('hidden');
+                        // Mensaje de refuerzo visual (opcional, pero seguro)
+                        setupOverlay.innerHTML = `
+                            <div class="pida-onboarding-card">
+                                <div class="pida-onboarding-icon">🚀</div>
+                                <h2 class="pida-onboarding-title">Estamos preparando tu cuenta</h2>
+                                <p class="pida-onboarding-desc">Tu pago fue exitoso. Estamos terminando de configurar tu espacio de trabajo. Esto puede tomar unos segundos más.</p>
+                                <button class="pida-onboarding-btn" onclick="window.location.reload()">
+                                    Recargar Página
+                                </button>
+                            </div>
+                        `;
+                    }
+                    if (subOverlay) subOverlay.classList.add('hidden'); // ¡ASEGURAR OCULTO!
                     
-                    // Opcional: Recargar automáticamente tras unos segundos para verificar acceso de nuevo
+                    // Recarga de seguridad a los 5 segundos para reintentar chequeo
                     setTimeout(() => window.location.reload(), 5000);
-                } 
-                // CASO B: USUARIO SIN PAGO -> Mostrar modal de venta normal ("Estás a un paso")
-                else {
+                } else {
+                    // CASO B: No ha pagado (o expiró) -> MOSTRAR VENTA ("Estás a un paso")
+                    console.log("Usuario sin acceso -> Mostrar Venta");
                     if (subOverlay) subOverlay.classList.remove('hidden');
                     if (setupOverlay) setupOverlay.classList.add('hidden');
                 }
-                return;
+                
+                // DETENER EJECUCIÓN: No cargar chats ni listeners si no hay acceso
+                return; 
             }
 
-            // --- ACCESO CONCEDIDO ---
+            // --- ACCESO CONCEDIDO (User tiene acceso) ---
+            // Limpiar todos los overlays de bloqueo
             if (subOverlay) subOverlay.classList.add('hidden');
             if (setupOverlay) setupOverlay.classList.add('hidden');
+            
             if (landingRoot) landingRoot.style.display = 'none';
             if (appRoot) appRoot.style.display = 'block';
             sessionStorage.removeItem('pida_pending_plan');
             
-            hideLoader(); 
+            hideLoader();
 
-            // 3. REFERENCIAS DOM
+            // 4. REFERENCIAS DOM
             const dom = {
                 navInv: document.getElementById('nav-investigador'),
                 navAna: document.getElementById('nav-analizador'),
@@ -1532,7 +1567,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 mobileMenuLogout: document.getElementById('mobile-nav-logout')
             };
 
-            // 4. FUNCIONES AUXILIARES
+            // 5. FUNCIONES AUXILIARES
             
             // --- FUNCIÓN DE ESCUCHA DE PLAN (TIEMPO REAL) ---
             async function setupPlanListener() {
