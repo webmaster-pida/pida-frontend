@@ -1231,6 +1231,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             sessionStorage.setItem('pida_is_onboarding', 'true');
                             window.location.reload();
                         } else {
+                            sessionStorage.setItem('pida_is_onboarding', 'true');
                             alert("Pago recibido. Estamos activando tu cuenta, esto puede tardar unos segundos más. Si no accedes en 1 minuto, recarga la página.");
                             window.location.reload();
                         }
