@@ -1390,9 +1390,8 @@ document.addEventListener('DOMContentLoaded', function () {
         currentUser = user;
         
         // ============================================================
-        // 0. DEFINICIONES DOM CRÍTICAS (PRIMERO QUE NADA)
+        // 0. DEFINICIONES DOM
         // ============================================================
-        // Definimos las referencias al inicio absoluto para evitar errores de "undefined".
         const setupOverlay = document.getElementById('pida-setup-overlay');        // Modal Robot
         const subOverlay = document.getElementById('pida-subscription-overlay');   // Modal Ventas
         
@@ -1400,30 +1399,45 @@ document.addEventListener('DOMContentLoaded', function () {
         const landingRoot = document.getElementById('landing-page-root');
         const globalLoader = document.getElementById('pida-global-loader');
 
+        // Referencia al Banner para detección de respaldo
+        const sysBanner = document.getElementById('system-alert-banner');
+        const sysBannerText = document.getElementById('system-alert-text');
+
         // VARIABLE GLOBAL DE PLAN
         let userPlan = null; 
         let unsubscribePlanListener = null;
 
         try {
             // ============================================================
-            // 1. DETECCIÓN DE ONBOARDING (PAGO RECIENTE)
+            // 1. DETECCIÓN DE ONBOARDING (ESTRATEGIA MULTI-CAPA)
             // ============================================================
             const urlParams = new URLSearchParams(window.location.search);
-            
-            // Si viene de Stripe exitoso, guardamos la bandera
-            if (urlParams.get('payment_status') === 'success') {
+            let isPaymentSuccess = urlParams.get('payment_status') === 'success';
+
+            // FALLBACK CRÍTICO: Si el código del banner ya borró la URL, miramos el banner
+            if (!isPaymentSuccess && sysBanner && !sysBanner.classList.contains('hidden')) {
+                if (sysBannerText && sysBannerText.innerHTML.includes('activada')) {
+                    console.log("✅ Pago detectado vía Banner (URL ya estaba limpia)");
+                    isPaymentSuccess = true;
+                }
+            }
+
+            // Guardamos la bandera persistente
+            if (isPaymentSuccess) {
                 sessionStorage.setItem('pida_is_onboarding', 'true');
             }
-            // Leemos la bandera
+            
+            // Leemos la bandera final
             const isOnboarding = sessionStorage.getItem('pida_is_onboarding') === 'true';
+            console.log("Estado Onboarding Final:", isOnboarding);
 
             // ============================================================
-            // 2. LIMPIEZA VISUAL INICIAL (RESET)
+            // 2. LIMPIEZA VISUAL INICIAL (RESET AGRESIVO)
             // ============================================================
-            // Ocultamos AMBOS modales preventivamente. Usamos style.display para ser agresivos y anular el CSS.
+            // Forzamos ocultar ambos para empezar limpio
             if (subOverlay) {
                 subOverlay.classList.add('hidden');
-                subOverlay.style.display = 'none'; 
+                subOverlay.style.display = 'none'; // Importante para anular CSS
             }
             if (setupOverlay) {
                 setupOverlay.classList.add('hidden');
@@ -1454,23 +1468,23 @@ document.addEventListener('DOMContentLoaded', function () {
             };
 
             // ============================================================
-            // 4. LÓGICA VISUAL DURANTE LA CARGA
+            // 4. LÓGICA VISUAL DE CARGA
             // ============================================================
             if (isOnboarding) {
-                // MODO: ACABA DE PAGAR -> MOSTRAR ROBOT
-                console.log("Estado: Onboarding activo. Configurando UI...");
+                console.log("🤖 MODO: Onboarding (Activando Robot)");
 
+                // MOSTRAR ROBOT (Configurando)
                 if (setupOverlay) {
                     setupOverlay.classList.remove('hidden');
-                    // CORRECCIÓN CRÍTICA DE CAPAS: Forzamos un z-index superior al 100000 del CSS
-                    setupOverlay.style.zIndex = "200005"; 
-                    setupOverlay.style.display = "flex"; 
+                    setupOverlay.style.display = 'flex';
+                    // FIX DE CAPAS: Le damos un z-index altísimo por JS para ganar al CSS del modal de ventas
+                    setupOverlay.style.zIndex = "999999999"; 
                 }
                 
-                // Aseguramos que ventas esté MUERTO visualmente
+                // ASEGURAR QUE VENTAS ESTÁ OCULTO
                 if (subOverlay) {
                     subOverlay.classList.add('hidden');
-                    subOverlay.style.display = 'none'; 
+                    subOverlay.style.display = 'none';
                 }
                 
                 // Gestionar fondos
@@ -1484,8 +1498,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (hasAccess) break;
                     await new Promise(r => setTimeout(r, 1000));
                 }
-                
-                // Si ya tiene acceso, limpiamos la bandera
                 if (hasAccess) sessionStorage.removeItem('pida_is_onboarding');
             } else {
                 // MODO: CARGA NORMAL
@@ -1493,35 +1505,40 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             // ============================================================
-            // 5. DECISIÓN FINAL (SI NO TIENE ACCESO TRAS CHEQUEOS)
+            // 5. DECISIÓN FINAL (SI NO TIENE ACCESO)
             // ============================================================
             if (!hasAccess) {
                 if (appRoot) appRoot.style.display = 'block';
-                hideLoader(); // Ocultamos el loader global del index
+                hideLoader();
 
                 if (isOnboarding) {
                     // CASO A: Onboarding lento -> Mantenemos Robot visible
-                    console.log("Onboarding: Esperando activación (Robot visible)...");
-                    // No tocamos nada, setupOverlay ya tiene z-index alto y display flex desde el paso 4.
+                    console.log("⏳ Onboarding: Aún procesando, recargando...");
                     
+                    // Aseguramos visuales
+                    if (setupOverlay) {
+                        setupOverlay.style.display = 'flex';
+                        setupOverlay.style.zIndex = "999999999";
+                    }
+                    if (subOverlay) subOverlay.style.display = 'none';
+
                     // Recarga automática
                     setTimeout(() => window.location.reload(), 5000);
                 } else {
-                    // CASO B: Sin pago -> Mostrar Ventas
-                    console.log("Sin acceso: Mostrando Modal Ventas");
+                    // CASO B: Sin pago real -> Mostrar Ventas
+                    console.log("⛔ Sin acceso: Mostrando Modal Ventas");
                     
                     if (subOverlay) {
                         subOverlay.classList.remove('hidden'); 
-                        subOverlay.style.display = 'flex'; // Reactivamos el flex
-                        // Quitamos el robot del medio
-                        if (setupOverlay) setupOverlay.style.display = 'none';
+                        subOverlay.style.display = 'flex';
                     }
+                    if (setupOverlay) setupOverlay.style.display = 'none';
                 }
-                return; // 🛑 DETENEMOS TODO PARA QUE NO CARGUE CHATS
+                return; // 🛑 DETENEMOS TODO
             }
 
             // --- ACCESO CONCEDIDO (ÉXITO) ---
-            // Aseguramos que TODO esté oculto y limpio
+            console.log("✅ Acceso Concedido");
             if (subOverlay) {
                 subOverlay.classList.add('hidden');
                 subOverlay.style.display = 'none';
@@ -1536,7 +1553,7 @@ document.addEventListener('DOMContentLoaded', function () {
             sessionStorage.removeItem('pida_pending_plan');
             
             hideLoader();
-            
+
             // 6. REFERENCIAS DOM
             const dom = {
                 navInv: document.getElementById('nav-investigador'),
