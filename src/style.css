@@ -1034,14 +1034,6 @@ input:checked + .slider:before { transform: translateX(24px); }
     box-sizing: border-box !important;
 }
 
-Entendido. Tienes toda la razón, mantengamos el código limpio y profesional separando los estilos.
-
-Aquí tienes la solución ajustada a tus estándares:
-
-Paso 1: Actualizar style.css
-Agrega estas clases al final de tu archivo CSS. Esto definirá la apariencia de la tarjeta de "Preparando Cuenta" sin usar estilos en línea en el JS.
-
-CSS
 /* =========================================
    TARJETA DE ONBOARDING (PREPARANDO CUENTA)
    ========================================= */
