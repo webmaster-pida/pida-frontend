@@ -875,9 +875,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- INTERACTIVIDAD BÁSICA ---
-    const legalBtn = document.getElementById('open-legal-btn');
-    const legalModal = document.getElementById('pida-legal-modal');
-    if(legalBtn && legalModal) legalBtn.addEventListener('click', (e) => { e.preventDefault(); legalModal.classList.remove('hidden'); });
+    // const legalBtn = document.getElementById('open-legal-btn');
+    // const legalModal = document.getElementById('pida-legal-modal');
+    // if(legalBtn && legalModal) legalBtn.addEventListener('click', (e) => { e.preventDefault(); legalModal.classList.remove('hidden'); });
 
     // --- STRIPE RETURN (CORREGIDO) ---
     const urlParams = new URLSearchParams(window.location.search);
