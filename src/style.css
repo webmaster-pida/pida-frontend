@@ -71,6 +71,14 @@
         .nav-inner { display: flex; justify-content: flex-end; align-items: center; }
         .nav-menu { display: flex; gap: 32px; }
         .nav-link { font-size: 0.9rem; font-weight: 500; color: #64748B; position: relative; transition: color 0.3s; text-decoration: none; }
+        .nav-menu .nav-link:visited {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #64748B !important; /* El !important evita que el AdBlocker lo resetee */
+            text-decoration: none !important;
+            position: relative;
+            transition: color 0.3s;
+            }
         .nav-link:hover { color: var(--navy); }
 
         /* Espaciados reducidos (Landing) */
