@@ -32,7 +32,7 @@ let currentInterval = 'monthly';
 const STRIPE_PRICES = {
     basico: {
         monthly: {
-            USD: { id: 'price_1SqbBOGaDEQrzamxiuEbXIcc', amount: 999, text: '$9.99' },
+            USD: { id: 'price_1SqFQiGgaloBN5L8U60ywohe', amount: 999, text: '$9.99' },
             MXN: { id: 'price_1SqFSFGgaloBN5L8BMBeRPqb', amount: 19900, text: '$199 MXN' }
         },
         annual: {
@@ -42,7 +42,7 @@ const STRIPE_PRICES = {
     },
     avanzado: {
         monthly: {
-            USD: { id: 'price_1SqbD8GaDEQrzamxuV9SQbFB', amount: 1999, text: '$19.99' },
+            USD: { id: 'price_1SqFUvGgaloBN5L8xOBssn6E', amount: 1999, text: '$19.99' },
             MXN: { id: 'price_1SqFWJGgaloBN5L8roECNay2', amount: 39900, text: '$399 MXN' }
         },
         annual: {
@@ -52,7 +52,7 @@ const STRIPE_PRICES = {
     },
     premium: {
         monthly: {
-            USD: { id: 'price_1SqbDcGaDEQrzamxdcvIy0BG', amount: 2999, text: '$29.99' },
+            USD: { id: 'price_1SqFXIGgaloBN5L8vaGyleDT', amount: 2999, text: '$29.99' },
             MXN: { id: 'price_1SqFadGgaloBN5L8AwTUeTSd', amount: 59900, text: '$599 MXN' }
         },
         annual: {
