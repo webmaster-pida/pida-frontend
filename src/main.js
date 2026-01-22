@@ -26,6 +26,7 @@ const stripe = Stripe('pk_test_51RMB12GaDEQrzamxhgBfRodlN2Es6kmTYJIB5XUouHAoGNzj
 let cardElement;
 let currentInterval = 'monthly';
 
+
 // =========================================================
 // 2. CONFIGURACIÓN
 // =========================================================
