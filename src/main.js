@@ -1206,10 +1206,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
 
                     if (result.error) {
+                        // Limpiamos la bandera para que no se quede el robot de carga si reintenta o refresca
+                        sessionStorage.removeItem('pida_is_onboarding');
                         throw new Error(result.error.message);
-                    } 
+                    }
                     
-                    // Verificamos éxito
+                    // Verificamos éxito del pago o configuración
                     const intent = result.paymentIntent || result.setupIntent;
                     
                     if (intent.status === 'succeeded') {
@@ -1525,6 +1527,7 @@ document.addEventListener('DOMContentLoaded', function () {
             // 5. DECISIÓN FINAL
             // ============================================================
             if (!hasAccess) {
+                // Si no tiene acceso, forzamos que se vea la Landing o el Modal de Suscripción
                 if (appRoot) appRoot.style.display = 'block';
                 hideLoader();
 
@@ -1536,8 +1539,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     
                     setTimeout(() => window.location.reload(), 4500);
                 } else {
-                    console.log("⛔ Sin acceso: Mostrando Modal Ventas");
-                    // Ahora sí dejamos salir al modal de ventas
+                    console.log("⛔ Sin acceso real: Forzando Modal de Ventas");
+                    // Limpiamos cualquier rastro de onboarding fallido
+                    sessionStorage.removeItem('pida_is_onboarding');
                     if (subOverlay) {
                         subOverlay.classList.remove('hidden'); 
                         subOverlay.style.display = 'flex';
