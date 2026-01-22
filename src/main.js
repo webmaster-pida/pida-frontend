@@ -15,6 +15,8 @@ import * as docx from "docx";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
 
+let isProcessingPayment = false;
+
 // Hacer librerías accesibles globalmente
 window.jspdf = { jsPDF };
 window.docx = docx;
@@ -1101,6 +1103,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     await auth.signInWithEmailAndPassword(email, pass);
                 } else if (authMode === 'register') {
                     // 1. Validar Checkbox de Términos
+                    isProcessingPayment = true;
                     const termsCheckbox = document.getElementById('terms-checkbox');
                     if (termsCheckbox && !termsCheckbox.checked) {
                         btn.disabled = false;
@@ -1411,6 +1414,7 @@ document.addEventListener('DOMContentLoaded', function () {
 }
 
     async function runApp(user) {
+        if (isProcessingPayment) { console.log("⏳ Registro en curso, esperando a Stripe..."); return; }
         console.log("🚀 Iniciando aplicación PIDA para:", user.email);
         currentUser = user;
         
