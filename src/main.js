@@ -22,7 +22,7 @@ window.marked = marked;
 window.DOMPurify = DOMPurify;
 window.firebase = firebase;
 // Inicialización de Stripe con llave de prueba (Cámbiala por la tuya de Stripe Dashboard)
-const stripe = Stripe('pk_test_51RMB12GaDEQrzamxhgBfRodlN2Es6kmTYJIB5XUouHAoGNzj2Fcgcz116sIbY3UeeKRIMESrHkSy4zmb9RSwQ2Ql00mK5e53gD'); 
+const stripe = Stripe('pk_live_51QriCdGgaloBN5L8XyzW4M1QePJK316USJg3kjrZGFGln3bhwEQKnpoNXf2MnLXGHylM1OQ6SvWJmNVCNqhCxg6x000l605E1B'); 
 let cardElement;
 let currentInterval = 'monthly';
 
