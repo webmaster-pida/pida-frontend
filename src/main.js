@@ -1254,6 +1254,8 @@ document.addEventListener('DOMContentLoaded', function () {
             } catch (error) {
                 // Si falló, quitamos la bandera de onboarding para permitir reintentar
                 sessionStorage.removeItem('pida_is_onboarding');
+                isProcessingPayment = false;
+                if (auth.currentUser) runApp(auth.currentUser);
 
                 btn.disabled = false;
                 let friendlyMessage = "Ocurrió un error. Intenta de nuevo.";
@@ -1544,7 +1546,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     setTimeout(() => window.location.reload(), 4500);
                 } else {
                     console.log("⛔ Sin acceso real: Forzando Modal de Ventas");
-                    // Limpiamos cualquier rastro de onboarding fallido
+                    isProcessingPayment = false;
                     sessionStorage.removeItem('pida_is_onboarding');
                     if (subOverlay) {
                         subOverlay.classList.remove('hidden'); 
