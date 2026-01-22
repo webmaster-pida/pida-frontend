@@ -22,7 +22,7 @@ window.marked = marked;
 window.DOMPurify = DOMPurify;
 window.firebase = firebase;
 // Inicialización de Stripe con llave de prueba (Cámbiala por la tuya de Stripe Dashboard)
-const stripe = Stripe('pk_live_51QriCdGgaloBN5L8XyzW4M1QePJK316USJg3kjrZGFGln3bhwEQKnpoNXf2MnLXGHylM1OQ6SvWJmNVCNqhCxg6x000l605E1B'); 
+const stripe = Stripe('pk_test_51RMB12GaDEQrzamxhgBfRodlN2Es6kmTYJIB5XUouHAoGNzj2Fcgcz116sIbY3UeeKRIMESrHkSy4zmb9RSwQ2Ql00mK5e53gD'); 
 let cardElement;
 let currentInterval = 'monthly';
 
@@ -33,7 +33,7 @@ let currentInterval = 'monthly';
 const STRIPE_PRICES = {
     basico: {
         monthly: {
-            USD: { id: 'price_1SqFQiGgaloBN5L8U60ywohe', amount: 999, text: '$9.99' },
+            USD: { id: 'price_1SqbBOGaDEQrzamxiuEbXIcc', amount: 999, text: '$9.99' },
             MXN: { id: 'price_1SqFSFGgaloBN5L8BMBeRPqb', amount: 19900, text: '$199 MXN' }
         },
         annual: {
@@ -43,7 +43,7 @@ const STRIPE_PRICES = {
     },
     avanzado: {
         monthly: {
-            USD: { id: 'price_1SqFUvGgaloBN5L8xOBssn6E', amount: 1999, text: '$19.99' },
+            USD: { id: 'price_1SqbD8GaDEQrzamxuV9SQbFB', amount: 1999, text: '$19.99' },
             MXN: { id: 'price_1SqFWJGgaloBN5L8roECNay2', amount: 39900, text: '$399 MXN' }
         },
         annual: {
@@ -53,7 +53,7 @@ const STRIPE_PRICES = {
     },
     premium: {
         monthly: {
-            USD: { id: 'price_1SqFXIGgaloBN5L8vaGyleDT', amount: 2999, text: '$29.99' },
+            USD: { id: 'price_1SqbDcGaDEQrzamxdcvIy0BG', amount: 2999, text: '$29.99' },
             MXN: { id: 'price_1SqFadGgaloBN5L8AwTUeTSd', amount: 59900, text: '$599 MXN' }
         },
         annual: {
