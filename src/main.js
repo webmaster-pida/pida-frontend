@@ -1532,29 +1532,23 @@ document.addEventListener('DOMContentLoaded', function () {
             // ============================================================
             // 5. DECISIÓN FINAL
             // ============================================================
-            if (!hasAccess) {
-                // Si no tiene acceso, forzamos que se vea la Landing o el Modal de Suscripción
-                isProcessingPayment = false;
+            isProcessingPayment = false;
                 sessionStorage.removeItem('pida_is_onboarding');
                 if (appRoot) appRoot.style.display = 'block';
                 hideLoader();
 
-                if (isOnboarding) {
-                    console.log("⏳ Aún procesando... Recargando página.");
-                    // Mantenemos visuales de Robot manualmente una última vez
-                    if (setupOverlay) setupOverlay.style.display = 'flex';
-                    if (subOverlay) subOverlay.style.display = 'none';
+                if (subOverlay) {
+                    subOverlay.classList.remove('hidden'); 
+                    subOverlay.style.display = 'flex';
                     
-                    setTimeout(() => window.location.reload(), 4500);
-                } else {
-                    console.log("⛔ Sin acceso real: Forzando Modal de Ventas");
-                    isProcessingPayment = false;
-                    sessionStorage.removeItem('pida_is_onboarding');
-                    if (subOverlay) {
-                        subOverlay.classList.remove('hidden'); 
-                        subOverlay.style.display = 'flex';
+                    // Vincular el botón de cerrar sesión inmediatamente antes de salir
+                    const btnLogoutOverlay = document.getElementById('logout-from-overlay');
+                    if (btnLogoutOverlay) {
+                        btnLogoutOverlay.onclick = (e) => {
+                            e.preventDefault();
+                            firebase.auth().signOut().then(() => window.location.reload());
+                        };
                     }
-                    if (setupOverlay) setupOverlay.style.display = 'none';
                 }
                 return; 
             }
@@ -1778,7 +1772,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if(dom.pLogout) dom.pLogout.onclick = doLogout;
             if(dom.mobileMenuLogout) dom.mobileMenuLogout.onclick = doLogout;
-            
+
             const btnLogoutOverlay = document.getElementById('logout-from-overlay');
             if (btnLogoutOverlay) btnLogoutOverlay.onclick = doLogout;
 
