@@ -1217,7 +1217,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (result.error) {
                         // Limpiamos la bandera para que no se quede el robot de carga si reintenta o refresca
                         sessionStorage.removeItem('pida_is_onboarding');
-                        throw new Error(result.error.message);
+                        // Guardamos el mensaje de Stripe para mostrarlo
+                        const stripeErrorMessage = result.error.message;
+                        isProcessingPayment = false;
+                        // Ocultar robot y mostrar el error en la pantalla de login
+                        const setupOverlay = document.getElementById('pida-setup-overlay');
+                        if (setupOverlay) setupOverlay.style.display = 'none';
+                        const errMsg = document.getElementById('login-message');
+                        if (errMsg) {
+                            errMsg.innerHTML = `❌ Error de pago: ${stripeErrorMessage}`;
+                            errMsg.style.display = 'block';
+                        }
+                        throw new Error(stripeErrorMessage);
                     }
                     
                     // Verificamos éxito del pago o configuración
@@ -1545,6 +1556,20 @@ document.addEventListener('DOMContentLoaded', function () {
             // ============================================================
             if (!hasAccess) {
                 isProcessingPayment = false;
+                // 1. Obtener el estatus detallado desde Firestore (si existe)
+                let blockReason = "No tienes una suscripción activa.";
+                db.collection("customers").document(user.uid).get().then(doc => {
+                    if (doc.exists) {
+                        const data = doc.to_dict();
+                        if (data.stripe_status === 'past_due') blockReason = "Tu último pago fue rechazado. Por favor, actualiza tu tarjeta.";
+                        if (data.stripe_status === 'incomplete') blockReason = "La transacción inicial no se pudo completar.";
+                    }
+                    const errorBox = document.getElementById('subscription-error-display');
+                    if (errorBox) {
+                        errorBox.innerHTML = `⚠️ ${blockReason}`;
+                        errorBox.style.display = 'block';
+                    }
+                });
                 sessionStorage.removeItem('pida_is_onboarding');
 
                 // 2. Limpiar UI de Login
