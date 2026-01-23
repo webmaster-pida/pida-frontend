@@ -1553,23 +1553,23 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // ============================================================
             // 5. DECISIÓN FINAL
-            // ============================================================
             if (!hasAccess) {
                 isProcessingPayment = false;
                 // 1. Obtener el estatus detallado desde Firestore (si existe)
                 let blockReason = "No tienes una suscripción activa.";
                 db.collection("customers").doc(user.uid).get().then(doc => {
                     if (doc.exists) {
-                        const data = doc.to_dict();
+                        const data = doc.data(); // CORREGIDO: de to_dict() a data()
                         if (data.stripe_status === 'past_due') blockReason = "Tu último pago fue rechazado. Por favor, actualiza tu tarjeta.";
-                        if (data.stripe_status === 'incomplete') blockReason = "La transacción inicial no se pudo completar.";
+                        if (data.stripe_status === 'incomplete') blockReason = "La transacción inicial no se pudo completar o la tarjeta fue rechazada.";
                     }
                     const errorBox = document.getElementById('subscription-error-display');
                     if (errorBox) {
                         errorBox.innerHTML = `⚠️ ${blockReason}`;
                         errorBox.style.display = 'block';
                     }
-                });
+                }).catch(e => console.log("Error opcional de metadata:", e));
+
                 sessionStorage.removeItem('pida_is_onboarding');
 
                 // 2. Limpiar UI de Login
@@ -1581,6 +1581,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 // 3. Mostrar Modal de Ventas
                 if (appRoot) appRoot.style.display = 'block';
                 hideLoader();
+                
+                // OCULTAR ROBOT (AÑADIDO)
+                const setupOverlay = document.getElementById('pida-setup-overlay');
+                if (setupOverlay) setupOverlay.style.display = 'none';
 
                 if (subOverlay) {
                     subOverlay.classList.remove('hidden'); 
