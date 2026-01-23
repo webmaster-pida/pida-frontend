@@ -1532,7 +1532,8 @@ document.addEventListener('DOMContentLoaded', function () {
             // ============================================================
             // 5. DECISIÓN FINAL
             // ============================================================
-            isProcessingPayment = false;
+            if (!hasAccess) {
+                isProcessingPayment = false;
                 sessionStorage.removeItem('pida_is_onboarding');
                 if (appRoot) appRoot.style.display = 'block';
                 hideLoader();
@@ -1541,7 +1542,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     subOverlay.classList.remove('hidden'); 
                     subOverlay.style.display = 'flex';
                     
-                    // Vincular el botón de cerrar sesión inmediatamente antes de salir
                     const btnLogoutOverlay = document.getElementById('logout-from-overlay');
                     if (btnLogoutOverlay) {
                         btnLogoutOverlay.onclick = (e) => {
@@ -1550,7 +1550,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         };
                     }
                 }
-                return; 
+                return; // Detiene runApp para usuarios sin acceso
             }
 
             // --- ACCESO CONCEDIDO (ÉXITO) ---
