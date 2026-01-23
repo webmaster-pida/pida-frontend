@@ -1104,6 +1104,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 } else if (authMode === 'register') {
                     // 1. Validar Checkbox de Términos
                     isProcessingPayment = true;
+                    // Mostrar robot de preparación inmediatamente
+                    const setupOverlay = document.getElementById('pida-setup-overlay');
+                    if (setupOverlay) {
+                        setupOverlay.style.display = 'flex';
+                        setupOverlay.classList.remove('hidden');
+                    }
                     const termsCheckbox = document.getElementById('terms-checkbox');
                     if (termsCheckbox && !termsCheckbox.checked) {
                         btn.disabled = false;
@@ -1220,7 +1226,12 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (intent.status === 'succeeded') {
                         // --- ESPERA ACTIVA (POLLING) ---
                         btn.textContent = "Suscripción iniciada. Activando...";
-                        
+                        // Forzar visibilidad del robot mientras esperamos activación
+                        const setupOverlay = document.getElementById('pida-setup-overlay');
+                        if (setupOverlay) {
+                            setupOverlay.style.display = 'flex';
+                            setupOverlay.classList.remove('hidden');
+                        }
                         const checkSub = async () => {
                             let attempts = 0;
                             while (attempts < 10) { 
