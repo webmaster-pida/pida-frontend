@@ -1534,6 +1534,8 @@ document.addEventListener('DOMContentLoaded', function () {
             // ============================================================
             if (!hasAccess) {
                 // Si no tiene acceso, forzamos que se vea la Landing o el Modal de Suscripción
+                isProcessingPayment = false;
+                sessionStorage.removeItem('pida_is_onboarding');
                 if (appRoot) appRoot.style.display = 'block';
                 hideLoader();
 
