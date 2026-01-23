@@ -1558,7 +1558,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 isProcessingPayment = false;
                 // 1. Obtener el estatus detallado desde Firestore (si existe)
                 let blockReason = "No tienes una suscripción activa.";
-                db.collection("customers").document(user.uid).get().then(doc => {
+                db.collection("customers").doc(user.uid).get().then(doc => {
                     if (doc.exists) {
                         const data = doc.to_dict();
                         if (data.stripe_status === 'past_due') blockReason = "Tu último pago fue rechazado. Por favor, actualiza tu tarjeta.";
@@ -2493,8 +2493,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         } catch (error) {
             console.error("Error crítico en runApp:", error);
+            isProcessingPayment = false;
             hideLoader();
-            alert("Hubo un problema al cargar. Recarga la página.");
+            // Solo mostrar error en consola para depuración, no interrumpir al usuario
+            console.warn("Recuperación de error en runApp:", error.message);
         }
     }
 
