@@ -1546,6 +1546,14 @@ document.addEventListener('DOMContentLoaded', function () {
             if (!hasAccess) {
                 isProcessingPayment = false;
                 sessionStorage.removeItem('pida_is_onboarding');
+
+                // 2. Limpiar UI de Login
+                const authBtn = document.getElementById('auth-submit-btn');
+                if (authBtn) { authBtn.disabled = false; authBtn.textContent = 'Ingresar'; }
+                const loginScreen = document.getElementById('pida-login-screen');
+                if (loginScreen) loginScreen.style.display = 'none';
+
+                // 3. Mostrar Modal de Ventas
                 if (appRoot) appRoot.style.display = 'block';
                 hideLoader();
 
@@ -2450,6 +2458,13 @@ document.addEventListener('DOMContentLoaded', function () {
             
             // ACTIVAR ESCUCHA EN TIEMPO REAL
             setupPlanListener(); 
+
+            // Vincular TODOS los botones de cerrar sesión (incluyendo el del modal)
+            const logouts = ['pida-profile-logout', 'mobile-nav-logout', 'logout-from-overlay'];
+            logouts.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.onclick = (e) => { e.preventDefault(); firebase.auth().signOut().then(() => window.location.reload()); };
+            });
 
         } catch (error) {
             console.error("Error crítico en runApp:", error);
