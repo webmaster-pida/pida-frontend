@@ -1220,6 +1220,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         // Guardamos el mensaje de Stripe para mostrarlo
                         const stripeErrorMessage = result.error.message;
                         isProcessingPayment = false;
+                        // Guardar el error localmente para mostrarlo en el modal de inmediato
+                        sessionStorage.setItem('pida_stripe_fail', stripeErrorMessage);
                         // Ocultar robot y mostrar el error en la pantalla de login
                         const setupOverlay = document.getElementById('pida-setup-overlay');
                         if (setupOverlay) setupOverlay.style.display = 'none';
@@ -1555,13 +1557,16 @@ document.addEventListener('DOMContentLoaded', function () {
             // 5. DECISIÓN FINAL
             if (!hasAccess) {
                 isProcessingPayment = false;
-                // 1. Obtener el estatus detallado desde Firestore (si existe)
-                let blockReason = "No tienes una suscripción activa.";
+
+                // 1. Determinar el motivo del bloqueo (Prioridad: Error local > Firestore > Genérico)
+                let localFail = sessionStorage.getItem('pida_stripe_fail');
+                let blockReason = localFail ? `Error de pago: ${localFail}` : "No tienes una suscripción activa.";
+                
                 db.collection("customers").doc(user.uid).get().then(doc => {
                     if (doc.exists) {
-                        const data = doc.data(); // CORREGIDO: de to_dict() a data()
+                        const data = doc.data();
                         if (data.stripe_status === 'past_due') blockReason = "Tu último pago fue rechazado. Por favor, actualiza tu tarjeta.";
-                        if (data.stripe_status === 'incomplete') blockReason = "La transacción inicial no se pudo completar o la tarjeta fue rechazada.";
+                        if (data.stripe_status === 'incomplete' && !localFail) blockReason = "La transacción inicial no se pudo completar o la tarjeta fue rechazada.";
                     }
                     const errorBox = document.getElementById('subscription-error-display');
                     if (errorBox) {
@@ -1569,6 +1574,9 @@ document.addEventListener('DOMContentLoaded', function () {
                         errorBox.style.display = 'block';
                     }
                 }).catch(e => console.log("Error opcional de metadata:", e));
+
+                // Limpiar el error local después de usarlo para que no sea persistente
+                sessionStorage.removeItem('pida_stripe_fail');
 
                 sessionStorage.removeItem('pida_is_onboarding');
 
