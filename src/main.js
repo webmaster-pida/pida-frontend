@@ -1778,6 +1778,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
             if(dom.pLogout) dom.pLogout.onclick = doLogout;
             if(dom.mobileMenuLogout) dom.mobileMenuLogout.onclick = doLogout;
+            
+            const btnLogoutOverlay = document.getElementById('logout-from-overlay');
+            if (btnLogoutOverlay) btnLogoutOverlay.onclick = doLogout;
 
             // --- GESTIÓN DE VISTAS ---
             function setView(view) {
