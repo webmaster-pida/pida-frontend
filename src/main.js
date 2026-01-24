@@ -68,7 +68,7 @@ const STRIPE_PRICES = {
 let currentCurrency = 'USD';
 
 const PIDA_CONFIG = {
-    API_CHAT: "https://chat-v20-development-stripe-465781488910.us-central1.run.app",
+    API_CHAT: "https://chat-v20-stripe-elements-465781488910.us-central1.run.app",
     API_ANA: "https://analize-v20-stripe-elements-465781488910.us-central1.run.app",
     API_PRE: "https://precalifier-v20-stripe-elements-465781488910.us-central1.run.app",
     FIREBASE: {
