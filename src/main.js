@@ -335,10 +335,14 @@ window.closeBanner = function() {
     }
 }
 
+// =========================================================
+// REEMPLAZO COMPLETO DE LA FUNCIÓN switchAuthMode
+// =========================================================
+
 window.switchAuthMode = function(mode, showTabs = true) {
     authMode = mode;
     
-    // 1. Referencias a la UI
+    // 1. Referencias a la UI Base
     const tabContainer = document.querySelector('.login-tabs');
     const tabLogin = document.getElementById('tab-login');
     const tabRegister = document.getElementById('tab-register');
@@ -351,9 +355,13 @@ window.switchAuthMode = function(mode, showTabs = true) {
     const disclaimer = document.getElementById('register-disclaimer'); 
     const forgotLink = document.getElementById('btn-forgot-password');
     const errMsg = document.getElementById('login-message');
-    const nameFields = document.getElementById('register-name-fields'); // <--- Referencia
+    const nameFields = document.getElementById('register-name-fields'); 
     
-    if(errMsg) errMsg.style.display = 'none';
+    // Limpiar errores previos
+    if(errMsg) {
+        errMsg.style.display = 'none';
+        errMsg.textContent = '';
+    }
 
     // 2. Control de pestañas superiores
     if (tabContainer) {
@@ -364,19 +372,20 @@ window.switchAuthMode = function(mode, showTabs = true) {
         tabRegister.classList.toggle('active', mode === 'register');
     }
 
-    // 3. Lógica de Modos
+    // 3. Lógica Específica de cada Modo
     if (mode === 'reset') {
-        // OCULTAR CAMPOS DE NOMBRE
+        // --- MODO: RESET PASSWORD ---
         if(nameFields) nameFields.style.display = 'none';
-
         title.textContent = 'Recuperar Contraseña';
         desc.textContent = 'Ingresa tu correo para enviarte un enlace de restauración.';
         submitBtn.textContent = 'Enviar enlace de recuperación';
+        
         if(passContainer) passContainer.style.display = 'none';
         if(googleBtn) googleBtn.style.display = 'none';
         if(divider) divider.style.display = 'none';
         if(disclaimer) disclaimer.style.display = 'none';
         if(forgotLink) forgotLink.parentElement.style.display = 'none';
+        
         document.getElementById('login-password').required = false;
 
         // Ocultar tarjeta si existe
@@ -384,16 +393,17 @@ window.switchAuthMode = function(mode, showTabs = true) {
         if (cardContainer) cardContainer.style.display = 'none';
 
     } else {
+        // --- MODO: LOGIN O REGISTRO ---
         if(passContainer) passContainer.style.display = 'block';
         document.getElementById('login-password').required = true;
 
         if (mode === 'login') {
-            // OCULTAR CAMPOS DE NOMBRE
+            // --- LOGIN ---
             if(nameFields) nameFields.style.display = 'none';
-
             title.textContent = 'Bienvenido de nuevo';
             desc.textContent = 'Accede para continuar tu investigación.';
             submitBtn.textContent = 'Ingresar';
+            
             if(disclaimer) disclaimer.style.display = 'none';
             if(googleBtn) googleBtn.style.display = 'flex';
             if(divider) divider.style.display = 'block';
@@ -403,189 +413,216 @@ window.switchAuthMode = function(mode, showTabs = true) {
             const cardContainer = document.getElementById('card-element-container');
             if (cardContainer) cardContainer.style.display = 'none';
 
-        } else { // REGISTER
-            // MOSTRAR CAMPOS DE NOMBRE
+        } else { 
+            // --- REGISTRO (AQUÍ ESTÁ LA LÓGICA DE PAGO) ---
             if(nameFields) nameFields.style.display = 'flex';
-
             title.textContent = 'Crear una cuenta';
             desc.textContent = 'Únete para acceder a PIDA.';
             submitBtn.textContent = 'Registrarme e iniciar prueba gratis';
+            
             if(disclaimer) disclaimer.style.display = 'block';
             if(googleBtn) googleBtn.style.display = 'none';
             if(divider) divider.style.display = 'none';
             if(forgotLink) forgotLink.parentElement.style.display = 'none';
 
-            // --- LÓGICA DE STRIPE ELEMENTS MEJORADA ---
-            const authForm = document.getElementById('login-form');
-            let cardContainer = document.getElementById('card-element-container');
-
-            // Recuperar datos del plan seleccionado
+            // 1. Obtener datos ACTUALES de sesión (Lo que el usuario acaba de clickear)
             const pendingPlan = sessionStorage.getItem('pida_pending_plan') || 'basico';
             const pendingInterval = sessionStorage.getItem('pida_pending_interval') || 'monthly';
             const pendingCurrency = localStorage.getItem('pida_currency') || 'USD';
             
-            // Obtener objeto de precio desde la configuración global
-            const planDetails = STRIPE_PRICES[pendingPlan][pendingInterval][pendingCurrency];
+            // 2. Resolver detalles del plan (Precio y Nombre)
+            let planDetails = null;
+            if (STRIPE_PRICES[pendingPlan] && STRIPE_PRICES[pendingPlan][pendingInterval]) {
+                planDetails = STRIPE_PRICES[pendingPlan][pendingInterval][pendingCurrency];
+            }
+            
+            // Fallback por seguridad
+            if (!planDetails) {
+                console.error("Error crítico: Plan no encontrado en configuración", pendingPlan, pendingInterval, pendingCurrency);
+                planDetails = { text: 'Unknown', id: '' };
+            }
+
             const planNameDisplay = pendingPlan.charAt(0).toUpperCase() + pendingPlan.slice(1);
             const intervalDisplay = pendingInterval === 'monthly' ? 'Mensual' : 'Anual';
 
+            // 3. Manejo del DOM del contenedor de tarjeta
+            const authForm = document.getElementById('login-form');
+            let cardContainer = document.getElementById('card-element-container');
+
+            // A) SI NO EXISTE: CREAR ESTRUCTURA (Solo una vez)
             if (!cardContainer) {
                 cardContainer = document.createElement('div');
                 cardContainer.id = 'card-element-container';
-                cardContainer.className = 'payment-summary-container'; // Nueva clase CSS
+                cardContainer.className = 'payment-summary-container'; 
                 
-                // --- HTML MEJORADO CON RESUMEN Y CUPÓN INTEGRADO ---
                 cardContainer.innerHTML = `
-                    <!-- 1. RESUMEN DE LA ORDEN -->
+                    <!-- RESUMEN DE LA ORDEN -->
                     <div class="order-summary-box">
                         <div class="summary-header">
-                            <span class="plan-name-tag">Plan ${planNameDisplay} (${intervalDisplay})</span>
+                            <span id="ui-plan-name" class="plan-name-tag"></span>
                         </div>
                         <div class="summary-price-row">
                             <span>Total a pagar:</span>
                             <div class="price-display-wrapper">
-                                <span id="summary-original-price" class="current-price">${planDetails.text}</span>
+                                <span id="summary-original-price" class="current-price"></span>
                                 <span id="summary-final-price" class="final-price" style="display:none;"></span>
                             </div>
                         </div>
                         <div id="summary-discount-tag" class="discount-pill" style="display:none;"></div>
                     </div>
 
-                    <!-- 2. DATOS DE TARJETA -->
-                    <label class="input-label">Datos de la tarjeta</label>
-                    <div id="stripe-card-element" class="stripe-input-box"></div>
+                    <!-- TARJETA STRIPE -->
+                    <label class="input-label" style="font-weight:600; font-size:0.9rem; color:#1D3557; margin-bottom:8px; display:block;">Datos de la tarjeta</label>
+                    <div id="stripe-card-element" class="stripe-input-box" style="padding:12px; border:1px solid #ccc; border-radius:8px; background:white; margin-bottom: 15px;"></div>
                     
-                    <!-- 3. CÓDIGO PROMOCIONAL (Input + Botón) -->
+                    <!-- CUPÓN PROMOCIONAL -->
                     <div class="promo-section">
-                        <div class="promo-toggle" id="promo-toggle-btn">
-                            <span>+ Tengo un código de descuento</span>
+                        <div class="promo-toggle" id="promo-toggle-btn" style="font-size: 0.85rem; color: var(--pida-accent); cursor: pointer; text-decoration: underline; font-weight: 500;">
+                            + Tengo un código de descuento
                         </div>
                         
-                        <div id="promo-input-wrapper" class="promo-input-group" style="display:none;">
-                            <input type="text" id="promo-code-input" placeholder="CÓDIGO" autocomplete="off">
-                            <button type="button" id="apply-promo-btn">Aplicar</button>
+                        <div id="promo-input-wrapper" class="promo-input-group" style="display:none; gap: 8px; margin-top: 8px;">
+                            <input type="text" id="promo-code-input" placeholder="CÓDIGO" autocomplete="off" class="login-input" style="margin-bottom:0; text-transform:uppercase;">
+                            <button type="button" id="apply-promo-btn" style="background:var(--pida-primary); color:white; border:none; border-radius:6px; padding:0 15px; cursor:pointer;">Aplicar</button>
                         </div>
-                        <div id="promo-message" class="promo-msg"></div>
+                        <div id="promo-message" class="promo-msg" style="font-size:0.8rem; margin-top:5px; display:none;"></div>
                     </div>
 
-                    <div id="card-errors" class="stripe-error"></div>
+                    <div id="card-errors" style="color:#EF4444; font-size:0.8rem; margin-top:5px; display:none;"></div>
                     
-                    <div id="terms-container" class="terms-box">
-                        <input type="checkbox" id="terms-checkbox">
-                        <label for="terms-checkbox">
-                            Acepto los <a href="https://pida-ai.com/terminos" target="_blank">términos de uso</a> y la <a href="https://pida-ai.com/privacidad" target="_blank">política de privacidad</a>.
+                    <div id="terms-container" style="display: flex; align-items: flex-start; gap: 10px; margin-top: 15px; text-align: left;">
+                        <input type="checkbox" id="terms-checkbox" style="width: 16px; height: 16px; margin-top: 3px;">
+                        <label for="terms-checkbox" style="font-size: 0.8rem; color: #4B5563; line-height: 1.4;">
+                            Acepto los <a href="https://pida-ai.com/terminos" target="_blank" style="color:var(--pida-accent);">términos de uso</a> y la <a href="https://pida-ai.com/privacidad" target="_blank" style="color:var(--pida-accent);">política de privacidad</a>.
                         </label>
                     </div>
                 `;
                 
-                // INYECTAR EN EL FORMULARIO
                 authForm.insertBefore(cardContainer, document.getElementById('auth-submit-btn'));
 
-                // --- LÓGICA DE UI: MOSTRAR INPUT DE CUPÓN ---
-                const promoToggle = document.getElementById('promo-toggle-btn');
-                const promoWrapper = document.getElementById('promo-input-wrapper');
+                // Inicializar Stripe Elements (Solo una vez)
+                const elements = stripe.elements();
+                cardElement = elements.create('card', { 
+                    hidePostalCode: true, 
+                    style: { base: { fontSize: '16px', fontFamily: '"Inter", sans-serif', color: '#1D3557' } } 
+                });
+                cardElement.mount('#stripe-card-element');
                 
-                if(promoToggle) {
-                    promoToggle.onclick = () => {
-                        promoToggle.style.display = 'none';
-                        promoWrapper.style.display = 'flex';
-                        document.getElementById('promo-code-input').focus();
-                    };
-                }
+                // Listener para el botón de mostrar cupón
+                document.getElementById('promo-toggle-btn').onclick = () => {
+                    document.getElementById('promo-toggle-btn').style.display = 'none';
+                    document.getElementById('promo-input-wrapper').style.display = 'flex';
+                    document.getElementById('promo-code-input').focus();
+                };
+            }
 
-                // --- LÓGICA DE UI: APLICAR CUPÓN (CONEXIÓN AL BACKEND) ---
-                const applyBtn = document.getElementById('apply-promo-btn');
-                const promoInput = document.getElementById('promo-code-input');
-                const msgBox = document.getElementById('promo-message');
-                const originalPriceEl = document.getElementById('summary-original-price');
-                const finalPriceEl = document.getElementById('summary-final-price');
-                const discountTag = document.getElementById('summary-discount-tag');
+            // B) SIEMPRE ACTUALIZAR LA INFORMACIÓN VISUAL (CRÍTICO PARA ARREGLAR BUG)
+            // Esto se ejecuta tanto si se acaba de crear como si ya existía
+            
+            // 1. Actualizar Textos del Plan
+            const uiPlanName = document.getElementById('ui-plan-name');
+            const uiOriginalPrice = document.getElementById('summary-original-price');
+            
+            if(uiPlanName) uiPlanName.textContent = `Plan ${planNameDisplay} (${intervalDisplay})`;
+            if(uiOriginalPrice) uiOriginalPrice.textContent = planDetails.text;
 
-                applyBtn.onclick = async (e) => {
+            // 2. Resetear estados visuales de cupón (Limpieza)
+            const uiFinalPrice = document.getElementById('summary-final-price');
+            const uiDiscountTag = document.getElementById('summary-discount-tag');
+            const uiPromoInput = document.getElementById('promo-code-input');
+            const uiPromoMsg = document.getElementById('promo-message');
+            const uiApplyBtn = document.getElementById('apply-promo-btn');
+            
+            if(uiOriginalPrice) uiOriginalPrice.classList.remove('crossed-out');
+            if(uiFinalPrice) { uiFinalPrice.style.display = 'none'; uiFinalPrice.textContent = ''; }
+            if(uiDiscountTag) { uiDiscountTag.style.display = 'none'; uiDiscountTag.textContent = ''; }
+            if(uiPromoInput) { uiPromoInput.value = ''; uiPromoInput.disabled = false; }
+            if(uiPromoMsg) { uiPromoMsg.style.display = 'none'; uiPromoMsg.className = 'promo-msg'; uiPromoMsg.textContent = ''; }
+            if(uiApplyBtn) { uiApplyBtn.disabled = false; uiApplyBtn.textContent = 'Aplicar'; }
+
+            // 3. Reasignar evento de click al botón Aplicar (Para capturar el precio actualizado del plan actual)
+            if(uiApplyBtn) {
+                // Removemos listeners antiguos clonando el nodo (truco rápido y seguro)
+                const newBtn = uiApplyBtn.cloneNode(true);
+                uiApplyBtn.parentNode.replaceChild(newBtn, uiApplyBtn);
+                
+                newBtn.onclick = async (e) => {
                     e.preventDefault();
-                    e.stopPropagation(); // Evitar submit del form
+                    e.stopPropagation();
                     
-                    const code = promoInput.value.trim();
+                    const code = uiPromoInput.value.trim();
                     if(!code) return;
 
-                    applyBtn.textContent = '...';
-                    applyBtn.disabled = true;
-                    msgBox.style.display = 'none';
+                    newBtn.textContent = '...';
+                    newBtn.disabled = true;
+                    uiPromoMsg.style.display = 'none';
 
                     try {
-                        // Usamos el ID de precio real de la configuración
+                        // URL corregida: Asegúrate de que PIDA_CONFIG.API_CHAT sea correcta
                         const response = await fetch(`${PIDA_CONFIG.API_CHAT}/validate-promo-code`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ 
                                 code: code, 
-                                priceId: planDetails.id 
+                                priceId: planDetails.id // ID ACTUALIZADO del plan seleccionado
                             })
                         });
 
                         const data = await response.json();
 
                         if (!response.ok) {
-                            throw new Error(data.detail || 'Código inválido');
+                            // Si devuelve 404 aquí es porque la respuesta JSON trajo detalle, o el servidor
+                            // realmente no encontró la ruta.
+                            throw new Error(data.detail || 'Error al validar código');
                         }
 
-                        // --- ÉXITO: ACTUALIZAR UI ---
-                        msgBox.textContent = `✅ Cupón "${data.coupon_name}" aplicado.`;
-                        msgBox.className = 'promo-msg success';
-                        msgBox.style.display = 'block';
+                        // ÉXITO
+                        uiPromoMsg.textContent = `✅ Cupón "${data.coupon_name}" aplicado.`;
+                        uiPromoMsg.className = 'promo-msg success';
+                        uiPromoMsg.style.color = '#10B981';
+                        uiPromoMsg.style.display = 'block';
 
-                        // Formatear precio final (viene en centavos desde backend)
+                        // Formatear precio
                         const formatter = new Intl.NumberFormat(pendingCurrency === 'MXN' ? 'es-MX' : 'en-US', {
                             style: 'currency',
                             currency: pendingCurrency,
                             minimumFractionDigits: 2
                         });
                         
-                        originalPriceEl.classList.add('crossed-out'); // Tachar precio viejo
-                        finalPriceEl.textContent = formatter.format(data.final_amount / 100);
-                        finalPriceEl.style.display = 'block'; // Mostrar nuevo
+                        uiOriginalPrice.classList.add('crossed-out');
+                        uiFinalPrice.textContent = formatter.format(data.final_amount / 100);
+                        uiFinalPrice.style.display = 'block';
                         
-                        discountTag.textContent = `Ahorras: ${data.description}`;
-                        discountTag.style.display = 'inline-block';
+                        uiDiscountTag.textContent = `Ahorras: ${data.description}`;
+                        uiDiscountTag.style.display = 'inline-block';
 
-                        // Bloquear input para evitar cambios
-                        promoInput.disabled = true;
-                        applyBtn.textContent = '✓';
+                        uiPromoInput.disabled = true;
+                        newBtn.textContent = '✓';
 
                     } catch (error) {
-                        msgBox.textContent = `❌ ${error.message}`;
-                        msgBox.className = 'promo-msg error';
-                        msgBox.style.display = 'block';
-                        applyBtn.textContent = 'Aplicar';
-                        applyBtn.disabled = false;
+                        console.error("Error promo:", error);
+                        uiPromoMsg.textContent = `❌ ${error.message}`;
+                        uiPromoMsg.className = 'promo-msg error';
+                        uiPromoMsg.style.color = '#EF4444';
+                        uiPromoMsg.style.display = 'block';
                         
-                        // Resetear precios visuales si falla
-                        originalPriceEl.classList.remove('crossed-out');
-                        finalPriceEl.style.display = 'none';
-                        discountTag.style.display = 'none';
+                        newBtn.textContent = 'Aplicar';
+                        newBtn.disabled = false;
+                        
+                        // Reset visual parcial
+                        uiOriginalPrice.classList.remove('crossed-out');
+                        uiFinalPrice.style.display = 'none';
+                        uiDiscountTag.style.display = 'none';
                     }
                 };
-
-                // --- STRIPE MOUNT ---
-                const elements = stripe.elements();
-                cardElement = elements.create('card', { 
-                    hidePostalCode: true, 
-                    style: { 
-                        base: { 
-                            fontSize: '16px', 
-                            fontFamily: '"Inter", sans-serif', 
-                            color: '#1D3557',
-                            '::placeholder': { color: '#aab7c4' }
-                        } 
-                    } 
-                });
-                cardElement.mount('#stripe-card-element');
             }
+
+            // Mostrar el contenedor finalmente
             cardContainer.style.display = 'block';
         }
     }
 
-    // Footer nav logic... (Igual que antes)
+    // Footer nav logic (Mantener igual)
     const footerNav = document.getElementById('auth-footer-nav');
     if (footerNav) {
         if (mode === 'login') {
