@@ -415,39 +415,65 @@ window.switchAuthMode = function(mode, showTabs = true) {
             if(divider) divider.style.display = 'none';
             if(forgotLink) forgotLink.parentElement.style.display = 'none';
 
-            // --- LÓGICA DE STRIPE ELEMENTS ---
+            // --- LÓGICA DE STRIPE ELEMENTS MEJORADA ---
             const authForm = document.getElementById('login-form');
             let cardContainer = document.getElementById('card-element-container');
+
+            // Recuperar datos del plan seleccionado
+            const pendingPlan = sessionStorage.getItem('pida_pending_plan') || 'basico';
+            const pendingInterval = sessionStorage.getItem('pida_pending_interval') || 'monthly';
+            const pendingCurrency = localStorage.getItem('pida_currency') || 'USD';
+            
+            // Obtener objeto de precio desde la configuración global
+            const planDetails = STRIPE_PRICES[pendingPlan][pendingInterval][pendingCurrency];
+            const planNameDisplay = pendingPlan.charAt(0).toUpperCase() + pendingPlan.slice(1);
+            const intervalDisplay = pendingInterval === 'monthly' ? 'Mensual' : 'Anual';
 
             if (!cardContainer) {
                 cardContainer = document.createElement('div');
                 cardContainer.id = 'card-element-container';
-                cardContainer.style.margin = "20px 0";
+                cardContainer.className = 'payment-summary-container'; // Nueva clase CSS
                 
-                // --- HTML CON CHECKBOX Y CAMPO OCULTO ---
+                // --- HTML MEJORADO CON RESUMEN Y CUPÓN INTEGRADO ---
                 cardContainer.innerHTML = `
-                    <label style="font-weight:600; font-size:0.9rem; color:#1D3557; margin-bottom:8px; display:block;">Datos de la tarjeta</label>
-                    <div id="stripe-card-element" style="padding:12px; border:1px solid #ccc; border-radius:8px; background:white; margin-bottom: 15px;"></div>
-                    
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-                        <input type="checkbox" id="has-promo-check" style="width: 16px; height: 16px; cursor: pointer; margin: 0;">
-                        <label for="has-promo-check" style="font-size: 0.9rem; color: #1D3557; cursor: pointer; user-select: none;">
-                            ¿Tienes un código de descuento?
-                        </label>
+                    <!-- 1. RESUMEN DE LA ORDEN -->
+                    <div class="order-summary-box">
+                        <div class="summary-header">
+                            <span class="plan-name-tag">Plan ${planNameDisplay} (${intervalDisplay})</span>
+                        </div>
+                        <div class="summary-price-row">
+                            <span>Total a pagar:</span>
+                            <div class="price-display-wrapper">
+                                <span id="summary-original-price" class="current-price">${planDetails.text}</span>
+                                <span id="summary-final-price" class="final-price" style="display:none;"></span>
+                            </div>
+                        </div>
+                        <div id="summary-discount-tag" class="discount-pill" style="display:none;"></div>
                     </div>
 
-                    <div id="promo-input-container" style="display: none; margin-bottom: 15px; animation: fadeIn 0.3s ease-in-out;">
-                        <input type="text" id="promo-code-input" class="login-input" 
-                               placeholder="Ingresa tu código" 
-                               style="margin-bottom: 0; font-size: 0.9rem; text-transform: uppercase;">
+                    <!-- 2. DATOS DE TARJETA -->
+                    <label class="input-label">Datos de la tarjeta</label>
+                    <div id="stripe-card-element" class="stripe-input-box"></div>
+                    
+                    <!-- 3. CÓDIGO PROMOCIONAL (Input + Botón) -->
+                    <div class="promo-section">
+                        <div class="promo-toggle" id="promo-toggle-btn">
+                            <span>+ Tengo un código de descuento</span>
+                        </div>
+                        
+                        <div id="promo-input-wrapper" class="promo-input-group" style="display:none;">
+                            <input type="text" id="promo-code-input" placeholder="CÓDIGO" autocomplete="off">
+                            <button type="button" id="apply-promo-btn">Aplicar</button>
+                        </div>
+                        <div id="promo-message" class="promo-msg"></div>
                     </div>
 
-                    <div id="card-errors" style="color:#EF4444; font-size:0.8rem; margin-top:5px; display:none;"></div>
+                    <div id="card-errors" class="stripe-error"></div>
                     
-                    <div id="terms-container" style="display: flex; align-items: flex-start; gap: 10px; margin-top: 15px; text-align: left;">
-                        <input type="checkbox" id="terms-checkbox" style="width: 18px; height: 18px; margin-top: 2px; cursor: pointer;">
-                        <label for="terms-checkbox" style="font-size: 0.8rem; color: #4B5563; line-height: 1.4; cursor: pointer;">
-                            Acepto los <a href="https://pida-ai.com/terminos" target="_blank" style="color: var(--pida-accent); text-decoration: underline;">términos de uso</a> y la <a href="https://pida-ai.com/privacidad" target="_blank" style="color: var(--pida-accent); text-decoration: underline;">política de privacidad</a>.
+                    <div id="terms-container" class="terms-box">
+                        <input type="checkbox" id="terms-checkbox">
+                        <label for="terms-checkbox">
+                            Acepto los <a href="https://pida-ai.com/terminos" target="_blank">términos de uso</a> y la <a href="https://pida-ai.com/privacidad" target="_blank">política de privacidad</a>.
                         </label>
                     </div>
                 `;
@@ -455,29 +481,103 @@ window.switchAuthMode = function(mode, showTabs = true) {
                 // INYECTAR EN EL FORMULARIO
                 authForm.insertBefore(cardContainer, document.getElementById('auth-submit-btn'));
 
-                // --- LÓGICA PARA MOSTRAR/OCULTAR EL INPUT ---
-                const promoCheck = document.getElementById('has-promo-check');
-                const promoContainer = document.getElementById('promo-input-container');
+                // --- LÓGICA DE UI: MOSTRAR INPUT DE CUPÓN ---
+                const promoToggle = document.getElementById('promo-toggle-btn');
+                const promoWrapper = document.getElementById('promo-input-wrapper');
                 
-                if(promoCheck && promoContainer) {
-                    promoCheck.addEventListener('change', (e) => {
-                        if (e.target.checked) {
-                            promoContainer.style.display = 'block';
-                            // Enfocar el input automáticamente para mejor UX
-                            document.getElementById('promo-code-input').focus();
-                        } else {
-                            promoContainer.style.display = 'none';
-                            // Limpiar el input si se desmarca para evitar enviar códigos parciales
-                            document.getElementById('promo-code-input').value = '';
-                        }
-                    });
+                if(promoToggle) {
+                    promoToggle.onclick = () => {
+                        promoToggle.style.display = 'none';
+                        promoWrapper.style.display = 'flex';
+                        document.getElementById('promo-code-input').focus();
+                    };
                 }
-                // ---------------------------------------------
 
+                // --- LÓGICA DE UI: APLICAR CUPÓN (CONEXIÓN AL BACKEND) ---
+                const applyBtn = document.getElementById('apply-promo-btn');
+                const promoInput = document.getElementById('promo-code-input');
+                const msgBox = document.getElementById('promo-message');
+                const originalPriceEl = document.getElementById('summary-original-price');
+                const finalPriceEl = document.getElementById('summary-final-price');
+                const discountTag = document.getElementById('summary-discount-tag');
+
+                applyBtn.onclick = async (e) => {
+                    e.preventDefault();
+                    e.stopPropagation(); // Evitar submit del form
+                    
+                    const code = promoInput.value.trim();
+                    if(!code) return;
+
+                    applyBtn.textContent = '...';
+                    applyBtn.disabled = true;
+                    msgBox.style.display = 'none';
+
+                    try {
+                        // Usamos el ID de precio real de la configuración
+                        const response = await fetch(`${PIDA_CONFIG.API_CHAT}/validate-promo-code`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                code: code, 
+                                priceId: planDetails.id 
+                            })
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(data.detail || 'Código inválido');
+                        }
+
+                        // --- ÉXITO: ACTUALIZAR UI ---
+                        msgBox.textContent = `✅ Cupón "${data.coupon_name}" aplicado.`;
+                        msgBox.className = 'promo-msg success';
+                        msgBox.style.display = 'block';
+
+                        // Formatear precio final (viene en centavos desde backend)
+                        const formatter = new Intl.NumberFormat(pendingCurrency === 'MXN' ? 'es-MX' : 'en-US', {
+                            style: 'currency',
+                            currency: pendingCurrency,
+                            minimumFractionDigits: 2
+                        });
+                        
+                        originalPriceEl.classList.add('crossed-out'); // Tachar precio viejo
+                        finalPriceEl.textContent = formatter.format(data.final_amount / 100);
+                        finalPriceEl.style.display = 'block'; // Mostrar nuevo
+                        
+                        discountTag.textContent = `Ahorras: ${data.description}`;
+                        discountTag.style.display = 'inline-block';
+
+                        // Bloquear input para evitar cambios
+                        promoInput.disabled = true;
+                        applyBtn.textContent = '✓';
+
+                    } catch (error) {
+                        msgBox.textContent = `❌ ${error.message}`;
+                        msgBox.className = 'promo-msg error';
+                        msgBox.style.display = 'block';
+                        applyBtn.textContent = 'Aplicar';
+                        applyBtn.disabled = false;
+                        
+                        // Resetear precios visuales si falla
+                        originalPriceEl.classList.remove('crossed-out');
+                        finalPriceEl.style.display = 'none';
+                        discountTag.style.display = 'none';
+                    }
+                };
+
+                // --- STRIPE MOUNT ---
                 const elements = stripe.elements();
                 cardElement = elements.create('card', { 
                     hidePostalCode: true, 
-                    style: { base: { fontSize: '15px', fontFamily: '"Inter", sans-serif', color: '#1D3557' } } 
+                    style: { 
+                        base: { 
+                            fontSize: '16px', 
+                            fontFamily: '"Inter", sans-serif', 
+                            color: '#1D3557',
+                            '::placeholder': { color: '#aab7c4' }
+                        } 
+                    } 
                 });
                 cardElement.mount('#stripe-card-element');
             }
