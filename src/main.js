@@ -1821,6 +1821,19 @@ document.addEventListener('DOMContentLoaded', function () {
             };
 
             // 7. FUNCIONES AUXILIARES
+
+            // --- UTILIDAD SMART SCROLL ---
+            function isUserNearBottom() {
+                const container = document.getElementById('pida-chat-box').parentElement;
+                const threshold = 150; 
+                const position = container.scrollHeight - container.scrollTop - container.clientHeight;
+                return position <= threshold;
+            }
+
+            function scrollToBottom() {
+                const container = document.getElementById('pida-chat-box').parentElement;
+                container.scrollTop = container.scrollHeight;
+            }
             
             // --- FUNCIÓN DE ESCUCHA DE PLAN (TIEMPO REAL) ---
             async function setupPlanListener() {
@@ -2281,6 +2294,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 renderChat({ role: 'user', content: txt });
                 state.currentChat.messages.push({ role: 'user', content: txt });
                 dom.input.value = '';
+                scrollToBottom();
                 const botBubble = document.createElement('div');
                 botBubble.className = 'pida-bubble pida-message-bubble';
                 botBubble.innerHTML = '<div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div>';
@@ -2316,6 +2330,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     while (true) {
                         const { value, done } = await reader.read();
                         if (done) break;
+
+                        // 1. DETECTAR SI EL USUARIO ESTÁ ABAJO ANTES DE INSERTAR CONTENIDO
+                        const shouldAutoScroll = isUserNearBottom();
+
                         const chunk = decoder.decode(value);
                         const lines = chunk.split('\n\n');
                         for (const l of lines) {
@@ -2327,7 +2345,12 @@ document.addEventListener('DOMContentLoaded', function () {
                                         if (isFirstChunk) { botBubble.innerHTML = ''; isFirstChunk = false; }
                                         fullText += d.text;
                                         botBubble.innerHTML = Utils.sanitize(marked.parse(Utils.prepareMarkdown(fullText)));
-                                        dom.chatBox.parentElement.scrollTop = dom.chatBox.parentElement.scrollHeight;
+                                        
+                                        // 2. APLICAR SMART SCROLL
+                                        // Solo bajamos si el usuario ya estaba abajo o si es el primer chunk
+                                        if (shouldAutoScroll || isFirstChunk) {
+                                            scrollToBottom();
+                                        }
                                     }
                                 } catch (e) { }
                             }

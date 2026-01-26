@@ -187,7 +187,7 @@
         .pida-header-mascot { height: 55px; width: auto; margin-left: auto; object-fit: contain; }
         .pida-view { display: flex; flex-direction: column; flex: 1; overflow: hidden; height: 100%; }
         .pida-view.hidden { display: none; }
-        .pida-view-content { flex: 1; overflow-y: auto; padding: 30px 10%; scroll-behavior: smooth; }
+        .pida-view-content { flex: 1; overflow-y: auto; padding: 30px 10%; scroll-behavior: auto; }
         .pida-view-content::-webkit-scrollbar, .pida-dropdown-content::-webkit-scrollbar { width: 8px; }
         .pida-view-content::-webkit-scrollbar-thumb, .pida-dropdown-content::-webkit-scrollbar-thumb { background-color: #CBD5E1; border-radius: 4px; }
         #pida-chat-box { display: flex; flex-direction: column; gap: 20px; padding-bottom: 20px; }
