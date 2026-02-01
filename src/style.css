@@ -1279,3 +1279,73 @@ input:checked + .slider:before { transform: translateX(24px); }
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }
 }
+
+/* =========================================
+   ESTILOS MENU DESPLEGABLE (NEWSLETTER)
+   ========================================= */
+
+/* Contenedor principal del botón y el menú */
+.nav-dropdown-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 100%;
+}
+
+/* El cuadro blanco que se despliega */
+.nav-dropdown-menu {
+    display: none; /* Oculto por defecto */
+    position: absolute;
+    top: 100%; /* Justo debajo del texto */
+    right: 0;  /* Alineado a la derecha para no salirse de pantalla */
+    background-color: #ffffff;
+    min-width: 160px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 8px 0;
+    z-index: 1100;
+    margin-top: 10px; /* Pequeña separación vertical */
+    flex-direction: column;
+}
+
+/* Mostrar el menú al pasar el mouse por encima del contenedor */
+.nav-dropdown-container:hover .nav-dropdown-menu {
+    display: flex;
+    animation: fadeInMenu 0.2s ease-out;
+}
+
+/* Estilo de los enlaces dentro del menú */
+.nav-dropdown-menu a {
+    display: block;
+    padding: 10px 20px;
+    color: #64748B;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    text-align: left;
+    white-space: nowrap;
+}
+
+/* Efecto Hover en los enlaces del submenú */
+.nav-dropdown-menu a:hover {
+    background-color: #F8FAFC;
+    color: var(--navy);
+}
+
+/* Pequeña animación de entrada */
+@keyframes fadeInMenu {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Asegurar que el "puente" invisible mantenga el hover */
+.nav-dropdown-container::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    width: 100%;
+    height: 10px; /* Cubre el espacio del margin-top */
+}
