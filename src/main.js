@@ -1544,53 +1544,57 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
     // LÓGICA DEL MODAL DE VIDEO (PIDA)
     // ==========================================
-    document.addEventListener('DOMContentLoaded', () => {
-        const videoModal = document.getElementById('pida-video-modal');
-        const openBtn = document.getElementById('open-video-modal-btn');
-        const closeBtn = document.getElementById('close-video-modal-btn');
-        const videoElement = document.getElementById('pida-presentation-video');
+    
+    const videoModal = document.getElementById('pida-video-modal');
+    const openBtn = document.getElementById('open-video-modal-btn');
+    const closeBtn = document.getElementById('close-video-modal-btn');
+    const videoElement = document.getElementById('pida-presentation-video');
 
-        if (openBtn && videoModal) {
-            // Abrir modal
-            openBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                videoModal.classList.remove('hidden');
-                videoModal.style.display = 'flex';
-                // Opcional: Autoplay al abrir
-                if(videoElement) videoElement.play(); 
-            });
-
-            // Función para cerrar y pausar video
-            const closeVideoModal = () => {
-                videoModal.classList.add('hidden');
-                setTimeout(() => { 
-                    videoModal.style.display = 'none'; 
-                    // IMPORTANTE: Pausar el video y reiniciar al cerrar
-                    if(videoElement) {
-                        videoElement.pause();
-                        videoElement.currentTime = 0;
-                    }
-                }, 300);
-            };
-
-            // Cerrar con botón X
-            if(closeBtn) closeBtn.addEventListener('click', closeVideoModal);
-
-            // Cerrar al hacer clic fuera del video (en el fondo oscuro)
-            videoModal.addEventListener('click', (e) => {
-                if (e.target === videoModal) {
-                    closeVideoModal();
-                }
-            });
+    if (openBtn && videoModal) {
+        // Abrir modal
+        openBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            videoModal.classList.remove('hidden');
+            videoModal.style.display = 'flex';
             
-            // Cerrar con tecla ESC
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && !videoModal.classList.contains('hidden')) {
-                    closeVideoModal();
+            // Opcional: Autoplay al abrir
+            if(videoElement) {
+                // Pequeño hack para asegurar que cargue
+                videoElement.load();
+                videoElement.play().catch(e => console.log("Autoplay bloqueado por navegador"));
+            }
+        });
+
+        // Función para cerrar y pausar video
+        const closeVideoModal = () => {
+            videoModal.classList.add('hidden');
+            setTimeout(() => { 
+                videoModal.style.display = 'none'; 
+                // IMPORTANTE: Pausar el video y reiniciar al cerrar
+                if(videoElement) {
+                    videoElement.pause();
+                    videoElement.currentTime = 0;
                 }
-            });
-        }
-    });
+            }, 300);
+        };
+
+        // Cerrar con botón X
+        if(closeBtn) closeBtn.addEventListener('click', closeVideoModal);
+
+        // Cerrar al hacer clic fuera del video (en el fondo oscuro)
+        videoModal.addEventListener('click', (e) => {
+            if (e.target === videoModal) {
+                closeVideoModal();
+            }
+        });
+        
+        // Cerrar con tecla ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !videoModal.classList.contains('hidden')) {
+                closeVideoModal();
+            }
+        });
+    }
 
     // =========================================================
     // 4. LÓGICA DE ACCESO Y ARRANQUE DE LA APP (CORREGIDO)
