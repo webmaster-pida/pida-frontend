@@ -87,7 +87,16 @@
                             <button id="cta-hero" class="btn btn-primary trigger-login">Entrar a PIDA</button>
                         </div>
                     </div>
-                    <div><img style="border-radius:8px;" src="img/PIDA-MASCOTA-576-trans.png" alt="Robot PIDA"></div>
+                    <div class="hero-visual-column">
+                        <img style="border-radius:8px;" src="img/PIDA-MASCOTE-576-trans.png" alt="Robot PIDA">
+                        
+                        <div class="video-trigger-wrapper">
+                            <button id="open-video-modal-btn" class="video-link-btn">
+                                <div class="play-icon-circle">▶</div>
+                                <span>Ver video</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </section>  
 
@@ -829,6 +838,18 @@
         <button id="pida-limit-upgrade-btn" class="pida-modal-btn">
             MEJORAR MI PLAN
         </button>
+    </div>
+</div>
+
+<div id="pida-video-modal" class="pida-overlay hidden" style="z-index: 200010;">
+    <div class="video-modal-content">
+        <button class="close-video-btn" id="close-video-modal-btn">×</button>
+        <div class="video-wrapper">
+            <video id="pida-presentation-video" controls width="100%">
+                <source src="https://storage.googleapis.com/img-pida/PIDA.mp4" type="video/mp4">
+                Tu navegador no soporta la reproducción de videos.
+            </video>
+        </div>
     </div>
 </div>
 
