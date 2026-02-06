@@ -1682,54 +1682,55 @@ input:checked + .slider:before {
 }
 
 /* =========================================
-   SECCIÓN 2: FUNDAMENTOS (DIVIDIDO: BLANCO / OSCURO)
+   SECCIÓN 2: FUNDAMENTOS (DIVIDIDO EXACTO)
    ========================================= */
 
 #fundamento {
-    background-color: white; /* Parte superior blanca */
-    padding-top: 80px;
-    padding-bottom: 0; /* Sin padding abajo para que lo oscuro toque el borde */
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    display: block;
 }
 
-/* PARTE SUPERIOR: TEXTO OSCURO */
-#fundamento .section-intro {
+/* --- PARTE 1: FONDO BLANCO (Título y Texto) --- */
+.fundamento-parte-blanca {
+    background-color: #FFFFFF; /* Blanco Puro */
+    width: 100%;
+    padding: 80px 0 60px 0;
     text-align: center;
-    margin-bottom: 60px;
 }
 
-#fundamento .section-intro h2 {
-    color: var(--navy) !important; /* Azul Oscuro */
+.fundamento-parte-blanca h2 {
+    color: var(--navy) !important; /* Texto Azul Oscuro */
     font-size: 2.5rem;
     font-weight: 700;
     margin-bottom: 20px;
 }
 
-#fundamento .section-intro p {
-    color: #ffffff !important; /* Gris Oscuro */
+.fundamento-parte-blanca p {
+    color: #4B5563 !important; /* Texto Gris Oscuro */
     font-size: 1.1rem;
+    line-height: 1.6;
     max-width: 800px;
     margin: 0 auto;
-    line-height: 1.6;
 }
 
-/* PARTE INFERIOR: FONDO TECH OSCURO */
-.fundamento-dark-section {
+/* --- PARTE 2: FONDO OSCURO (Iconos) --- */
+.fundamento-parte-oscura {
     position: relative;
-    width: 100vw; /* Ancho completo de pantalla */
-    margin-left: calc(-50vw + 50%); /* Truco para salir del wrapper y ocupar todo el ancho */
-    
+    width: 100%;
+    /* Tu imagen de fondo */
     background-image: url('/img/fondo-tech.png'); 
-    background-color: #0F172A;
+    background-color: #0F172A; /* Respaldo azul oscuro */
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    
     padding: 80px 0;
     color: white;
 }
 
-/* Capa oscura sobre la imagen */
-.fundamento-dark-section::before {
+/* Capa azul para oscurecer la imagen y que se lean las letras blancas */
+.fundamento-parte-oscura::before {
     content: '';
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
@@ -1737,19 +1738,25 @@ input:checked + .slider:before {
     z-index: 0;
 }
 
-/* Contenedor interno para centrar el contenido */
-.fundamento-dark-section .wrapper {
+/* Wrapper interno para centrar el contenido */
+.fundamento-parte-oscura .wrapper {
     position: relative;
     z-index: 1;
 }
 
-/* ITEMS DE LA GRILLA (Iconos y Texto Blanco) */
+/* GRILLA DE ICONOS */
+.fundamento-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 50px;
+    text-align: center;
+}
+
 .fundamento-item {
     display: flex;
     flex-direction: column;
     align-items: center;
-    text-align: center;
-    padding: 0 20px;
+    padding: 0 15px;
 }
 
 .fundamento-icon {
@@ -1757,8 +1764,7 @@ input:checked + .slider:before {
     height: auto;
     margin-bottom: 25px;
     display: block;
-    /* Invertir color si los iconos son negros */
-    filter: brightness(0) invert(1); 
+    filter: brightness(0) invert(1); /* Vuelve los iconos BLANCOS */
 }
 
 .fundamento-item h3 {
@@ -1770,24 +1776,16 @@ input:checked + .slider:before {
 }
 
 .fundamento-item p {
-    color: #E2E8F0 !important; /* Gris claro */
+    color: #CBD5E1 !important; /* Texto gris claro */
     font-size: 0.95rem;
     line-height: 1.6;
     margin: 0;
 }
 
-/* Ajuste Responsive */
-@media (min-width: 900px) {
+/* Móvil */
+@media (max-width: 900px) {
     .fundamento-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 50px;
-    }
-}
-@media (max-width: 899px) {
-    .fundamento-grid {
-        display: flex;
-        flex-direction: column;
+        grid-template-columns: 1fr;
         gap: 60px;
     }
 }
