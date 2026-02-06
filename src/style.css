@@ -1484,3 +1484,117 @@ input:checked + .slider:before { transform: translateX(24px); }
     from { opacity: 0; transform: scale(0.9); }
     to { opacity: 1; transform: scale(1); }
 }
+
+/* =========================================
+   1. FONDO TECNOLÓGICO (SECCIÓN 2 - FUNDAMENTOS)
+   ========================================= */
+#fundamento {
+    position: relative;
+    /* AQUÍ USAMOS TU IMAGEN DE FONDO */
+    background-image: url('img/fondo-tech.png'); 
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    color: white;
+    padding: 100px 0;
+}
+
+/* Capa azul oscura encima para asegurar que el texto se lea */
+#fundamento::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(29, 53, 87, 0.85); /* Azul PIDA con transparencia */
+    z-index: 1;
+}
+
+#fundamento .wrapper {
+    position: relative;
+    z-index: 2;
+}
+
+/* =========================================
+   2. TARJETAS CON FONDO DE IMAGEN (bg-card-blue.png)
+   ========================================= */
+/* Estilo específico para las tarjetas dentro de la sección oscura */
+#fundamento .bento-card {
+    /* AQUÍ USAMOS TU IMAGEN DE TARJETA */
+    background-image: url('img/bg-card-blue.png');
+    background-size: cover; /* Se ajusta al tamaño */
+    background-position: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 30px;
+    transition: transform 0.3s ease;
+    background-color: transparent; /* Quitamos color sólido */
+}
+
+#fundamento .bento-card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(121, 159, 202, 0.5); /* Azul claro al hover */
+}
+
+/* Ajuste de iconos blancos */
+#fundamento .bento-icon-img {
+    filter: brightness(0) invert(1); /* Vuelve los iconos blancos */
+    width: 50px;
+    margin-bottom: 20px;
+}
+
+/* =========================================
+   3. ARREGLO DEL SELECTOR (SWITCH)
+   ========================================= */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+    margin: 0 10px;
+}
+
+.switch input { 
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+/* Color Rojo PIDA cuando está activo */
+input:checked + .slider {
+    background-color: var(--pidared);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
+/* =========================================
+   4. ESTRUCTURA DE COLUMNAS (GRID)
+   ========================================= */
+@media (min-width: 900px) {
+    .bento-grid, .pricing-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr); /* 3 Columnas */
+        gap: 30px;
+    }
+}
