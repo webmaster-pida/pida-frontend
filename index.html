@@ -77,28 +77,66 @@
         </header>
 
         <main>
-            <section class="hero">
+            <section class="hero" style="background: linear-gradient(135deg, #F1FAEE 0%, #FFFFFF 100%);">
                 <div class="wrapper hero-grid">
                     <div class="hero-content">
-                        <div><img src="img/PIDA_logo-576.png" alt="Logo PIDA"></div>
-                        <h1>Inteligencia Aumentada para la Defensa de los <br><span class="text-gradient">Derechos Humanos</span></h1>
-                        <p class="hero-desc">Los asistentes de Inteligencia Artificial genéricos son un océano de información, pero sin un ancla, pueden llevarte a la deriva con datos imprecisos.</p>
-                        <div style="display: flex; gap: 16px; flex-wrap: wrap; justify-content: flex-start;">
-                            <button id="cta-hero" class="btn btn-primary trigger-login">Entrar a PIDA</button>
+                        <!-- Logo PIDA grande si es necesario, o mantener título -->
+                        <h1 style="color: var(--navy); font-size: 3rem; line-height: 1.2;">
+                            Sistema de análisis jurídico de alta precisión para <span style="color: var(--lightblue);">defensa legal estratégica y Derechos Humanos.</span>
+                        </h1>
+                        
+                        <div style="margin-top: 30px;">
+                            <!-- CTA Rojo según indicación estratégica -->
+                            <button id="cta-hero" class="btn btn-red-cta trigger-login">Prueba gratis</button>
                         </div>
                     </div>
                     <div class="hero-visual-column">
-                        <img style="border-radius:8px;" src="img/PIDA-MASCOTA-576-trans.png" alt="Robot PIDA">
-                        
                         <div class="video-trigger-wrapper">
-                            <button id="open-video-modal-btn" class="video-link-btn">
-                                <div class="play-icon-circle">▶</div>
-                                <span>Ver video</span>
-                            </button>
+                            <div class="video-wrapper" style="position: relative; width: 100%; max-width: 500px;">
+                                <!-- Imagen sugerida: Laptop/Holograma (usamos la del chip o laptop si tienes) -->
+                                <img src="img/PIDA-MASCOTA-576-trans.png" alt="Plataforma PIDA" style="width: 100%; border-radius: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.15);">
+                            </div>
                         </div>
                     </div>
                 </div>
-            </section>  
+            </section>
+
+            <section id="fundamento" style="background-image: url('img/fondo-tech.png'); background-size: cover; color: white; padding: 80px 0; position: relative;">
+                <!-- Capa oscura para legibilidad -->
+                <div style="position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(29, 53, 87, 0.9); z-index: 1;"></div>
+                
+                <div class="wrapper" style="position: relative; z-index: 2;">
+                    <div class="section-intro" style="margin-bottom: 50px;">
+                        <h2 style="color: white;">¿Qué fundamenta el modelo de PIDA?</h2>
+                        <p style="color: #E2E8F0; font-size: 1.1rem; max-width: 800px; margin: 0 auto;">
+                            PIDA se fundamenta en el acervo jurídico especializado del IIRESODH, institución con más de 30 años de trayectoria en litigio estratégico internacional y defensa de Derechos Humanos.
+                        </p>
+                    </div>
+                    
+                    <div class="bento-grid">
+                        <!-- Tarjeta 1 -->
+                        <div class="bento-card" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                            <img src="img/icon-chip-ai.png" style="width: 50px; margin-bottom: 15px; filter: brightness(0) invert(1);">
+                            <h3 style="color: var(--lightblue); font-size: 1.2rem;">IA integrada con fuentes jurídicas especializadas</h3>
+                            <p style="font-size: 0.95rem; color: #CBD5E1;">Incorpora bases de jurisprudencia y legislación de alta calidad, incluyendo repositorios especializados, para fortalecer el análisis normativo y la trazabilidad de las referencias.</p>
+                        </div>
+                        
+                        <!-- Tarjeta 2 -->
+                        <div class="bento-card" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                            <img src="img/icon-mobile-ai.png" style="width: 50px; margin-bottom: 15px; filter: brightness(0) invert(1);">
+                            <h3 style="color: var(--lightblue); font-size: 1.2rem;">Contextualización jurídica por jurisdicción</h3>
+                            <p style="font-size: 0.95rem; color: #CBD5E1;">Ajusta el análisis a la jurisdicción correspondiente, priorizando fuentes legales, marcos normativos y criterios jurisprudenciales propios de cada país.</p>
+                        </div>
+                        
+                        <!-- Tarjeta 3 -->
+                        <div class="bento-card" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white;">
+                            <img src="img/icon-robot-head.png" style="width: 50px; margin-bottom: 15px; filter: brightness(0) invert(1);">
+                            <h3 style="color: var(--lightblue); font-size: 1.2rem;">Confidencialidad y no reutilización de datos</h3>
+                            <p style="font-size: 0.95rem; color: #CBD5E1;">Los casos y documentos ingresados no se emplean para entrenar modelos. La información se procesa únicamente para el análisis solicitado, bajo criterios de confidencialidad.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <section id="diferencia">
                 <div class="wrapper">
@@ -122,148 +160,182 @@
                 </div>
             </section>
 
-            <section id="ecosistema" style="background-color: #FFFFFF; padding: 80px 0;">
+            <section id="ecosistema" style="background-color: var(--offwhite); padding: 80px 0;">
                 <div class="wrapper">
                     <div class="section-intro" style="margin-bottom: 60px;">
-                        <h2 style="color: var(--navy); font-size: 2.5rem; margin-bottom: 15px;">El Ecosistema PIDA</h2>
-                        <p style="font-size: 1.2rem; color: #4B5563; max-width: 800px; margin: 0 auto;">
+                        <h2 style="color: var(--navy);">El Ecosistema PIDA</h2>
+                        <p style="color: #4B5563;">
                             PIDA integra tres motores especializados que trabajan en conjunto para cubrir el ciclo completo de la defensa legal: investigación, análisis documental y diagnóstico de casos.
                         </p>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: 1fr; gap: 50px; max-width: 900px; margin: 0 auto;">
-                        
-                        <!-- Herramienta 1 -->
-                        <div style="border-left: 4px solid #0284C7; padding-left: 30px;">
-                            <h3 style="color: var(--navy); font-size: 1.5rem; margin-bottom: 10px;">
-                                1. Experto en Derechos Humanos
-                                <span style="display: block; font-size: 1rem; color: #0284C7; font-weight: 600; margin-top: 5px;">TU CONSULTOR FUNDAMENTADO</span>
-                            </h3>
-                            <p style="font-size: 1.05rem; color: #374151; line-height: 1.7; margin-bottom: 15px;">
-                                Este motor redefine la investigación jurídica. A diferencia de los chats genéricos que improvisan respuestas, PIDA actúa como un consultor senior conectado directamente a la <strong>biblioteca privada y curada del IIRESODH</strong>.
-                            </p>
-                            <p style="font-size: 1rem; color: #4B5563; line-height: 1.6;">
-                                <strong>Aplicación Práctica:</strong> Utilízalo para resolver dudas complejas sobre control de convencionalidad, buscar jurisprudencia específica de la Corte IDH o redactar argumentos sólidos para tus demandas. Cada respuesta está respaldada por una base de conocimiento autorizada, garantizando rigor técnico y reduciendo el riesgo de imprecisiones.
-                            </p>
+                    <div class="bento-grid">
+                        <!-- Motor 1 -->
+                        <div class="bento-card" style="background: white; border-top: 4px solid var(--navy);">
+                            <h3 style="color: var(--navy);">Experto en Derechos Humanos</h3>
+                            <p style="font-size: 0.9rem; margin-bottom: 15px;">Este motor sustenta la investigación jurídica sobre una base especializada, priorizando fuentes validadas en lugar de información genérica. PIDA opera con el respaldo documental del IIRESODH.</p>
+                            <div style="background: var(--offwhite); padding: 10px; border-radius: 6px; font-size: 0.85rem;">
+                                <strong>Aplicación práctica:</strong> Analizar control de convencionalidad, ubicar jurisprudencia y estructurar argumentos.
+                            </div>
                         </div>
 
-                        <!-- Herramienta 2 -->
-                        <div style="border-left: 4px solid #0284C7; padding-left: 30px;">
-                            <h3 style="color: var(--navy); font-size: 1.5rem; margin-bottom: 10px;">
-                                2. Analizador de Documentos
-                                <span style="display: block; font-size: 1rem; color: #0284C7; font-weight: 600; margin-top: 5px;">TU ESTRATEGA PROCESAL</span>
-                            </h3>
-                            <p style="font-size: 1.05rem; color: #374151; line-height: 1.7; margin-bottom: 15px;">
-                                Capacidad de procesamiento masivo para el abogado moderno. Esta herramienta lee, comprende y procesa archivos voluminosos (PDF, Word) en segundos, actuando como un asistente analítico incansable.
-                            </p>
-                            <p style="font-size: 1rem; color: #4B5563; line-height: 1.6;">
-                                <strong>Aplicación Práctica:</strong> Carga una sentencia extensa y pídele que encuentre contradicciones lógicas, extraiga los hechos probados para armar tu apelación o elabore una <strong>Teoría del Caso</strong> basada en las pruebas del expediente. Además, puedes instruirle para que redacte borradores de escritos legales (amparos, memorandos) utilizando estrictamente la información del documento subido.
-                            </p>
+                        <!-- Motor 2 -->
+                        <div class="bento-card" style="background: white; border-top: 4px solid var(--navy);">
+                            <h3 style="color: var(--navy);">Analizador de Documentos</h3>
+                            <p style="font-size: 0.9rem; margin-bottom: 15px;">Orientado al análisis documental de gran volumen, procesando expedientes complejos y extrayendo información relevante para el trabajo jurídico.</p>
+                            <div style="background: var(--offwhite); padding: 10px; border-radius: 6px; font-size: 0.85rem;">
+                                <strong>Aplicación práctica:</strong> Identificar contradicciones, aislar hechos probatorios y generar borradores legales.
+                            </div>
                         </div>
 
-                        <!-- Herramienta 3 -->
-                        <div style="border-left: 4px solid #0284C7; padding-left: 30px;">
-                            <h3 style="color: var(--navy); font-size: 1.5rem; margin-bottom: 10px;">
-                                3. Precalificador de Conductas
-                                <span style="display: block; font-size: 1rem; color: #0284C7; font-weight: 600; margin-top: 5px;">TU DIAGNÓSTICO INMEDIATO</span>
-                            </h3>
-                            <p style="font-size: 1.05rem; color: #374151; line-height: 1.7; margin-bottom: 15px;">
-                                Una herramienta de encuadre jurídico diseñada para la etapa inicial de cualquier caso. Funciona como un puente inteligente entre los hechos fácticos y la tipificación legal.
-                            </p>
-                            <p style="font-size: 1rem; color: #4B5563; line-height: 1.6;">
-                                <strong>Aplicación Práctica:</strong> Ideal para la primera entrevista con el cliente. Simplemente narra los hechos del caso y el sistema realizará un análisis preliminar instantáneo para identificar posibles <strong>delitos penales</strong> y <strong>violaciones a Derechos Humanos</strong> conforme a estándares internacionales. Esto te permite trazar una ruta de defensa clara desde el primer minuto.
-                            </p>
+                        <!-- Motor 3 -->
+                        <div class="bento-card" style="background: white; border-top: 4px solid var(--navy);">
+                            <h3 style="color: var(--navy);">Precalificador de Conductas</h3>
+                            <p style="font-size: 0.9rem; margin-bottom: 15px;">Motor de diagnóstico jurídico inicial que vincula los hechos del caso con su posible encuadre legal, facilitando una evaluación preliminar.</p>
+                            <div style="background: var(--offwhite); padding: 10px; border-radius: 6px; font-size: 0.85rem;">
+                                <strong>Aplicación práctica:</strong> Identificar posibles tipificaciones penales o vulneraciones de derechos.
+                            </div>
                         </div>
+                    </div>
 
+                    <div style="text-align: center; margin-top: 50px;">
+                        <button class="btn btn-red-cta trigger-login">Prueba gratis</button>
                     </div>
                 </div>
             </section>
 
-            <section id="planes">
+            <section id="planes" style="background: white;">
                 <div class="wrapper">
                     <div class="section-intro">
-                        <h2>Planes Flexibles</h2>
-                        <p style="margin-bottom: 10px;">Selecciona el plan que mejor se adapte a tu nivel de investigación.</p>
-                        <p style="color: #0284C7; font-weight: 700; font-size: 1.1rem; margin-bottom: 20px;">
-                            Todos los planes incluyen 5 días de prueba sin costo
-                        </p>
+                        <h2>Planes de Suscripción</h2>
                     </div>
-
+                    
+                    <!-- Toggle Switch (Manteniendo funcionalidad) -->
                     <div class="billing-toggle-container" style="display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 40px;">
-                        <span id="label-monthly" style="font-weight: 700; color: var(--pida-primary); transition: 0.3s;">Mensual</span>
-                        <label class="switch">
-                            <input type="checkbox" id="billing-interval-toggle">
-                            <span class="slider round"></span>
+                        <span id="label-monthly" style="font-weight: 700; color: var(--navy);">Mensual</span>
+                        <label class="switch" style="width: 60px; height: 30px; background: none;">
+                            <input type="checkbox" id="billing-interval-toggle" style="display:none;">
+                            <img src="img/toggle-red.png" alt="Toggle" style="width: 100%; cursor: pointer;">
                         </label>
-                        <span id="label-annual" style="font-weight: 700; color: #94a3b8; transition: 0.3s; position: relative;">Anual <span class="discount-badge">¡Dos meses gratis!</span></span>
+                        <span id="label-annual" style="font-weight: 700; color: #94a3b8;">Anual</span>
                     </div>
 
                     <div class="pricing-grid">
+                        <!-- BÁSICO -->
                         <div class="pricing-card">
-                            <h3>Básico</h3>
+                            <h3 style="color: var(--navy);">BÁSICO</h3>
                             <div class="price-container">
-                                <span id="price-basico" class="price-val">$9.99</span>
-                                <span class="price-period">/ mes</span>
+                                <span id="price-basico" class="price-val" style="color: var(--navy);">$9.99</span> <span class="price-period">USD</span>
                             </div>
                             <ul class="plan-features">
-                                <li>✅ Newsletter mensual</li>
-                                <li>✅ 5 consultas diarias</li>
-                                <li>✅ 3 análisis de documentos</li>
-                                <li>✅ 1 archivo por análisis</li>
+                                <li><img src="img/icon-check.png" width="16"> Acceso limitado</li>
                                 <li>❌ Sin precalificador</li>
+                                <li><img src="img/icon-check.png" width="16"> Consultas informativas</li>
+                                <li><img src="img/icon-check.png" width="16"> Analizador de documentos</li>
+                                <li><img src="img/icon-check.png" width="16"> News letter</li>
+                                <li><img src="img/icon-check.png" width="16"> Historial de Consultas</li>
+                                <li><img src="img/icon-check.png" width="16"> Mejoras y actualizaciones</li>
                             </ul>
-                            <button class="btn btn-primary plan-cta" data-plan="basico">Elegir Básico</button>
+                            <button class="btn btn-primary plan-cta" data-plan="basico" style="background: var(--navy);">Elegir Básico</button>
                         </div>
 
-                        <div class="pricing-card featured">
-                            <div class="card-badge">Más Popular</div>
-                            <h3>Avanzado</h3>
+                        <!-- AVANZADO -->
+                        <div class="pricing-card featured" style="border-color: var(--navy);">
+                            <div class="card-badge" style="background: var(--navy);">MÁS POPULAR</div>
+                            <h3 style="color: var(--navy);">AVANZADO</h3>
                             <div class="price-container">
-                                <span id="price-avanzado" class="price-val">$19.99</span>
-                                <span class="price-period">/ mes</span>
+                                <span id="price-avanzado" class="price-val" style="color: var(--navy);">$19.99</span> <span class="price-period">USD</span>
                             </div>
                             <ul class="plan-features">
-                                <li>✅ Newsletter mensual</li>
-                                <li>✅ 20 consultas diarias</li>
-                                <li>✅ 15 análisis de documentos</li>
-                                <li>✅ 3 archivos por análisis</li>
-                                <li>✅ 20 precalificaciones diarias</li>
-                                <li>✅ Descuentos en productos IIRESODH</li>
+                                <li><img src="img/icon-check.png" width="16"> Acceso a análisis complejos</li>
+                                <li><img src="img/icon-check.png" width="16"> Uso del precalificador</li>
+                                <li><img src="img/icon-check.png" width="16"> Documentos jurídicos estructurados</li>
+                                <li><img src="img/icon-check.png" width="16"> News letter</li>
+                                <li><img src="img/icon-check.png" width="16"> Historial de Consultas</li>
+                                <li><img src="img/icon-check.png" width="16"> Mejoras y actualizaciones</li>
+                                <li><img src="img/icon-check.png" width="16"> Carga simultánea en el analizador</li>
+                                <li><img src="img/icon-check.png" width="16"> Descuentos en productos IIRESODH</li>
+                                <li><img src="img/icon-check.png" width="16"> Elaboración de la teoría del caso</li>
                             </ul>
-                            <button class="btn btn-primary plan-cta" data-plan="avanzado">Elegir Avanzado</button>
+                            <button class="btn btn-primary plan-cta" data-plan="avanzado" style="background: var(--navy);">Elegir Avanzado</button>
                         </div>
 
+                        <!-- PREMIUM -->
                         <div class="pricing-card">
-                            <h3>Premium</h3>
+                            <h3 style="color: var(--navy);">PREMIUM</h3>
                             <div class="price-container">
-                                <span id="price-premium" class="price-val">$29.99</span>
-                                <span class="price-period">/ mes</span>
+                                <span id="price-premium" class="price-val" style="color: var(--navy);">$29.99</span> <span class="price-period">USD</span>
                             </div>
                             <ul class="plan-features">
-                                <li>✅ Newsletter mensual</li>
-                                <li>✅ 100 consultas diarias</li>
-                                <li>✅ 25 análisis de documentos</li>
-                                <li>✅ 5 archivos por análisis</li>
-                                <li>✅ 100 precalificaciones diarias</li>
-                                <li>✅ Descuentos en productos IIRESODH</li>
+                                <li><img src="img/icon-check.png" width="16"> Consultas estratégicas de alto impacto</li>
+                                <li><img src="img/icon-check.png" width="16"> Análisis profundo de jurisprudencia</li>
+                                <li><img src="img/icon-check.png" width="16"> Uso intensivo (máxima capacidad)</li>
+                                <li><img src="img/icon-check.png" width="16"> Uso intensivo del precalificador</li>
+                                <li><img src="img/icon-check.png" width="16"> Mejoras y actualizaciones</li>
+                                <li><img src="img/icon-check.png" width="16"> Carga simultánea en el analizador</li>
+                                <li><img src="img/icon-check.png" width="16"> Descuentos en productos IIRESODH</li>
+                                <li><img src="img/icon-check.png" width="16"> Elaboración de la teoría del caso</li>
                             </ul>
-                            <button class="btn btn-primary plan-cta" data-plan="premium">Elegir Premium</button>
+                            <button class="btn btn-primary plan-cta" data-plan="premium" style="background: var(--navy);">Elegir Premium</button>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <section id="info-corporativa" style="margin-top: 60px; padding: 60px 20px; background: #F8FAFC; border-radius: 16px; border: 1px solid var(--pida-border); text-align: center;">
-                <div class="wrapper" style="max-width: 900px; margin: 0 auto;">
-                    <h3 style="color: var(--pida-primary); font-size: 2rem; margin-bottom: 20px;">¿Necesitas PIDA para tu Organización o Institución?</h3>
-                    <p style="color: var(--pida-text-muted); font-size: 1.15rem; line-height: 1.7; margin-bottom: 35px;">
-                        PIDA está diseñado para escalar con las necesidades de grandes equipos de litigio que requieren de mucha investigación y redacción. Si representas a una firma legal, una organización de defensa de derechos humanos, una fiscalía o formas parte de cualquier órgano de gobierno o bien, perteneces a una institución académica, ofrecemos esquemas de licenciamiento por volumen. 
-                        <br><br>
-                        Nuestros planes corporativos incluyen costos unitarios preferenciales, facturación institucional centralizada y soporte técnico prioritario. Haz clic en el botón para solicitar una propuesta adaptada a tu organización.
-                    </p>
-                    <button id="btn-corp-contact" class="btn btn-primary" style="padding: 18px 45px; font-weight: 700; font-size: 1.1rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(29, 53, 87, 0.2);">
-                        Contactar con Soporte Corporativo
-                    </button>
+            <section id="info-corporativa" style="background: white; padding: 80px 0; border-top: 1px solid #eee;">
+                <div class="wrapper">
+                    <!-- Título General -->
+                    <div style="text-align: center; margin-bottom: 60px;">
+                        <h2 style="font-size: 2.5rem; color: var(--navy); margin-bottom: 10px;">Soluciones de Alta Escala para Instituciones Jurídicas</h2>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: start;">
+                        
+                        <!-- Columna Izquierda: Beneficios -->
+                        <div>
+                            <h3 style="color: var(--navy); margin-bottom: 30px; border-bottom: 2px solid var(--lightblue); display: inline-block; padding-bottom: 5px;">Beneficios Exclusivos</h3>
+                            
+                            <div style="margin-bottom: 25px;">
+                                <h4 style="display: flex; align-items: center; gap: 10px; color: var(--navy); margin-bottom: 8px;">
+                                    <img src="img/icon-check.png" width="20"> Escalabilidad Avanzada
+                                </h4>
+                                <p style="color: #4B5563; padding-left: 30px;">Diseñado para integrar y potenciar equipos de litigio y departamentos legales.</p>
+                            </div>
+
+                            <div style="margin-bottom: 25px;">
+                                <h4 style="display: flex; align-items: center; gap: 10px; color: var(--navy); margin-bottom: 8px;">
+                                    <img src="img/icon-check.png" width="20"> Gestión Simplificada
+                                </h4>
+                                <p style="color: #4B5563; padding-left: 30px;">Facturación institucional centralizada y esquemas de licenciamiento por volumen.</p>
+                            </div>
+
+                            <div style="margin-bottom: 25px;">
+                                <h4 style="display: flex; align-items: center; gap: 10px; color: var(--navy); margin-bottom: 8px;">
+                                    <img src="img/icon-check.png" width="20"> Soporte Prioritario
+                                </h4>
+                                <p style="color: #4B5563; padding-left: 30px;">Atención técnica inmediata para asegurar el soporte y la continuidad operativa.</p>
+                            </div>
+                        </div>
+
+                        <!-- Columna Derecha: Aliados y CTA -->
+                        <div style="background: var(--offwhite); padding: 40px; border-radius: 16px;">
+                            <h3 style="color: var(--navy); margin-bottom: 20px;">Nuestros aliados</h3>
+                            
+                            <!-- Círculos de Logos (Placeholders) -->
+                            <div style="display: flex; gap: 15px; margin-bottom: 40px;">
+                                <div style="width: 60px; height: 60px; border-radius: 50%; border: 1px solid #ccc; background: white;"></div>
+                                <div style="width: 60px; height: 60px; border-radius: 50%; border: 1px solid #ccc; background: white;"></div>
+                                <div style="width: 60px; height: 60px; border-radius: 50%; border: 1px solid #ccc; background: white;"></div>
+                                <div style="width: 60px; height: 60px; border-radius: 50%; border: 1px solid #ccc; background: white;"></div>
+                            </div>
+
+                            <h3 style="color: var(--navy); margin-bottom: 10px;">Comienza la Transformación</h3>
+                            <p style="color: #4B5563; margin-bottom: 25px;">Solicita una consultoría estratégica adaptada a las necesidades únicas de tu organización.</p>
+                            
+                            <button id="btn-corp-contact" class="btn btn-red-cta" style="width: 100%;">Solicitar Consultoría para Organizaciones</button>
+                        </div>
+
+                    </div>
                 </div>
             </section>
 

@@ -31,12 +31,45 @@
            1. ESTILOS DE LA LANDING PAGE
            ========================================= */
         :root {
-            --navy: #1d3557; --pidared: #b92f32; --navy-dark: #ffffff; --cyan: #1d3557; --cyan-glow: rgba(0, 195, 255, 0.4); --celeste: #0284C7;
-            --red: #FF3366; --white: #FFFFFF; --gray-subtle: #F9FAFB; --border-light: #E5E7EB;
-            --font-display: 'Open Sans', sans-serif; --font-body: 'Manrope', sans-serif;
-            --pida-primary: #1D3557; --pida-accent: #0056B3; --pida-bg-app: #F4F6F9;
-            --pida-bg-white: #FFFFFF; --pida-text-main: #1F2937; --pida-text-muted: #6B7280;
-            --pida-border: #E5E7EB; --pida-font: 'Inter', sans-serif;
+            /* Nuevos colores según PDF */
+            --navy: #1D3557;      /* RGB (29, 53, 87) - Color principal */
+            --pidared: #B92F32;   /* RGB (185, 47, 50) - Botones de acción (CTA) */
+            --lightblue: #799FCA; /* RGB (121, 159, 202) - Acentos */
+            --offwhite: #F1FAEE;  /* RGB (241, 250, 238) - Fondos claros */
+            
+            /* Colores funcionales mantenidos */
+            --white: #FFFFFF;
+            --cyan: #1D3557;      /* Ajustado al Navy para consistencia */
+            --border-light: #E5E7EB;
+            --font-display: 'Space Grotesk', sans-serif; /* Tipografía moderna sugerida */
+            --font-body: 'Inter', sans-serif;
+            
+            /* Variables de la App */
+            --pida-primary: var(--navy);
+            --pida-accent: var(--lightblue);
+            --pida-bg-app: #F4F6F9;
+            --pida-bg-white: #FFFFFF;
+            --pida-text-main: #1F2937;
+            --pida-text-muted: #6B7280;
+            --pida-border: #E5E7EB;
+            --pida-font: 'Inter', sans-serif;
+        }
+
+        /* Clase especial para el botón rojo solicitado en el PDF */
+        .btn-red-cta {
+            background-color: var(--pidared) !important;
+            color: white !important;
+            border: 1px solid var(--pidared) !important;
+            border-radius: 30px !important; /* Más redondeado según diseño */
+            padding: 12px 30px !important;
+            font-weight: 700 !important;
+            text-transform: none !important; /* El diseño usa mayúscula/minúscula normal */
+            box-shadow: 0 4px 15px rgba(185, 47, 50, 0.3);
+        }
+
+        .btn-red-cta:hover {
+            background-color: #9A2426 !important;
+            transform: translateY(-2px);
         }
 
 		img {
