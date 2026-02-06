@@ -1680,3 +1680,72 @@ input:checked + .slider:before {
     margin-bottom: 5px;
     font-weight: 700;
 }
+
+/* =========================================
+   SECCIÓN 2: FUNDAMENTOS (ESTILO FLOTANTE)
+   ========================================= */
+
+#fundamento {
+    position: relative;
+    /* Tu imagen de fondo */
+    background-image: url('img/fondo-tech.png'); 
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    padding: 100px 0;
+    color: white;
+}
+
+/* Capa oscura para que el texto resalte sobre los puntos azules */
+#fundamento::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(15, 23, 42, 0.8); /* Azul muy oscuro con transparencia */
+    z-index: 1;
+}
+
+#fundamento .wrapper {
+    position: relative;
+    z-index: 2;
+}
+
+/* Estilo específico para los items dentro de Fundamentos */
+/* Quitamos el estilo de "tarjeta" para que parezca que flotan como en la imagen */
+#fundamento .bento-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 20px !important;
+    text-align: center !important; /* Centrar todo */
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centrar items flex */
+}
+
+/* Estilo de los Iconos */
+#fundamento .bento-icon-img {
+    width: 80px !important; /* Iconos grandes como en la referencia */
+    height: auto;
+    margin-bottom: 25px;
+    display: block;
+    /* Si tus iconos son negros, descomenta la siguiente línea para volverlos blancos: */
+    /* filter: brightness(0) invert(1); */
+}
+
+/* Títulos */
+#fundamento h3 {
+    color: white !important;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 15px;
+    line-height: 1.3;
+}
+
+/* Párrafos */
+#fundamento p {
+    color: #F1FAEE !important; /* Blanco hueso */
+    font-size: 1rem;
+    line-height: 1.6;
+    opacity: 0.9;
+}
