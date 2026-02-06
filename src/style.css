@@ -1628,8 +1628,8 @@ input:checked + .slider:before {
 }
 
 .eco-icon {
-    width: 50px !important;
-    height: 50px !important;
+    width: 200px !important;
+    height: 200px !important;
     object-fit: contain;
     flex-shrink: 0; /* Evita que el icono se aplaste */
     margin: 0 !important; /* Quita margenes viejos */
