@@ -1734,8 +1734,8 @@ input:checked + .slider:before {
 
 /* Iconos Grandes */
 #fundamento .fundamento-icon {
-    width: 80px;
-    height: auto;
+    width: auto;
+    height: 100px;
     margin-bottom: 25px;
     display: block;
     /* Si los iconos que subiste son negros, esto los vuelve BLANCOS automáticamente */
