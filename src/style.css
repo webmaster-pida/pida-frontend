@@ -1598,3 +1598,37 @@ input:checked + .slider:before {
         gap: 30px;
     }
 }
+
+/* Estilo para tarjetas con fondo de imagen azul */
+.card-blue-bg {
+    background-image: url('img/bg-card-blue.png') !important;
+    background-size: cover !important;
+    background-position: center !important;
+    background-repeat: no-repeat !important;
+    background-color: transparent !important; /* Asegura que no haya blanco detrás */
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 16px !important;
+    color: white !important; /* Texto blanco para que se lea sobre azul */
+    padding: 30px !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+    transition: transform 0.3s ease;
+}
+
+.card-blue-bg:hover {
+    transform: translateY(-5px);
+    border-color: var(--lightblue) !important;
+}
+
+/* Forzar títulos y textos a blanco dentro de estas tarjetas */
+.card-blue-bg h3, 
+.card-blue-bg p, 
+.card-blue-bg strong {
+    color: white !important;
+}
+
+/* Ajustar el cuadro interno de "Aplicación práctica" para que no sea gris plano */
+.card-blue-bg .practical-case-box {
+    background: rgba(255, 255, 255, 0.1) !important; /* Transparente */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #E2E8F0 !important;
+}
