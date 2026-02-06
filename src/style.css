@@ -1599,36 +1599,81 @@ input:checked + .slider:before {
     }
 }
 
-/* Estilo para tarjetas con fondo de imagen azul */
-.card-blue-bg {
-    background-image: url('img/bg-card-blue.png') !important;
-    background-size: cover !important;
-    background-position: center !important;
-    background-repeat: no-repeat !important;
-    background-color: transparent !important; /* Asegura que no haya blanco detrás */
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+/* =========================================
+   ESTILO ECOSISTEMA (DISEÑO DIVIDIDO)
+   ========================================= */
+
+/* Contenedor de la tarjeta (sin padding interno para que los hijos toquen los bordes) */
+.eco-card {
+    padding: 0 !important; 
+    background: transparent !important;
+    border: 1px solid #E5E7EB !important;
     border-radius: 16px !important;
-    color: white !important; /* Texto blanco para que se lea sobre azul */
-    padding: 30px !important;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15) !important;
+    overflow: hidden; /* Para que las esquinas redondeadas recorten el contenido */
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
     transition: transform 0.3s ease;
 }
 
-.card-blue-bg:hover {
+.eco-card:hover {
     transform: translateY(-5px);
-    border-color: var(--lightblue) !important;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
-/* Forzar títulos y textos a blanco dentro de estas tarjetas */
-.card-blue-bg h3, 
-.card-blue-bg p, 
-.card-blue-bg strong {
-    color: white !important;
+/* PARTE SUPERIOR (Blanca con iconos oscuros) */
+.eco-top {
+    background-color: #FFFFFF;
+    padding: 30px 30px 10px 30px; /* Padding inferior reducido */
+    flex-grow: 1;
 }
 
-/* Ajustar el cuadro interno de "Aplicación práctica" para que no sea gris plano */
-.card-blue-bg .practical-case-box {
-    background: rgba(255, 255, 255, 0.1) !important; /* Transparente */
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #E2E8F0 !important;
+.eco-top h3 {
+    color: var(--navy);
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.eco-top p {
+    color: #4B5563; /* Gris oscuro */
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* Iconos (Aseguramos que se vean sus colores originales, NO blancos) */
+.eco-icon {
+    width: 60px;
+    height: auto;
+    margin-bottom: 20px;
+    display: block;
+    filter: none !important; /* IMPORTANTE: Quita el filtro blanco */
+}
+
+/* PARTE INFERIOR (Azul con tu imagen de fondo) */
+.eco-bottom {
+    /* AQUÍ USAMOS TU IMAGEN DE FONDO */
+    background-image: url('img/bg-card-blue.png');
+    background-color: var(--navy); /* Color de respaldo */
+    background-size: cover;
+    background-position: center;
+    padding: 25px 30px;
+    color: white;
+    border-top: 1px solid rgba(255,255,255,0.1);
+}
+
+.eco-bottom strong {
+    color: #93C5FD; /* Azul claro para el título "Aplicación práctica" */
+    display: block;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+}
+
+.eco-bottom p {
+    color: white;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin: 0;
 }
