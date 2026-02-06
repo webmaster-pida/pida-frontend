@@ -1682,110 +1682,92 @@ input:checked + .slider:before {
 }
 
 /* =========================================
-   SECCIÓN 2: FUNDAMENTOS (DIVIDIDO EXACTO)
+   SECCIÓN FUNDAMENTOS (DIVISIÓN BLANCO/TECH)
    ========================================= */
 
 #fundamento {
     width: 100%;
     padding: 0;
-    margin: 0;
-    display: block;
 }
 
-/* --- PARTE 1: FONDO BLANCO (Título y Texto) --- */
+/* --- Bloque Superior (Blanco) --- */
 .fundamento-parte-blanca {
-    background-color: #FFFFFF; /* Blanco Puro */
-    width: 100%;
-    padding: 80px 0 60px 0;
+    background-color: #FFFFFF;
+    padding: 80px 0 50px 0;
     text-align: center;
 }
 
 .fundamento-parte-blanca h2 {
-    color: var(--navy) !important; /* Texto Azul Oscuro */
+    color: #1D3557; /* Navy */
     font-size: 2.5rem;
-    font-weight: 700;
     margin-bottom: 20px;
 }
 
 .fundamento-parte-blanca p {
-    color: #4B5563 !important; /* Texto Gris Oscuro */
-    font-size: 1.1rem;
-    line-height: 1.6;
-    max-width: 800px;
+    color: #4B5563; /* Gris */
+    max-width: 850px;
     margin: 0 auto;
+    font-size: 1.15rem;
 }
 
-/* --- PARTE 2: FONDO OSCURO (Iconos) --- */
+/* --- Bloque Inferior (Imagen Tech) --- */
 .fundamento-parte-oscura {
     position: relative;
-    width: 100%;
-    /* Tu imagen de fondo */
     background-image: url('/img/fondo-tech.png'); 
-    background-color: #0F172A; /* Respaldo azul oscuro */
     background-size: cover;
     background-position: center;
-    background-repeat: no-repeat;
-    padding: 80px 0;
+    padding: 100px 0;
     color: white;
+    overflow: hidden;
 }
 
-/* Capa azul para oscurecer la imagen y que se lean las letras blancas */
+/* Capa de azul profundo para legibilidad */
 .fundamento-parte-oscura::before {
     content: '';
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(15, 23, 42, 0.85);
+    background: rgba(29, 53, 87, 0.9); /* Azul PIDA Opaco */
     z-index: 0;
 }
 
-/* Wrapper interno para centrar el contenido */
 .fundamento-parte-oscura .wrapper {
     position: relative;
     z-index: 1;
 }
 
-/* GRILLA DE ICONOS */
 .fundamento-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 50px;
+    gap: 40px;
     text-align: center;
 }
 
-.fundamento-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0 15px;
-}
-
 .fundamento-icon {
-    width: 80px;
+    width: 70px;
     height: auto;
-    margin-bottom: 25px;
-    display: block;
-    filter: brightness(0) invert(1); /* Vuelve los iconos BLANCOS */
+    margin: 0 auto 25px auto;
+    filter: brightness(0) invert(1); /* Convierte los iconos a BLANCO */
 }
 
 .fundamento-item h3 {
-    color: white !important;
-    font-size: 1.2rem;
-    font-weight: 700;
+    font-size: 1.25rem;
     margin-bottom: 15px;
-    line-height: 1.3;
+    color: #FFFFFF;
 }
 
 .fundamento-item p {
-    color: #CBD5E1 !important; /* Texto gris claro */
     font-size: 0.95rem;
+    color: #CBD5E1; /* Gris azulado claro */
     line-height: 1.6;
-    margin: 0;
 }
 
-/* Móvil */
+/* Adaptación para móviles */
 @media (max-width: 900px) {
     .fundamento-grid {
         grid-template-columns: 1fr;
-        gap: 60px;
+        gap: 50px;
+    }
+    .fundamento-parte-blanca h2 {
+        font-size: 2rem;
     }
 }
