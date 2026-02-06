@@ -1682,88 +1682,112 @@ input:checked + .slider:before {
 }
 
 /* =========================================
-   SECCIÓN 2: FUNDAMENTOS (FONDO TECH OSCURO)
+   SECCIÓN 2: FUNDAMENTOS (DIVIDIDO: BLANCO / OSCURO)
    ========================================= */
 
 #fundamento {
+    background-color: white; /* Parte superior blanca */
+    padding-top: 80px;
+    padding-bottom: 0; /* Sin padding abajo para que lo oscuro toque el borde */
+}
+
+/* PARTE SUPERIOR: TEXTO OSCURO */
+#fundamento .section-intro {
+    text-align: center;
+    margin-bottom: 60px;
+}
+
+#fundamento .section-intro h2 {
+    color: var(--navy) !important; /* Azul Oscuro */
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+}
+
+#fundamento .section-intro p {
+    color: #4B5563 !important; /* Gris Oscuro */
+    font-size: 1.1rem;
+    max-width: 800px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* PARTE INFERIOR: FONDO TECH OSCURO */
+.fundamento-dark-section {
     position: relative;
-    /* Ruta absoluta para asegurar que cargue */
+    width: 100vw; /* Ancho completo de pantalla */
+    margin-left: calc(-50vw + 50%); /* Truco para salir del wrapper y ocupar todo el ancho */
+    
     background-image: url('/img/fondo-tech.png'); 
-    background-color: #0F172A; /* Color de respaldo azul muy oscuro */
+    background-color: #0F172A;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    padding: 120px 0; /* Más espacio vertical */
+    
+    padding: 80px 0;
     color: white;
-    text-align: center;
 }
 
-/* Capa semitransparente para que el texto blanco se lea bien sobre la imagen */
-#fundamento::before {
+/* Capa oscura sobre la imagen */
+.fundamento-dark-section::before {
     content: '';
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(15, 23, 42, 0.7); /* Azul oscuro al 70% */
+    background: rgba(15, 23, 42, 0.85);
+    z-index: 0;
+}
+
+/* Contenedor interno para centrar el contenido */
+.fundamento-dark-section .wrapper {
+    position: relative;
     z-index: 1;
 }
 
-/* Aseguramos que el contenido esté encima de la capa oscura */
-#fundamento .wrapper {
-    position: relative;
-    z-index: 2;
-}
-
-/* --- ESTILOS DE LOS ITEMS (SIN TARJETAS) --- */
-/* Forzamos que NO tengan fondo ni bordes */
-#fundamento .bento-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 40px;
-    margin-top: 60px;
-}
-
-#fundamento .bento-card {
-    background: transparent !important; /* Transparente */
-    border: none !important;            /* Sin bordes */
-    box-shadow: none !important;        /* Sin sombras */
-    padding: 0 !important;
+/* ITEMS DE LA GRILLA (Iconos y Texto Blanco) */
+.fundamento-item {
     display: flex;
     flex-direction: column;
-    align-items: center; /* Centrar iconos y texto */
+    align-items: center;
+    text-align: center;
+    padding: 0 20px;
 }
 
-/* Iconos Grandes */
-#fundamento .fundamento-icon {
-    width: auto;
-    height: 100px;
+.fundamento-icon {
+    width: 80px;
+    height: auto;
     margin-bottom: 25px;
     display: block;
-    /* Si los iconos que subiste son negros, esto los vuelve BLANCOS automáticamente */
+    /* Invertir color si los iconos son negros */
     filter: brightness(0) invert(1); 
 }
 
-/* Títulos */
-#fundamento h3 {
+.fundamento-item h3 {
     color: white !important;
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     font-weight: 700;
     margin-bottom: 15px;
-    line-height: 1.4;
+    line-height: 1.3;
 }
 
-/* Texto */
-#fundamento p {
-    color: #E2E8F0 !important; /* Gris muy claro */
-    font-size: 1rem;
+.fundamento-item p {
+    color: #E2E8F0 !important; /* Gris claro */
+    font-size: 0.95rem;
     line-height: 1.6;
-    max-width: 350px; /* Evita que el texto se estire demasiado */
-    margin: 0 auto;
+    margin: 0;
 }
 
-/* Responsivo para móviles */
-@media (max-width: 900px) {
-    #fundamento .bento-grid {
-        grid-template-columns: 1fr;
+/* Ajuste Responsive */
+@media (min-width: 900px) {
+    .fundamento-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 50px;
+    }
+}
+@media (max-width: 899px) {
+    .fundamento-grid {
+        display: flex;
+        flex-direction: column;
         gap: 60px;
     }
 }
