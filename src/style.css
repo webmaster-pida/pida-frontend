@@ -1705,7 +1705,7 @@ input:checked + .slider:before {
 }
 
 #fundamento .section-intro p {
-    color: #4B5563 !important; /* Gris Oscuro */
+    color: #ffffff !important; /* Gris Oscuro */
     font-size: 1.1rem;
     max-width: 800px;
     margin: 0 auto;
