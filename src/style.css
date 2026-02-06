@@ -1618,6 +1618,7 @@ input:checked + .slider:before {
 
 .eco-card:hover {
     transform: translateY(-5px);
+}
 
 /* CABECERA BLANCA: ICONO A LA IZQUIERDA - TEXTO A LA DERECHA */
 .eco-top {
