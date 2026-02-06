@@ -1600,84 +1600,78 @@ input:checked + .slider:before {
 }
 
 /* =========================================
-   ESTILO ECOSISTEMA (CORREGIDO: ICONO IZQ / TEXTO DER)
+   ECOSISTEMA PIDA (CORREGIDO)
    ========================================= */
 
 .eco-card {
     display: flex;
     flex-direction: column;
+    background: white;
     border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    height: 100%; /* Ocupa toda la altura de la columna */
-    background-color: white; /* Base blanca */
-    transition: transform 0.3s ease;
+    border: 1px solid #E5E7EB;
+    overflow: hidden; /* Recorta la imagen en las esquinas */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    height: 100%;
+    padding: 0 !important; /* CRÍTICO: Elimina el borde blanco interno */
 }
 
-.eco-card:hover {
-    transform: translateY(-5px);
-}
-
-/* --- PARTE SUPERIOR (BLANCA) --- */
+/* CABECERA BLANCA: ICONO A LA IZQUIERDA - TEXTO A LA DERECHA */
 .eco-top {
     background-color: #FFFFFF;
-    padding: 25px;
-    display: flex; /* Flexbox para alinear horizontalmente */
-    align-items: center; /* Centrado vertical */
-    gap: 20px; /* Espacio entre icono y texto */
-    border-bottom: 1px solid #E5E7EB;
+    padding: 20px 25px;
+    display: flex;           /* Activa modo fila */
+    flex-direction: row;     /* Elementos lado a lado */
+    align-items: center;     /* Centrados verticalmente */
+    gap: 15px;               /* Espacio entre icono y texto */
+    border-bottom: 1px solid #F1F5F9;
+    min-height: 100px;
 }
 
 .eco-icon {
-    width: 50px;
-    height: 50px;
+    width: 50px !important;
+    height: 50px !important;
     object-fit: contain;
     flex-shrink: 0; /* Evita que el icono se aplaste */
+    margin: 0 !important; /* Quita margenes viejos */
+    filter: none !important;
 }
 
 .eco-top h3 {
     color: var(--navy);
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     font-weight: 800;
     margin: 0;
-    line-height: 1.3;
-    text-align: left; /* Alineado a la izquierda */
+    line-height: 1.2;
+    text-align: left; /* Texto alineado a la izquierda */
 }
 
-/* --- PARTE INFERIOR (AZUL) --- */
+/* CUERPO AZUL: LLENA EL RESTO */
 .eco-bottom {
-    background-color: var(--navy); /* Azul oscuro PIDA */
-    /* Opcional: Si quieres un degradado sutil como en el PDF */
-    background: linear-gradient(180deg, var(--navy) 0%, #152a45 100%);
-    
+    background-color: var(--navy);
+    background-image: url('img/bg-card-blue.png'); /* Tu imagen de fondo */
+    background-size: cover;
+    background-position: center;
     padding: 25px;
     color: white;
-    flex-grow: 1; /* ESTO HACE QUE TODAS LAS CAJAS TENGAN LA MISMA ALTURA */
+    flex-grow: 1; /* Estira para igualar alturas */
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: space-between;
 }
 
 .eco-bottom p {
     font-size: 0.95rem;
     line-height: 1.6;
     margin-bottom: 20px;
-    color: rgba(255, 255, 255, 0.9);
+    color: white;
 }
 
-/* Estilo para el texto de APLICACIÓN PRÁCTICA */
 .eco-bottom strong {
-    color: #93C5FD; /* Azul claro para resaltar */
+    color: #93C5FD;
     display: block;
     font-size: 0.8rem;
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-bottom: 8px;
+    margin-bottom: 5px;
     font-weight: 700;
-}
-
-.eco-bottom .app-text {
-    font-size: 0.9rem;
-    color: white;
-    margin-bottom: 0;
 }
