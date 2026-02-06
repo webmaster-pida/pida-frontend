@@ -1613,7 +1613,11 @@ input:checked + .slider:before {
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     height: 100%;
     padding: 0 !important; /* CRÍTICO: Elimina el borde blanco interno */
+    transition: transform 0.3s ease;
 }
+
+.eco-card:hover {
+    transform: translateY(-5px);
 
 /* CABECERA BLANCA: ICONO A LA IZQUIERDA - TEXTO A LA DERECHA */
 .eco-top {
@@ -1628,8 +1632,8 @@ input:checked + .slider:before {
 }
 
 .eco-icon {
-    width: 200px !important;
-    height: 200px !important;
+    width: 60px !important;
+    height: 60px !important;
     object-fit: contain;
     flex-shrink: 0; /* Evita que el icono se aplaste */
     margin: 0 !important; /* Quita margenes viejos */
