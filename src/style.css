@@ -1600,80 +1600,84 @@ input:checked + .slider:before {
 }
 
 /* =========================================
-   ESTILO ECOSISTEMA (DISEÑO DIVIDIDO)
+   ESTILO ECOSISTEMA (CORREGIDO: ICONO IZQ / TEXTO DER)
    ========================================= */
 
-/* Contenedor de la tarjeta (sin padding interno para que los hijos toquen los bordes) */
 .eco-card {
-    padding: 0 !important; 
-    background: transparent !important;
-    border: 1px solid #E5E7EB !important;
-    border-radius: 16px !important;
-    overflow: hidden; /* Para que las esquinas redondeadas recorten el contenido */
     display: flex;
     flex-direction: column;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    height: 100%; /* Ocupa toda la altura de la columna */
+    background-color: white; /* Base blanca */
     transition: transform 0.3s ease;
 }
 
 .eco-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
 }
 
-/* PARTE SUPERIOR (Blanca con iconos oscuros) */
+/* --- PARTE SUPERIOR (BLANCA) --- */
 .eco-top {
     background-color: #FFFFFF;
-    padding: 30px 30px 10px 30px; /* Padding inferior reducido */
-    flex-grow: 1;
+    padding: 25px;
+    display: flex; /* Flexbox para alinear horizontalmente */
+    align-items: center; /* Centrado vertical */
+    gap: 20px; /* Espacio entre icono y texto */
+    border-bottom: 1px solid #E5E7EB;
+}
+
+.eco-icon {
+    width: 50px;
+    height: 50px;
+    object-fit: contain;
+    flex-shrink: 0; /* Evita que el icono se aplaste */
 }
 
 .eco-top h3 {
     color: var(--navy);
-    font-size: 1.4rem;
-    margin-bottom: 10px;
-    font-weight: 700;
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin: 0;
+    line-height: 1.3;
+    text-align: left; /* Alineado a la izquierda */
 }
 
-.eco-top p {
-    color: #4B5563; /* Gris oscuro */
-    font-size: 0.95rem;
-    line-height: 1.6;
-}
-
-/* Iconos (Aseguramos que se vean sus colores originales, NO blancos) */
-.eco-icon {
-    width: 120px;
-    height: auto;
-    margin-bottom: 20px;
-    display: block;
-    filter: none !important; /* IMPORTANTE: Quita el filtro blanco */
-}
-
-/* PARTE INFERIOR (Azul con tu imagen de fondo) */
+/* --- PARTE INFERIOR (AZUL) --- */
 .eco-bottom {
-    /* AQUÍ USAMOS TU IMAGEN DE FONDO */
-    background-image: url('img/bg-card-blue.png');
-    background-color: var(--navy); /* Color de respaldo */
-    background-size: cover;
-    background-position: center;
-    padding: 25px 30px;
+    background-color: var(--navy); /* Azul oscuro PIDA */
+    /* Opcional: Si quieres un degradado sutil como en el PDF */
+    background: linear-gradient(180deg, var(--navy) 0%, #152a45 100%);
+    
+    padding: 25px;
     color: white;
-    border-top: 1px solid rgba(255,255,255,0.1);
-}
-
-.eco-bottom strong {
-    color: #93C5FD; /* Azul claro para el título "Aplicación práctica" */
-    display: block;
-    margin-bottom: 5px;
-    text-transform: uppercase;
-    font-size: 0.8rem;
-    letter-spacing: 0.5px;
+    flex-grow: 1; /* ESTO HACE QUE TODAS LAS CAJAS TENGAN LA MISMA ALTURA */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
 .eco-bottom p {
-    color: white;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+/* Estilo para el texto de APLICACIÓN PRÁCTICA */
+.eco-bottom strong {
+    color: #93C5FD; /* Azul claro para resaltar */
+    display: block;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.eco-bottom .app-text {
     font-size: 0.9rem;
-    line-height: 1.5;
-    margin: 0;
+    color: white;
+    margin-bottom: 0;
 }
