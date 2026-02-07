@@ -1700,7 +1700,7 @@ input:checked + .slider:before {
 
 .fundamento-item p {
     font-size: 0.95rem;
-    color: #CBD5E1; /* Gris azulado claro */
+    color: #FFFFFF; /* Blanco */
     line-height: 1.6;
 }
 
