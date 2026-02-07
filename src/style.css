@@ -1657,6 +1657,8 @@ input:checked + .slider:before {
 /* --- Bloque Inferior (Imagen Tech) --- */
 .fundamento-parte-oscura {
     position: relative;
+    width: 100%;
+    height: 400px;
     background-image: url('/img/fondo-tech.png'); 
     background-size: cover;
     background-position: center;
