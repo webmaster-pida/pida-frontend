@@ -1659,7 +1659,7 @@ input:checked + .slider:before {
     position: relative;
     background-image: url('/img/fondo-tech.png'); 
     background-size: cover;
-    background-position: center;
+    background-position: bottom;
     padding: 100px 0;
     color: white;
     overflow: hidden;
