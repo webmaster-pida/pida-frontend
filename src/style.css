@@ -41,8 +41,8 @@
             --white: #FFFFFF;
             --cyan: #1D3557;      /* Ajustado al Navy para consistencia */
             --border-light: #E5E7EB;
-            --font-display: 'Space Grotesk', sans-serif; /* Tipografía moderna sugerida */
-            --font-body: 'Inter', sans-serif;
+            --font-display: 'Open-Sans', sans-serif;
+            --font-body: 'Manrope', sans-serif;
             
             /* Variables de la App */
             --pida-primary: var(--navy);
