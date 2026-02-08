@@ -14,6 +14,10 @@ import { jsPDF } from "jspdf";
 import * as docx from "docx";
 import { marked } from "marked";
 import DOMPurify from "dompurify";
+import { ChatGoogleGenerativeAI } from '@langchain/google-genai';
+import { HarmBlockThreshold, HarmCategory } from '@google/generative-ai';
+import { HumanMessage, SystemMessage, AIMessage } from '@langchain/core/messages';
+import MarkdownIt from 'markdown-it';
 
 let isProcessingPayment = false;
 
@@ -2771,5 +2775,100 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Ejecutar al cargar
     handleUnsubscribePath();
+
+    // =========================================================
+    // LÓGICA DE LA SECCIÓN "PRUEBA PIDA" (RAG + LIMITER)
+    // =========================================================
+    const RAG_BACKEND_URL = 'https://rag-v20-465781488910.us-central1.run.app/query';
+    const trialForm = document.getElementById('trial-form');
+    const trialInput = document.getElementById('trial-prompt');
+    const trialOutput = document.getElementById('trial-output');
+    const trialCounterText = document.getElementById('trial-counter-text');
+    const mdTrial = new MarkdownIt();
+
+    // 1. Gestión de Límite Diario (LocalStorage como proxy de IP)
+    function getTrialUsage() {
+        const today = new Date().toLocaleDateString();
+        let usage = JSON.parse(localStorage.getItem('pida_free_usage') || '{}');
+        if (usage.date !== today) {
+            usage = { date: today, count: 0 };
+        }
+        return usage;
+    }
+
+    function updateTrialUI() {
+        const usage = getTrialUsage();
+        const remaining = Math.max(0, 3 - usage.count);
+        trialCounterText.textContent = `Consultas disponibles hoy: ${remaining}/3`;
+        if (remaining <= 0) {
+            trialInput.disabled = true;
+            trialInput.placeholder = "Límite diario alcanzado. Regístrate para acceso ilimitado.";
+            document.getElementById('trial-send-btn').disabled = true;
+        }
+    }
+    updateTrialUI();
+
+    if (trialForm) {
+        trialForm.onsubmit = async (e) => {
+            e.preventDefault();
+            const query = trialInput.value.trim();
+            const usage = getTrialUsage();
+
+            if (!query || usage.count >= 3) return;
+
+            // Mostrar mensaje del usuario
+            const userDiv = document.createElement('div');
+            userDiv.className = 'pida-bubble user-message-bubble';
+            userDiv.textContent = query;
+            trialOutput.appendChild(userDiv);
+            trialInput.value = '';
+
+            // Burbuja de carga
+            const botDiv = document.createElement('div');
+            botDiv.className = 'pida-bubble pida-message-bubble';
+            botDiv.innerHTML = '<em>Buscando en base de conocimiento...</em>';
+            trialOutput.appendChild(botDiv);
+            trialOutput.scrollTop = trialOutput.scrollHeight;
+
+            try {
+                // 1. Consultar RAG Backend
+                const ragRes = await fetch(RAG_BACKEND_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query: query })
+                });
+                const ragData = await ragRes.json();
+                const context = ragData.results.map(r => r.content).join('\n---\n');
+
+                // 2. Llamar a Gemini vía LangChain
+                const llm = new ChatGoogleGenerativeAI({
+                    apiKey: import.meta.env.VITE_GOOGLE_API_KEY,
+                    modelName: import.meta.env.VITE_GOOGLE_MODEL_NAME,
+                    maxOutputTokens: 1024,
+                    safetySettings: [{ category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_ONLY_HIGH }]
+                });
+
+                botDiv.innerHTML = '<em>Analizando...</em>';
+                
+                const augmentedPrompt = `Eres PIDA, un asistente legal experto. Usa este contexto: \n${context}\n\nPregunta: ${query}`;
+                const response = await llm.invoke([
+                    new SystemMessage("Responde de forma profesional y cita las fuentes si están en el contexto."),
+                    new HumanMessage(augmentedPrompt)
+                ]);
+
+                botDiv.innerHTML = DOMPurify.sanitize(mdTrial.render(response.content));
+                
+                // 3. Incrementar contador
+                usage.count++;
+                localStorage.setItem('pida_free_usage', JSON.stringify(usage));
+                updateTrialUI();
+
+            } catch (err) {
+                botDiv.innerHTML = '<span style="color:red">Error al procesar la consulta. Inténtalo más tarde.</span>';
+                console.error(err);
+            }
+            trialOutput.scrollTop = trialOutput.scrollHeight;
+        };
+    }
 
 });

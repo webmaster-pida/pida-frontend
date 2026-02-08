@@ -1726,3 +1726,48 @@ input:checked + .slider:before {
     margin: 0 !important;
     flex-shrink: 0; /* Evita que el icono se aplaste si hay mucho texto */
 }
+
+/* =========================================
+   ESTILOS SECCIÓN PRUEBA RAG
+   ========================================= */
+.prueba-container {
+    max-width: 800px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 500px;
+}
+.trial-output-box {
+    flex: 1;
+    padding: 30px;
+    overflow-y: auto;
+    background-color: #fcfcfc;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+.trial-form-box {
+    padding: 20px;
+    background: white;
+    border-top: 1px solid #eee;
+}
+.trial-input-wrapper {
+    display: flex;
+    gap: 10px;
+}
+.trial-input-wrapper input {
+    flex: 1;
+    height: 50px;
+}
+.trial-output-box .pida-bubble {
+    max-width: 90%;
+}
+#trial-prompt:disabled {
+    background-color: #f1f5f9;
+    cursor: not-allowed;
+}
