@@ -374,7 +374,6 @@ window.switchAuthMode = function(mode, showTabs = true) {
 
     // 3. Lógica Específica de cada Modo
     if (mode === 'reset') {
-        // --- MODO: RESET PASSWORD ---
         if(nameFields) nameFields.style.display = 'none';
         title.textContent = 'Recuperar Contraseña';
         desc.textContent = 'Ingresa tu correo para enviarte un enlace de restauración.';
@@ -388,12 +387,36 @@ window.switchAuthMode = function(mode, showTabs = true) {
         
         document.getElementById('login-password').required = false;
 
-        // Ocultar tarjeta si existe
         const cardContainer = document.getElementById('card-element-container');
         if (cardContainer) cardContainer.style.display = 'none';
 
-    } else { 
-            // --- REGISTRO / CHECKOUT (AQUÍ ESTÁ LA LÓGICA DE PAGO) ---
+    } else {
+        if(passContainer) passContainer.style.display = 'block';
+        document.getElementById('login-password').required = true;
+
+        if (mode === 'login') {
+            // --- LOGIN NORMAL (AQUÍ ESTÁ LA CORRECCIÓN QUE PERMITIRÁ ENTRAR) ---
+            if(nameFields) nameFields.style.display = 'none';
+            title.textContent = 'Bienvenido de nuevo';
+            desc.textContent = 'Accede para continuar tu investigación.';
+            submitBtn.textContent = 'Ingresar';
+            
+            if(disclaimer) disclaimer.style.display = 'none';
+            if(googleBtn) googleBtn.style.display = 'flex';
+            if(divider) divider.style.display = 'block';
+            if(forgotLink) forgotLink.parentElement.style.display = 'block';
+
+            const cardContainer = document.getElementById('card-element-container');
+            if (cardContainer) cardContainer.style.display = 'none';
+            
+            const emailInput = document.getElementById('login-email');
+            if (emailInput) {
+                emailInput.readOnly = false;
+                emailInput.style.backgroundColor = '';
+            }
+
+        } else { 
+            // --- REGISTRO / CHECKOUT INTELIGENTE ---
             if(nameFields) nameFields.style.display = 'flex';
             
             const emailInput = document.getElementById('login-email');
@@ -410,17 +433,16 @@ window.switchAuthMode = function(mode, showTabs = true) {
                 if (emailInput) {
                     emailInput.value = auth.currentUser.email;
                     emailInput.readOnly = true;
-                    emailInput.style.backgroundColor = '#f3f4f6'; // Aspecto deshabilitado visualmente
+                    emailInput.style.backgroundColor = '#f3f4f6'; // Aspecto deshabilitado
                 }
 
-                // Pre-rellenar nombre si existe
+                // Pre-rellenar nombre
                 if (auth.currentUser.displayName && document.getElementById('reg-firstname').value === '') {
                     const names = auth.currentUser.displayName.split(' ');
                     document.getElementById('reg-firstname').value = names[0] || '';
                     document.getElementById('reg-lastname').value = names.slice(1).join(' ') || '';
                 }
             } else {
-                // Modo Registro Normal (Usuario Nuevo)
                 title.textContent = 'Crear una cuenta';
                 desc.textContent = 'Únete para acceder a PIDA.';
                 submitBtn.textContent = 'Registrarme e iniciar prueba gratis';
@@ -439,38 +461,29 @@ window.switchAuthMode = function(mode, showTabs = true) {
             if(divider) divider.style.display = 'none';
             if(forgotLink) forgotLink.parentElement.style.display = 'none';
 
-            // 1. Obtener datos ACTUALES de sesión (Lo que el usuario acaba de clickear)
+            // Datos Stripe
             const pendingPlan = sessionStorage.getItem('pida_pending_plan') || 'basico';
             const pendingInterval = sessionStorage.getItem('pida_pending_interval') || 'monthly';
             const pendingCurrency = localStorage.getItem('pida_currency') || 'USD';
             
-            // 2. Resolver detalles del plan (Precio y Nombre)
             let planDetails = null;
             if (STRIPE_PRICES[pendingPlan] && STRIPE_PRICES[pendingPlan][pendingInterval]) {
                 planDetails = STRIPE_PRICES[pendingPlan][pendingInterval][pendingCurrency];
             }
-            
-            // Fallback por seguridad
-            if (!planDetails) {
-                console.error("Error crítico: Plan no encontrado en configuración", pendingPlan, pendingInterval, pendingCurrency);
-                planDetails = { text: 'Unknown', id: '' };
-            }
+            if (!planDetails) planDetails = { text: 'Unknown', id: '' };
 
             const planNameDisplay = pendingPlan.charAt(0).toUpperCase() + pendingPlan.slice(1);
             const intervalDisplay = pendingInterval === 'monthly' ? 'Mensual' : 'Anual';
 
-            // 3. Manejo del DOM del contenedor de tarjeta
             const authForm = document.getElementById('login-form');
             let cardContainer = document.getElementById('card-element-container');
 
-            // A) SI NO EXISTE: CREAR ESTRUCTURA (Solo una vez)
             if (!cardContainer) {
                 cardContainer = document.createElement('div');
                 cardContainer.id = 'card-element-container';
                 cardContainer.className = 'payment-summary-container'; 
                 
                 cardContainer.innerHTML = `
-                    <!-- RESUMEN DE LA ORDEN -->
                     <div class="order-summary-box">
                         <div class="summary-header">
                             <span id="ui-plan-name" class="plan-name-tag"></span>
@@ -484,26 +497,19 @@ window.switchAuthMode = function(mode, showTabs = true) {
                         </div>
                         <div id="summary-discount-tag" class="discount-pill" style="display:none;"></div>
                     </div>
-
-                    <!-- TARJETA STRIPE -->
                     <label class="input-label" style="font-weight:600; font-size:0.9rem; color:#1D3557; margin-bottom:8px; display:block;">Datos de la tarjeta</label>
                     <div id="stripe-card-element" class="stripe-input-box" style="padding:12px; border:1px solid #ccc; border-radius:8px; background:white; margin-bottom: 15px;"></div>
-                    
-                    <!-- CUPÓN PROMOCIONAL -->
                     <div class="promo-section">
                         <div class="promo-toggle" id="promo-toggle-btn" style="font-size: 0.85rem; color: var(--pida-accent); cursor: pointer; text-decoration: underline; font-weight: 500;">
                             + Tengo un código de descuento
                         </div>
-                        
                         <div id="promo-input-wrapper" class="promo-input-group" style="display:none; gap: 8px; margin-top: 8px;">
                             <input type="text" id="promo-code-input" placeholder="CÓDIGO" autocomplete="off" class="login-input" style="margin-bottom:0; text-transform:uppercase;">
                             <button type="button" id="apply-promo-btn" style="background:var(--pida-primary); color:white; border:none; border-radius:6px; padding:0 15px; cursor:pointer;">Aplicar</button>
                         </div>
                         <div id="promo-message" class="promo-msg" style="font-size:0.8rem; margin-top:5px; display:none;"></div>
                     </div>
-
                     <div id="card-errors" style="color:#EF4444; font-size:0.8rem; margin-top:5px; display:none;"></div>
-                    
                     <div id="terms-container" style="display: flex; align-items: flex-start; gap: 10px; margin-top: 15px; text-align: left;">
                         <input type="checkbox" id="terms-checkbox" style="width: 16px; height: 16px; margin-top: 3px;">
                         <label for="terms-checkbox" style="font-size: 0.8rem; color: #4B5563; line-height: 1.4;">
@@ -511,10 +517,8 @@ window.switchAuthMode = function(mode, showTabs = true) {
                         </label>
                     </div>
                 `;
-                
                 authForm.insertBefore(cardContainer, document.getElementById('auth-submit-btn'));
 
-                // Inicializar Stripe Elements (Solo una vez)
                 const elements = stripe.elements();
                 cardElement = elements.create('card', { 
                     hidePostalCode: true, 
@@ -522,7 +526,6 @@ window.switchAuthMode = function(mode, showTabs = true) {
                 });
                 cardElement.mount('#stripe-card-element');
                 
-                // Listener para el botón de mostrar cupón
                 document.getElementById('promo-toggle-btn').onclick = () => {
                     document.getElementById('promo-toggle-btn').style.display = 'none';
                     document.getElementById('promo-input-wrapper').style.display = 'flex';
@@ -530,17 +533,12 @@ window.switchAuthMode = function(mode, showTabs = true) {
                 };
             }
 
-            // B) SIEMPRE ACTUALIZAR LA INFORMACIÓN VISUAL (CRÍTICO PARA ARREGLAR BUG)
-            // Esto se ejecuta tanto si se acaba de crear como si ya existía
-            
-            // 1. Actualizar Textos del Plan
             const uiPlanName = document.getElementById('ui-plan-name');
             const uiOriginalPrice = document.getElementById('summary-original-price');
             
             if(uiPlanName) uiPlanName.textContent = `Plan ${planNameDisplay} (${intervalDisplay})`;
             if(uiOriginalPrice) uiOriginalPrice.textContent = planDetails.text;
 
-            // 2. Resetear estados visuales de cupón (Limpieza)
             const uiFinalPrice = document.getElementById('summary-final-price');
             const uiDiscountTag = document.getElementById('summary-discount-tag');
             const uiPromoInput = document.getElementById('promo-code-input');
@@ -554,88 +552,58 @@ window.switchAuthMode = function(mode, showTabs = true) {
             if(uiPromoMsg) { uiPromoMsg.style.display = 'none'; uiPromoMsg.className = 'promo-msg'; uiPromoMsg.textContent = ''; }
             if(uiApplyBtn) { uiApplyBtn.disabled = false; uiApplyBtn.textContent = 'Aplicar'; }
 
-            // 3. Reasignar evento de click al botón Aplicar (Para capturar el precio actualizado del plan actual)
             if(uiApplyBtn) {
-                // Removemos listeners antiguos clonando el nodo (truco rápido y seguro)
                 const newBtn = uiApplyBtn.cloneNode(true);
                 uiApplyBtn.parentNode.replaceChild(newBtn, uiApplyBtn);
                 
                 newBtn.onclick = async (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    
                     const code = uiPromoInput.value.trim();
                     if(!code) return;
-
                     newBtn.textContent = '...';
                     newBtn.disabled = true;
                     uiPromoMsg.style.display = 'none';
 
                     try {
-                        // URL corregida: Asegúrate de que PIDA_CONFIG.API_CHAT sea correcta
                         const response = await fetch(`${PIDA_CONFIG.API_CHAT}/validate-promo-code`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ 
-                                code: code, 
-                                priceId: planDetails.id // ID ACTUALIZADO del plan seleccionado
-                            })
+                            body: JSON.stringify({ code: code, priceId: planDetails.id })
                         });
-
                         const data = await response.json();
+                        if (!response.ok) throw new Error(data.detail || 'Error al validar código');
 
-                        if (!response.ok) {
-                            // Si devuelve 404 aquí es porque la respuesta JSON trajo detalle, o el servidor
-                            // realmente no encontró la ruta.
-                            throw new Error(data.detail || 'Error al validar código');
-                        }
-
-                        // ÉXITO
                         uiPromoMsg.textContent = `✅ Cupón "${data.coupon_name}" aplicado.`;
                         uiPromoMsg.className = 'promo-msg success';
                         uiPromoMsg.style.color = '#10B981';
                         uiPromoMsg.style.display = 'block';
 
-                        // Formatear precio
-                        const formatter = new Intl.NumberFormat(pendingCurrency === 'MXN' ? 'es-MX' : 'en-US', {
-                            style: 'currency',
-                            currency: pendingCurrency,
-                            minimumFractionDigits: 2
-                        });
-                        
+                        const formatter = new Intl.NumberFormat(pendingCurrency === 'MXN' ? 'es-MX' : 'en-US', { style: 'currency', currency: pendingCurrency, minimumFractionDigits: 2 });
                         uiOriginalPrice.classList.add('crossed-out');
                         uiFinalPrice.textContent = formatter.format(data.final_amount / 100);
                         uiFinalPrice.style.display = 'block';
-                        
                         uiDiscountTag.textContent = `Ahorras: ${data.description}`;
                         uiDiscountTag.style.display = 'inline-block';
-
                         uiPromoInput.disabled = true;
                         newBtn.textContent = '✓';
-
                     } catch (error) {
-                        console.error("Error promo:", error);
                         uiPromoMsg.textContent = `❌ ${error.message}`;
                         uiPromoMsg.className = 'promo-msg error';
                         uiPromoMsg.style.color = '#EF4444';
                         uiPromoMsg.style.display = 'block';
-                        
                         newBtn.textContent = 'Aplicar';
                         newBtn.disabled = false;
-                        
-                        // Reset visual parcial
                         uiOriginalPrice.classList.remove('crossed-out');
                         uiFinalPrice.style.display = 'none';
                         uiDiscountTag.style.display = 'none';
                     }
                 };
             }
-
-            // Mostrar el contenedor finalmente
             cardContainer.style.display = 'block';
         }
+    }
 
-    // Footer nav logic (Mantener igual)
     const footerNav = document.getElementById('auth-footer-nav');
     if (footerNav) {
         if (mode === 'login') {
@@ -646,7 +614,7 @@ window.switchAuthMode = function(mode, showTabs = true) {
             footerNav.innerHTML = ''; 
         }
     }
-};
+}
 
 // Configuración Markdown
 marked.use({ gfm: true, breaks: true });
@@ -1240,7 +1208,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             try {
                 if (authMode === 'reset') {
-                    // Lógica de recuperación (basada en la que ya tienes funcionando en la app)
                     await auth.sendPasswordResetEmail(email);
                     errMsg.innerHTML = "✅ Enlace enviado. Revisa tu correo (incluyendo spam).";
                     errMsg.style.display = 'block';
@@ -1252,9 +1219,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (authMode === 'login') {
                     await auth.signInWithEmailAndPassword(email, pass);
                 } else if (authMode === 'register') {
-                    // 1. Validar Checkbox de Términos
                     isProcessingPayment = true;
-                    // Mostrar robot de preparación inmediatamente
                     const setupOverlay = document.getElementById('pida-setup-overlay');
                     if (setupOverlay) {
                         setupOverlay.style.display = 'flex';
@@ -1264,7 +1229,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (termsCheckbox && !termsCheckbox.checked) {
                         btn.disabled = false;
                         btn.textContent = 'Registrarme e iniciar prueba gratis';
-                        const errMsg = document.getElementById('login-message');
                         if (errMsg) {
                             errMsg.textContent = "❌ Debes aceptar los términos y condiciones para continuar.";
                             errMsg.style.display = 'block';
@@ -1273,14 +1237,12 @@ document.addEventListener('DOMContentLoaded', function () {
                         return; 
                     }
 
-                    // 2. Validar Nombre y Apellido
                     const fName = document.getElementById('reg-firstname').value.trim();
                     const lName = document.getElementById('reg-lastname').value.trim();
                     
                     if (!fName || !lName) {
                         btn.disabled = false;
                         btn.textContent = 'Registrarme e iniciar prueba gratis';
-                        const errMsg = document.getElementById('login-message');
                         if (errMsg) {
                             errMsg.textContent = "❌ Por favor ingresa tu nombre y apellido.";
                             errMsg.style.display = 'block';
@@ -1290,26 +1252,18 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                     const fullName = `${fName} ${lName}`;
 
-                    // 3. CAPTURAR CÓDIGO DE PROMOCIÓN (NUEVO)
-                    // Usamos ?.value por seguridad, aunque el input ya debería existir
                     const promoInput = document.getElementById('promo-code-input');
                     const promoCode = promoInput ? promoInput.value.trim() : "";
 
-                    btn.disabled = true;
-                    btn.textContent = "Creando cuenta...";
-                    btn.textContent = "Creando cuenta...";
-
-                    // ACTIVAMOS BANDERA AHORA para que runApp muestre el Robot y no el bloqueo
                     sessionStorage.setItem('pida_is_onboarding', 'true'); 
-
+                    
                     let user = auth.currentUser;
 
-                    // 4. Crear el usuario en Firebase (SOLO si no está logueado ya)
+                    // Creación inteligente del usuario en Firebase (SOLO si no está logueado ya)
                     if (!user) {
                         btn.textContent = "Creando cuenta...";
                         const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
                         user = userCredential.user;
-                        // 5. Actualizar el Display Name
                         await user.updateProfile({ displayName: fullName });
                     } else {
                         btn.textContent = "Preparando pago...";
@@ -1318,16 +1272,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     btn.textContent = "Iniciando tu prueba de 5 días...";
 
-                    // 6. Obtener monto según plan e intervalo seleccionados
                     const planKey = sessionStorage.getItem('pida_pending_plan') || 'basico';
                     const intervalKey = sessionStorage.getItem('pida_pending_interval') || 'monthly';
                     const planData = STRIPE_PRICES[planKey][intervalKey][currentCurrency];
 
-                    if (!planData || !planData.amount) {
-                        throw new Error("No se pudo identificar el plan. Selecciona uno nuevamente.");
-                    }
+                    if (!planData || !planData.amount) throw new Error("No se pudo identificar el plan.");
 
-                    // 7. Llamar al Backend (INCLUYENDO EL CÓDIGO DE PROMOCIÓN)
                     const headers = await Utils.getHeaders(user);
                     const intentRes = await fetch(`${PIDA_CONFIG.API_CHAT}/create-payment-intent`, {
                         method: 'POST',
@@ -1338,51 +1288,35 @@ document.addEventListener('DOMContentLoaded', function () {
                             plan_key: planKey,
                             trial_period_days: 5,
                             name: fullName,
-                            promotion_code: promoCode // <--- AQUÍ ENVIAMOS EL CUPÓN
+                            promotion_code: promoCode
                         })
                     });
 
-                    // --- PROTECCIÓN DE ERRORES ---
                     if (!intentRes.ok) {
                         const errorData = await intentRes.json();
-                        // Si el cupón es inválido, el backend lanzará error 400 y lo veremos aquí
                         throw new Error(errorData.detail || "Error en el servidor de pagos (400)");
                     }
 
                     const data = await intentRes.json();
                     const clientSecret = data.clientSecret;
                     
-                    // 8. Confirmar el Pago (o Configuración si es Trial)
                     let result;
-                    
                     if (clientSecret.startsWith('seti_')) {
                         result = await stripe.confirmCardSetup(clientSecret, {
-                            payment_method: { 
-                                card: cardElement,
-                                billing_details: { name: fullName } 
-                            }
+                            payment_method: { card: cardElement, billing_details: { name: fullName } }
                         });
                     } else {
                         result = await stripe.confirmCardPayment(clientSecret, {
-                            payment_method: { 
-                                card: cardElement,
-                                billing_details: { name: fullName }
-                            }
+                            payment_method: { card: cardElement, billing_details: { name: fullName } }
                         });
                     }
 
                     if (result.error) {
-                        // Limpiamos la bandera para que no se quede el robot de carga si reintenta o refresca
                         sessionStorage.removeItem('pida_is_onboarding');
-                        // Guardamos el mensaje de Stripe para mostrarlo
                         const stripeErrorMessage = result.error.message;
                         isProcessingPayment = false;
-                        // Guardar el error localmente para mostrarlo en el modal de inmediato
                         sessionStorage.setItem('pida_stripe_fail', stripeErrorMessage);
-                        // Ocultar robot y mostrar el error en la pantalla de login
-                        const setupOverlay = document.getElementById('pida-setup-overlay');
                         if (setupOverlay) setupOverlay.style.display = 'none';
-                        const errMsg = document.getElementById('login-message');
                         if (errMsg) {
                             errMsg.innerHTML = `❌ Error de pago: ${stripeErrorMessage}`;
                             errMsg.style.display = 'block';
@@ -1390,14 +1324,10 @@ document.addEventListener('DOMContentLoaded', function () {
                         throw new Error(stripeErrorMessage);
                     }
                     
-                    // Verificamos éxito del pago o configuración
                     const intent = result.paymentIntent || result.setupIntent;
                     
                     if (intent.status === 'succeeded') {
-                        // --- ESPERA ACTIVA (POLLING) ---
                         btn.textContent = "Suscripción iniciada. Activando...";
-                        // Forzar visibilidad del robot mientras esperamos activación
-                        const setupOverlay = document.getElementById('pida-setup-overlay');
                         if (setupOverlay) {
                             setupOverlay.style.display = 'flex';
                             setupOverlay.classList.remove('hidden');
@@ -1405,11 +1335,8 @@ document.addEventListener('DOMContentLoaded', function () {
                         const checkSub = async () => {
                             let attempts = 0;
                             while (attempts < 10) { 
-                                console.log(`Esperando activación... intento ${attempts + 1}`);
                                 const subCheck = await db.collection('customers').doc(user.uid).get();
-                                if (subCheck.exists && subCheck.data().status === 'active') {
-                                    return true;
-                                }
+                                if (subCheck.exists && subCheck.data().status === 'active') return true;
                                 await new Promise(r => setTimeout(r, 2000));
                                 attempts++;
                             }
@@ -1417,8 +1344,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         };
 
                         const isActivated = await checkSub();
-
-                        // Forzamos la URL con el parámetro para asegurar que la recarga mantenga el Robot
                         const successUrl = window.location.pathname + "?payment_status=success";
                         
                         if (isActivated) {
@@ -1433,19 +1358,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
             } catch (error) {
-                // Si falló, quitamos la bandera de onboarding para permitir reintentar
+                // Manejo de UX Inteligente
                 sessionStorage.removeItem('pida_is_onboarding');
                 isProcessingPayment = false;
-                if (auth.currentUser) runApp(auth.currentUser);
+                
+                const setupOverlay = document.getElementById('pida-setup-overlay');
+                if (setupOverlay) setupOverlay.style.display = 'none';
+
+                if (auth.currentUser && authMode !== 'register') {
+                    runApp(auth.currentUser);
+                }
 
                 btn.disabled = false;
                 let friendlyMessage = "Ocurrió un error. Intenta de nuevo.";
                 
-                // UNIFICACIÓN DE GUÍA UX (Diferenciando errores de Firebase)
                 if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found') {
                     friendlyMessage = `Los datos son incorrectos. <br><br> <b>¿Eres nuevo?</b> <a href="#" onclick="switchAuthMode('register'); return false;" style="color:#0056B3; text-decoration:underline;">Regístrate aquí.</a> <br> <b>¿Olvidaste tu clave?</b> <a href="#" onclick="switchAuthMode('reset'); return false;" style="color:#0056B3; text-decoration:underline;">Recupérala aquí.</a>`;
                 } else if (error.code === 'auth/email-already-in-use') {
-                    friendlyMessage = `Ya tienes una cuenta. <br><br> <a href="#" onclick="switchAuthMode('login'); return false;" style="color:#0056B3; text-decoration:underline;">Haz clic aquí para ingresar</a> e iniciar tus 5 días de prueba gratis.`;
+                    friendlyMessage = `Esta cuenta ya está registrada, pero parece que no completaste el pago.<br><br> <a href="#" onclick="switchAuthMode('login'); return false;" style="color:#0056B3; text-decoration:underline; font-weight:bold;">Haz clic aquí para INICIAR SESIÓN</a> con tu contraseña y luego podrás completar tu suscripción de forma segura.`;
                 } else if (error.code === 'auth/wrong-password') {
                     friendlyMessage = `La contraseña es incorrecta. <br><br> <a href="#" onclick="switchAuthMode('reset'); return false;" style="color:#0056B3; text-decoration:underline;">¿Olvidaste tu contraseña? Haz clic aquí.</a>`;
                 }
@@ -1455,7 +1385,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     errMsg.style.display = 'block';
                     errMsg.style.color = '#EF4444';
                 }
-                btn.textContent = (authMode === 'login') ? 'Ingresar' : 'Registrarme e iniciar prueba gratis';
+                
+                if (authMode === 'login') {
+                    btn.textContent = 'Ingresar';
+                } else if (auth.currentUser) {
+                    btn.textContent = 'Comenzar prueba gratis';
+                } else {
+                    btn.textContent = 'Registrarme e iniciar prueba gratis';
+                }
             }
         });
     }
