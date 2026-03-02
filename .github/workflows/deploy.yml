@@ -34,5 +34,5 @@ jobs:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PIDA_AI_V20 }}'
           projectId: pida-ai-v20
-          channelId: 'prueba-vite'
+          channelId: 'preview-pago'
           expires: 7d
