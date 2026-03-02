@@ -647,7 +647,7 @@ window.switchAuthMode = function(mode, showTabs = true) {
             footerNav.innerHTML = ''; 
         }
     }
-}
+
 
 // Configuración Markdown
 marked.use({ gfm: true, breaks: true });
@@ -1433,7 +1433,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
 
-            }} catch (error) {
+            } catch (error) {
                 // Si falló, quitamos la bandera de onboarding para permitir reintentar
                 sessionStorage.removeItem('pida_is_onboarding');
                 isProcessingPayment = false;
