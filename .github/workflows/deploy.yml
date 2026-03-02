@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - development
+      - pago
 
 jobs:
   build_and_preview:
