@@ -1148,14 +1148,17 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
     // OBSERVADOR DE ESTADO (CAMBIO DE PANTALLAS)
     // ==========================================
-        auth.onAuthStateChanged((user) => {
+    auth.onAuthStateChanged((user) => {
         if (checkUpdateBeforeStart()) return; 
 
         if (user) {
-            // Ocultamos landing y login, pero NO mostramos la App todavía
-            if(landingRoot) landingRoot.style.display = 'none'; 
-            if(loginScreen) loginScreen.style.display = 'none'; 
-            runApp(user); // runApp decidirá si va a Stripe o muestra la App
+            // EVITAMOS ocultar la pantalla si estamos a mitad del proceso de pago.
+            // Así el usuario puede ver los errores del banco de forma inmediata.
+            if (!isProcessingPayment) {
+                if(landingRoot) landingRoot.style.display = 'none'; 
+                if(loginScreen) loginScreen.style.display = 'none'; 
+            }
+            runApp(user); 
         } else {
             hideLoader(); 
             if(appRoot) appRoot.style.display = 'none';
@@ -1374,6 +1377,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 
                 const setupOverlay = document.getElementById('pida-setup-overlay');
                 if (setupOverlay) setupOverlay.style.display = 'none';
+
+                // AÑADIDO: Asegurar que el modal y el fondo sigan visibles para mostrar el error
+                const loginScreenUI = document.getElementById('pida-login-screen');
+                if (loginScreenUI) loginScreenUI.style.display = 'flex';
+                const landingRootUI = document.getElementById('landing-page-root');
+                if (landingRootUI) landingRootUI.style.display = 'block';
 
                 if (auth.currentUser && authMode !== 'register') {
                     runApp(auth.currentUser);
