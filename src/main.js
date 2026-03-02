@@ -634,7 +634,6 @@ window.switchAuthMode = function(mode, showTabs = true) {
             // Mostrar el contenedor finalmente
             cardContainer.style.display = 'block';
         }
-    }
 
     // Footer nav logic (Mantener igual)
     const footerNav = document.getElementById('auth-footer-nav');
@@ -647,7 +646,7 @@ window.switchAuthMode = function(mode, showTabs = true) {
             footerNav.innerHTML = ''; 
         }
     }
-
+};
 
 // Configuración Markdown
 marked.use({ gfm: true, breaks: true });
