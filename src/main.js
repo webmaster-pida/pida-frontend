@@ -357,10 +357,13 @@ window.switchAuthMode = function(mode, showTabs = true) {
     const errMsg = document.getElementById('login-message');
     const nameFields = document.getElementById('register-name-fields'); 
     
-    // Limpiar errores previos
+    // Limpiar errores previos y liberar botón
     if(errMsg) {
         errMsg.style.display = 'none';
         errMsg.textContent = '';
+    }
+    if (submitBtn) {
+        submitBtn.disabled = false; // Asegurar que el botón nunca se quede bloqueado al cambiar de vista
     }
 
     // 2. Control de pestañas superiores
@@ -395,7 +398,6 @@ window.switchAuthMode = function(mode, showTabs = true) {
         document.getElementById('login-password').required = true;
 
         if (mode === 'login') {
-            // --- LOGIN NORMAL (AQUÍ ESTÁ LA CORRECCIÓN QUE PERMITIRÁ ENTRAR) ---
             if(nameFields) nameFields.style.display = 'none';
             title.textContent = 'Bienvenido de nuevo';
             desc.textContent = 'Accede para continuar tu investigación.';
@@ -421,7 +423,6 @@ window.switchAuthMode = function(mode, showTabs = true) {
             
             const emailInput = document.getElementById('login-email');
 
-            // Si el usuario YA está logueado, transformamos el modal en un "Checkout"
             if (typeof auth !== 'undefined' && auth.currentUser) {
                 title.textContent = 'Completar Suscripción';
                 desc.textContent = 'Ingresa tus datos de pago para activar tu plan.';
@@ -433,10 +434,9 @@ window.switchAuthMode = function(mode, showTabs = true) {
                 if (emailInput) {
                     emailInput.value = auth.currentUser.email;
                     emailInput.readOnly = true;
-                    emailInput.style.backgroundColor = '#f3f4f6'; // Aspecto deshabilitado
+                    emailInput.style.backgroundColor = '#f3f4f6'; 
                 }
 
-                // Pre-rellenar nombre
                 if (auth.currentUser.displayName && document.getElementById('reg-firstname').value === '') {
                     const names = auth.currentUser.displayName.split(' ');
                     document.getElementById('reg-firstname').value = names[0] || '';
@@ -461,7 +461,6 @@ window.switchAuthMode = function(mode, showTabs = true) {
             if(divider) divider.style.display = 'none';
             if(forgotLink) forgotLink.parentElement.style.display = 'none';
 
-            // Datos Stripe
             const pendingPlan = sessionStorage.getItem('pida_pending_plan') || 'basico';
             const pendingInterval = sessionStorage.getItem('pida_pending_interval') || 'monthly';
             const pendingCurrency = localStorage.getItem('pida_currency') || 'USD';
@@ -1218,6 +1217,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 
                 if (authMode === 'login') {
                     await auth.signInWithEmailAndPassword(email, pass);
+                    // Forzar reactivación y cierre si el usuario ya estaba "logueado" internamente
+                    btn.disabled = false;
+                    btn.textContent = 'Ingresar';
+                    const loginScreen = document.getElementById('pida-login-screen');
+                    if (loginScreen) loginScreen.style.display = 'none';
+                    if (auth.currentUser) runApp(auth.currentUser);
+
                 } else if (authMode === 'register') {
                     isProcessingPayment = true;
                     const setupOverlay = document.getElementById('pida-setup-overlay');
@@ -1234,6 +1240,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             errMsg.style.display = 'block';
                             errMsg.style.color = '#EF4444';
                         }
+                        if (setupOverlay) setupOverlay.style.display = 'none';
                         return; 
                     }
 
@@ -1248,6 +1255,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             errMsg.style.display = 'block';
                             errMsg.style.color = '#EF4444';
                         }
+                        if (setupOverlay) setupOverlay.style.display = 'none';
                         return;
                     }
                     const fullName = `${fName} ${lName}`;
@@ -1259,7 +1267,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     
                     let user = auth.currentUser;
 
-                    // Creación inteligente del usuario en Firebase (SOLO si no está logueado ya)
                     if (!user) {
                         btn.textContent = "Creando cuenta...";
                         const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
@@ -1354,6 +1361,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             alert("Pago recibido. Estamos activando tu cuenta, esto puede tardar unos segundos más. Si no accedes en 1 minuto, recarga la página.");
                             window.location.href = successUrl;
                         }
+                    } else {
+                        // LA CLAVE PARA EVITAR LA PANTALLA BLANCA DE LA MUERTE
+                        throw new Error(`Tu tarjeta fue rechazada por el banco o requiere verificación adicional (Estado: ${intent.status}). Intenta con otra tarjeta.`);
                     }
                 }
 
@@ -1378,6 +1388,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     friendlyMessage = `Esta cuenta ya está registrada, pero parece que no completaste el pago.<br><br> <a href="#" onclick="switchAuthMode('login'); return false;" style="color:#0056B3; text-decoration:underline; font-weight:bold;">Haz clic aquí para INICIAR SESIÓN</a> con tu contraseña y luego podrás completar tu suscripción de forma segura.`;
                 } else if (error.code === 'auth/wrong-password') {
                     friendlyMessage = `La contraseña es incorrecta. <br><br> <a href="#" onclick="switchAuthMode('reset'); return false;" style="color:#0056B3; text-decoration:underline;">¿Olvidaste tu contraseña? Haz clic aquí.</a>`;
+                } else if (error.message) {
+                    // MANTIENE EL ERROR DE STRIPE
+                    friendlyMessage = `❌ ${error.message}`;
                 }
 
                 if (errMsg) {
