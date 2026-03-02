@@ -392,34 +392,48 @@ window.switchAuthMode = function(mode, showTabs = true) {
         const cardContainer = document.getElementById('card-element-container');
         if (cardContainer) cardContainer.style.display = 'none';
 
-    } else {
-        // --- MODO: LOGIN O REGISTRO ---
-        if(passContainer) passContainer.style.display = 'block';
-        document.getElementById('login-password').required = true;
-
-        if (mode === 'login') {
-            // --- LOGIN ---
-            if(nameFields) nameFields.style.display = 'none';
-            title.textContent = 'Bienvenido de nuevo';
-            desc.textContent = 'Accede para continuar tu investigación.';
-            submitBtn.textContent = 'Ingresar';
-            
-            if(disclaimer) disclaimer.style.display = 'none';
-            if(googleBtn) googleBtn.style.display = 'flex';
-            if(divider) divider.style.display = 'block';
-            if(forgotLink) forgotLink.parentElement.style.display = 'block';
-
-            // Ocultar tarjeta
-            const cardContainer = document.getElementById('card-element-container');
-            if (cardContainer) cardContainer.style.display = 'none';
-
-        } else { 
-            // --- REGISTRO (AQUÍ ESTÁ LA LÓGICA DE PAGO) ---
+    } else { 
+            // --- REGISTRO / CHECKOUT (AQUÍ ESTÁ LA LÓGICA DE PAGO) ---
             if(nameFields) nameFields.style.display = 'flex';
-            title.textContent = 'Crear una cuenta';
-            desc.textContent = 'Únete para acceder a PIDA.';
-            submitBtn.textContent = 'Registrarme e iniciar prueba gratis';
             
+            const emailInput = document.getElementById('login-email');
+
+            // Si el usuario YA está logueado, transformamos el modal en un "Checkout"
+            if (typeof auth !== 'undefined' && auth.currentUser) {
+                title.textContent = 'Completar Suscripción';
+                desc.textContent = 'Ingresa tus datos de pago para activar tu plan.';
+                submitBtn.textContent = 'Comenzar prueba gratis';
+                
+                if (passContainer) passContainer.style.display = 'none';
+                document.getElementById('login-password').required = false;
+                
+                if (emailInput) {
+                    emailInput.value = auth.currentUser.email;
+                    emailInput.readOnly = true;
+                    emailInput.style.backgroundColor = '#f3f4f6'; // Aspecto deshabilitado visualmente
+                }
+
+                // Pre-rellenar nombre si existe
+                if (auth.currentUser.displayName && document.getElementById('reg-firstname').value === '') {
+                    const names = auth.currentUser.displayName.split(' ');
+                    document.getElementById('reg-firstname').value = names[0] || '';
+                    document.getElementById('reg-lastname').value = names.slice(1).join(' ') || '';
+                }
+            } else {
+                // Modo Registro Normal (Usuario Nuevo)
+                title.textContent = 'Crear una cuenta';
+                desc.textContent = 'Únete para acceder a PIDA.';
+                submitBtn.textContent = 'Registrarme e iniciar prueba gratis';
+                
+                if (passContainer) passContainer.style.display = 'block';
+                document.getElementById('login-password').required = true;
+                
+                if (emailInput) {
+                    emailInput.readOnly = false;
+                    emailInput.style.backgroundColor = '';
+                }
+            }
+
             if(disclaimer) disclaimer.style.display = 'block';
             if(googleBtn) googleBtn.style.display = 'none';
             if(divider) divider.style.display = 'none';
@@ -1289,12 +1303,19 @@ document.addEventListener('DOMContentLoaded', function () {
                     // ACTIVAMOS BANDERA AHORA para que runApp muestre el Robot y no el bloqueo
                     sessionStorage.setItem('pida_is_onboarding', 'true'); 
 
-                    // 4. Crear el usuario en Firebase
-                    const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
-                    const user = userCredential.user;
+                    let user = auth.currentUser;
 
-                    // 5. Actualizar el Display Name en Firebase inmediatamente
-                    await user.updateProfile({ displayName: fullName });
+                    // 4. Crear el usuario en Firebase (SOLO si no está logueado ya)
+                    if (!user) {
+                        btn.textContent = "Creando cuenta...";
+                        const userCredential = await auth.createUserWithEmailAndPassword(email, pass);
+                        user = userCredential.user;
+                        // 5. Actualizar el Display Name
+                        await user.updateProfile({ displayName: fullName });
+                    } else {
+                        btn.textContent = "Preparando pago...";
+                        await user.updateProfile({ displayName: fullName });
+                    }
 
                     btn.textContent = "Iniciando tu prueba de 5 días...";
 
@@ -1412,7 +1433,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     }
                 }
 
-            } catch (error) {
+            }} catch (error) {
                 // Si falló, quitamos la bandera de onboarding para permitir reintentar
                 sessionStorage.removeItem('pida_is_onboarding');
                 isProcessingPayment = false;
